@@ -1,5 +1,4 @@
 import Redis, { RedisOptions } from 'ioredis';
-import RedisMock from 'ioredis-mock';
 import { env } from './env';
 import { logger } from './logger';
 
@@ -19,9 +18,16 @@ const redisOptions: RedisOptions = env.REDIS_URL ?
     },
   };
 
-export const redis = env.USE_MOCK_REDIS === 'true'
-  ? new (RedisMock as any)() as Redis
-  : (env.REDIS_URL ? new Redis(env.REDIS_URL, redisOptions) : new Redis(redisOptions));
+// Conditionally import ioredis-mock only if needed
+let redisInstance: Redis;
+if (env.USE_MOCK_REDIS === 'true') {
+  const { default: RedisMock } = await import('ioredis-mock');
+  redisInstance = new (RedisMock as any)() as Redis;
+} else {
+  redisInstance = env.REDIS_URL ? new Redis(env.REDIS_URL, redisOptions) : new Redis(redisOptions);
+}
+
+export const redis = redisInstance;
 
 redis.on('connect', () => {
   logger.info(env.USE_MOCK_REDIS === 'true' ? '✅ Mock Redis connected' : '✅ Redis connected');

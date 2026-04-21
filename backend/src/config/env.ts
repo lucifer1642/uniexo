@@ -7,7 +7,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // dotenv.config({ path: path.resolve(__dirname, '../../.env') });
-dotenv.config()
+dotenv.config();
+// if (process.env.NODE_ENV !== "production") {
+//   dotenv.config();
+// }
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -49,16 +52,21 @@ const envSchema = z.object({
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
+  console.error("=========================================");
   console.error("❌ ENV VALIDATION FAILED");
-  console.error(parsed.error.flatten().fieldErrors);
+  console.error("The following environment variables are missing or invalid:");
+  console.error(JSON.stringify(parsed.error.flatten().fieldErrors, null, 2));
+  console.error("=========================================");
 
-  // 👇 ADD THIS (important debug)
-  console.log("🔍 RAW ENV CHECK:", {
-    MONGODB_URI: process.env.MONGODB_URI,
-    JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET ? "OK" : "MISSING",
-    JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET ? "OK" : "MISSING",
+  console.log("🔍 RAW ENV CHECK:");
+  console.log({
+    NODE_ENV: process.env.NODE_ENV,
+    MONGODB_URI: process.env.MONGODB_URI ? "DEFINED" : "MISSING",
+    PORT: process.env.PORT,
+    REDIS_URL: process.env.REDIS_URL ? "DEFINED" : "MISSING",
   });
-
+  console.error("💡 TIP: Make sure these variables are set in the Render Dashboard.");
+  
   process.exit(1);
 }
 
