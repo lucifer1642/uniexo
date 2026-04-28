@@ -1,5 +1,8 @@
 import { Notification, NotificationType } from '../database/models/Notification';
+import { User } from '../database/models/User';
+import { EmailService } from './email.service';
 import { Types } from 'mongoose';
+import { logger } from '../config/logger';
 
 export class NotificationService {
   static async create(
@@ -9,13 +12,33 @@ export class NotificationService {
     type: NotificationType = NotificationType.INFO,
     metadata?: Record<string, any>
   ) {
-    return Notification.create({
+    // 1. Create database notification
+    const notification = await Notification.create({
       userId,
       title,
       message,
       type,
       metadata,
     });
+
+    // 2. Trigger background email notification
+    this.sendEmailNotification(userId, title, message, metadata).catch(err => {
+      logger.error(`Error in background email notification for user ${userId}:`, err);
+    });
+
+    return notification;
+  }
+
+  private static async sendEmailNotification(
+    userId: string | Types.ObjectId,
+    title: string,
+    message: string,
+    metadata?: any
+  ) {
+    const user = await User.findById(userId).select('email');
+    if (user && user.email) {
+      await EmailService.sendGenericNotification(user.email, title, message, metadata);
+    }
   }
 
   static async getForUser(userId: string) {

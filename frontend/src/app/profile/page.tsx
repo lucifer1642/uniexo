@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import { LocateFixed, CreditCard, CheckCircle2, Clock, AlertCircle, Upload, XCircle } from 'lucide-react';
+import { LocateFixed } from 'lucide-react';
 
 export default function ProfilePage() {
   const { user, updateUser } = useAuthStore();
@@ -19,10 +19,6 @@ export default function ProfilePage() {
   const [idCardPreview, setIdCardPreview] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingIdCard, setUploadingIdCard] = useState(false);
-  const [idProofFile, setIdProofFile] = useState<File | null>(null);
-  const [businessProofFile, setBusinessProofFile] = useState<File | null>(null);
-  const [idProofPreview, setIdProofPreview] = useState<string | null>(null);
-  const [businessProofPreview, setBusinessProofPreview] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -35,10 +31,6 @@ export default function ProfilePage() {
     businessAddress: '',
     businessPhone: '',
     description: '',
-    accountHolder: user?.bankDetails?.accountHolder || '',
-    accountNumber: user?.bankDetails?.accountNumber || '',
-    ifscCode: user?.bankDetails?.ifscCode || '',
-    bankName: user?.bankDetails?.bankName || '',
   });
 
   useEffect(() => {
@@ -50,13 +42,9 @@ export default function ProfilePage() {
         phone: user.phone || '',
         location: user.location || '',
         universityId: user.universityId || '',
-        accountHolder: user.bankDetails?.accountHolder || '',
-        accountNumber: user.bankDetails?.accountNumber || '',
-        ifscCode: user.bankDetails?.ifscCode || '',
-        bankName: user.bankDetails?.bankName || '',
       }));
     }
-  }, [user]);
+  }, [user?.name, user?.email, user?.phone, user?.location, user?.universityId]);
 
   // Fetch live user profile on mount to overwrite any stale cached fields
   useEffect(() => {
@@ -123,58 +111,6 @@ export default function ProfilePage() {
     }
   };
 
-  const handleBankSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      if (!idProofFile && !user?.kycDocuments?.some((d: any) => d.type === 'id_proof')) {
-        toast.error('Identity Proof is required for KYC');
-        setLoading(false);
-        return;
-      }
-
-      const kycData = new FormData();
-      const bankDetails = {
-        accountHolder: formData.accountHolder,
-        accountNumber: formData.accountNumber,
-        ifscCode: formData.ifscCode,
-        bankName: formData.bankName,
-      };
-      
-      kycData.append('bankDetails', JSON.stringify(bankDetails));
-      if (idProofFile) kycData.append('idProof', idProofFile);
-      if (businessProofFile) kycData.append('businessProof', businessProofFile);
-
-      const response = await api.post('/users/kyc', kycData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-
-      updateUser({ 
-        bankDetails: bankDetails,
-        kycStatus: response.data.data.status 
-      });
-      toast.success('KYC details and documents submitted for approval');
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to submit KYC details');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getKycBadge = () => {
-    const status = user?.kycStatus || 'none';
-    switch (status) {
-      case 'approved':
-        return <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full text-xs font-bold border border-emerald-100"><CheckCircle2 className="w-3.5 h-3.5" /> Approved</div>;
-      case 'pending':
-        return <div className="flex items-center gap-1.5 text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full text-xs font-bold border border-amber-100"><Clock className="w-3.5 h-3.5" /> Pending Approval</div>;
-      case 'rejected':
-        return <div className="flex items-center gap-1.5 text-rose-600 bg-rose-50 px-2.5 py-1 rounded-full text-xs font-bold border border-rose-100"><AlertCircle className="w-3.5 h-3.5" /> Rejected</div>;
-      default:
-        return <div className="flex items-center gap-1.5 text-slate-500 bg-slate-50 px-2.5 py-1 rounded-full text-xs font-bold border border-slate-100">Not Submitted</div>;
-    }
-  };
-
   return (
     <ProtectedRoute>
       <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -221,7 +157,7 @@ export default function ProfilePage() {
                     }
                   }}
                 />
-                <Button variant="outline" className="w-full pointer-events-none cursor-pointer" disabled={uploadingAvatar}>
+                <Button variant="outline" className="w-full pointer-events-none" disabled={uploadingAvatar}>
                   {uploadingAvatar ? 'Uploading...' : 'Upload Picture'}
                 </Button>
               </div>
@@ -365,7 +301,7 @@ export default function ProfilePage() {
                             type="button" 
                             variant="ghost" 
                             size="sm" 
-                            className="h-6 text-xs px-2 text-primary"
+                            className="h-6 text-xs px-2 text-primary cursor-pointer"
                             onClick={() => {
                               if ('geolocation' in navigator) {
                                 navigator.geolocation.getCurrentPosition(
@@ -438,162 +374,6 @@ export default function ProfilePage() {
                 <Button type="submit" disabled={loading} className="mt-4 cursor-pointer">
                   {loading ? 'Saving...' : 'Save Changes'}
                 </Button>
-              </form>
-            </CardContent>
-          </Card>
-
-          <Card className="col-span-1 md:col-span-3 border-border/50">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Bank Details & KYC</CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">Provide your bank details for payments and settlements.</p>
-              </div>
-              {getKycBadge()}
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleBankSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="accountHolder">Account Holder Name</Label>
-                  <Input
-                    id="accountHolder"
-                    name="accountHolder"
-                    placeholder="Enter full name"
-                    value={formData.accountHolder}
-                    onChange={handleChange}
-                    className="cursor-pointer"
-                    disabled={user?.kycStatus === 'approved' || user?.kycStatus === 'pending'}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="bankName">Bank Name</Label>
-                  <Input
-                    id="bankName"
-                    name="bankName"
-                    placeholder="E.g. HDFC Bank"
-                    value={formData.bankName}
-                    onChange={handleChange}
-                    className="cursor-pointer"
-                    disabled={user?.kycStatus === 'approved' || user?.kycStatus === 'pending'}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="accountNumber">Account Number</Label>
-                  <Input
-                    id="accountNumber"
-                    name="accountNumber"
-                    placeholder="Enter account number"
-                    value={formData.accountNumber}
-                    onChange={handleChange}
-                    className="cursor-pointer"
-                    disabled={user?.kycStatus === 'approved' || user?.kycStatus === 'pending'}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="ifscCode">IFSC Code</Label>
-                  <Input
-                    id="ifscCode"
-                    name="ifscCode"
-                    placeholder="E.g. HDFC0001234"
-                    value={formData.ifscCode}
-                    onChange={handleChange}
-                    className="cursor-pointer"
-                    disabled={user?.kycStatus === 'approved' || user?.kycStatus === 'pending'}
-                  />
-                </div>
-
-                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
-                  <div className="space-y-3">
-                    <Label className="flex items-center gap-2">
-                      Identity Proof <span className="text-rose-500">*</span>
-                      <span className="text-[10px] text-muted-foreground font-normal">(Aadhar / PAN / Passport)</span>
-                    </Label>
-                    <div className="relative border-2 border-dashed border-muted-foreground/20 rounded-xl p-4 hover:bg-slate-50 transition-colors cursor-pointer group">
-                      {idProofPreview ? (
-                        <div className="relative aspect-video rounded-lg overflow-hidden border">
-                          <img src={idProofPreview} className="w-full h-full object-cover" />
-                          <button 
-                            type="button"
-                            onClick={() => { setIdProofFile(null); setIdProofPreview(null); }}
-                            className="absolute top-2 right-2 bg-rose-500 text-white p-1 rounded-full shadow-lg"
-                          >
-                            <XCircle className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center py-4 gap-2">
-                          <div className="p-3 rounded-full bg-primary/5 text-primary group-hover:scale-110 transition-transform">
-                            <Upload className="w-6 h-6" />
-                          </div>
-                          <p className="text-xs font-medium">Click to upload ID Proof</p>
-                          <p className="text-[10px] text-muted-foreground">JPG, PNG or PDF (Max 5MB)</p>
-                        </div>
-                      )}
-                      <Input 
-                        type="file" 
-                        accept="image/*,application/pdf"
-                        className="absolute inset-0 opacity-0 cursor-pointer"
-                        onChange={(e) => {
-                          if (e.target.files?.[0]) {
-                            setIdProofFile(e.target.files[0]);
-                            setIdProofPreview(URL.createObjectURL(e.target.files[0]));
-                          }
-                        }}
-                        disabled={user?.kycStatus === 'approved' || user?.kycStatus === 'pending'}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label className="flex items-center gap-2">
-                      Business Proof
-                      <span className="text-[10px] text-muted-foreground font-normal">(GST / Trade License / Work ID)</span>
-                    </Label>
-                    <div className="relative border-2 border-dashed border-muted-foreground/20 rounded-xl p-4 hover:bg-slate-50 transition-colors cursor-pointer group">
-                      {businessProofPreview ? (
-                        <div className="relative aspect-video rounded-lg overflow-hidden border">
-                          <img src={businessProofPreview} className="w-full h-full object-cover" />
-                          <button 
-                            type="button"
-                            onClick={() => { setBusinessProofFile(null); setBusinessProofPreview(null); }}
-                            className="absolute top-2 right-2 bg-rose-500 text-white p-1 rounded-full shadow-lg"
-                          >
-                            <XCircle className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center py-4 gap-2">
-                          <div className="p-3 rounded-full bg-primary/5 text-primary group-hover:scale-110 transition-transform">
-                            <Upload className="w-6 h-6" />
-                          </div>
-                          <p className="text-xs font-medium">Click to upload Business Proof</p>
-                          <p className="text-[10px] text-muted-foreground">Optional for individuals</p>
-                        </div>
-                      )}
-                      <Input 
-                        type="file" 
-                        accept="image/*,application/pdf"
-                        className="absolute inset-0 opacity-0 cursor-pointer"
-                        onChange={(e) => {
-                          if (e.target.files?.[0]) {
-                            setBusinessProofFile(e.target.files[0]);
-                            setBusinessProofPreview(URL.createObjectURL(e.target.files[0]));
-                          }
-                        }}
-                        disabled={user?.kycStatus === 'approved' || user?.kycStatus === 'pending'}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="md:col-span-2 flex justify-end">
-                  <Button 
-                    type="submit" 
-                    disabled={loading || user?.kycStatus === 'approved' || user?.kycStatus === 'pending'} 
-                    className="cursor-pointer"
-                  >
-                    {user?.kycStatus === 'pending' ? 'Verification Pending' : user?.kycStatus === 'approved' ? 'Verified' : 'Submit for KYC'}
-                  </Button>
-                </div>
               </form>
             </CardContent>
           </Card>

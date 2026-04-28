@@ -3,37 +3,134 @@ import { env } from '../config/env';
 import { logger } from '../config/logger';
 
 export class EmailService {
+  private static renderBaseTemplate(title: string, content: string, cta?: { text: string, link: string }): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            .email-container {
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              max-width: 600px;
+              margin: 0 auto;
+              background-color: #ffffff;
+              border-radius: 16px;
+              overflow: hidden;
+              box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+              border: 1px solid #e2e8f0;
+            }
+            .header {
+              background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+              padding: 40px 20px;
+              text-align: center;
+              color: white;
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 28px;
+              font-weight: 900;
+              letter-spacing: -1px;
+            }
+            .content {
+              padding: 40px 30px;
+              color: #1e293b;
+              line-height: 1.6;
+            }
+            .greeting {
+              font-size: 20px;
+              font-weight: 700;
+              margin-bottom: 20px;
+              color: #0f172a;
+            }
+            .highlight-box {
+              background-color: #f8fafc;
+              border-radius: 12px;
+              padding: 24px;
+              margin: 24px 0;
+              border: 1px solid #f1f5f9;
+            }
+            .otp-code {
+              font-size: 36px;
+              font-weight: 900;
+              color: #2563eb;
+              letter-spacing: 8px;
+              text-align: center;
+              margin: 20px 0;
+            }
+            .cta-button {
+              display: inline-block;
+              padding: 16px 32px;
+              background-color: #2563eb;
+              color: white !important;
+              text-decoration: none;
+              border-radius: 12px;
+              font-weight: 700;
+              margin-top: 20px;
+              transition: transform 0.2s;
+            }
+            .footer {
+              padding: 30px;
+              background-color: #f1f5f9;
+              text-align: center;
+              font-size: 12px;
+              color: #64748b;
+            }
+            .footer p { margin: 5px 0; }
+          </style>
+        </head>
+        <body style="background-color: #f8fafc; padding: 20px 0;">
+          <div class="email-container">
+            <div class="header">
+              <h1>UniExo</h1>
+            </div>
+            <div class="content">
+              <div class="greeting">Hello,</div>
+              ${content}
+              ${cta ? `<div style="text-align: center;"><a href="${cta.link}" class="cta-button">${cta.text}</a></div>` : ''}
+            </div>
+            <div class="footer">
+              <p><strong>UniExo Platform</strong> — India's Largest Multi-Service Hub</p>
+              <p>Sent with ❤️ from our headquarters</p>
+              <p>© 2026 UniExo Inc. All rights reserved.</p>
+              <p style="margin-top: 15px; opacity: 0.6;">If you didn't expect this email, please ignore it or contact support.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+  }
+
   static async sendOTP(email: string, otp: string, purpose: string): Promise<void> {
     const subjects: Record<string, string> = {
-      signup: 'Verify Your Email - CARR',
-      'password-reset': 'Reset Your Password - CARR',
-      'email-verify': 'Email Verification - CARR',
+      signup: 'Welcome to UniExo! 🚀',
+      'password-reset': 'Reset Your Password',
+      'email-verify': 'Verify Your Email Address',
+      'login-verify': 'New Login Attempt Detected',
     };
 
     const messages: Record<string, string> = {
-      signup: `Welcome to CARR! Your verification OTP is: <strong>${otp}</strong>. It expires in 5 minutes.`,
-      'password-reset': `Your password reset OTP is: <strong>${otp}</strong>. It expires in 5 minutes. If you didn't request this, please ignore.`,
-      'email-verify': `Your email verification OTP is: <strong>${otp}</strong>. It expires in 5 minutes.`,
+      signup: 'We are thrilled to have you join the UniExo community. To complete your registration, please use the following verification code:',
+      'password-reset': 'We received a request to reset your password. Use the code below to proceed with the reset:',
+      'email-verify': 'Please verify your email address to ensure you receive all future notifications. Your code is:',
+      'login-verify': 'A new login attempt was made on your account. If this was you, use this code to authorize the device:',
     };
+
+    const content = `
+      <p style="font-size: 16px; color: #475569;">${messages[purpose] || 'Your security code is ready. Please enter it to proceed:'}</p>
+      <div class="highlight-box">
+        <div class="otp-code">${otp}</div>
+        <p style="text-align: center; font-size: 13px; color: #94a3b8; margin: 0;">This code will expire in 5 minutes.</p>
+      </div>
+    `;
 
     try {
       await mailTransporter.sendMail({
-        from: `"CARR Platform" <${env.SMTP_FROM}>`,
+        from: `"UniExo Notifications" <${env.SMTP_FROM}>`,
         to: email,
-        subject: subjects[purpose] || 'OTP Verification - CARR',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h2 style="color: #333;">CARR Platform</h2>
-            <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <p style="font-size: 16px; color: #555;">
-                ${messages[purpose] || `Your OTP is: <strong>${otp}</strong>`}
-              </p>
-            </div>
-            <p style="color: #999; font-size: 12px;">
-              This is an automated message. Do not reply to this email.
-            </p>
-          </div>
-        `,
+        subject: subjects[purpose] || 'Verification Code - UniExo',
+        html: this.renderBaseTemplate(subjects[purpose] || 'Security Alert', content),
       });
       logger.info(`OTP sent to ${email} for ${purpose}`);
     } catch (error) {
@@ -41,6 +138,7 @@ export class EmailService {
       throw new Error('Failed to send OTP email');
     }
   }
+
   static async sendBookingConfirmation(
     userEmail: string,
     vendorEmail: string,
@@ -55,62 +153,52 @@ export class EmailService {
     }
   ): Promise<void> {
     try {
-      // 1. Email to the User (Receipt / Confirmation)
-      const userHtml = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #333;">Booking Confirmed!</h2>
-          <p>Hi there,</p>
-          <p>Your payment was successful and your booking for <strong>${details.serviceName}</strong> (${details.serviceType}) is confirmed.</p>
-          <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <p><strong>Booking ID:</strong> ${details.bookingId}</p>
-            <p><strong>Dates:</strong> ${details.startDate} to ${details.endDate}</p>
-            <p><strong>Amount Paid:</strong> ₹${details.amount.toFixed(2)}</p>
-            ${details.vendorPhone ? `<p><strong>Vendor Contact Number:</strong> ${details.vendorPhone}</p>` : ''}
-          </div>
-          <p>The vendor has been notified and expects you!</p>
-          <p style="color: #999; font-size: 12px; margin-top: 20px;">
-            This is an automated receipt from CARR Platform.
-          </p>
+      const userContent = `
+        <p>Your payment was successful and your booking for <strong>${details.serviceName}</strong> is now confirmed! 🎉</p>
+        <div class="highlight-box">
+          <p style="margin: 0; font-weight: 700; color: #0f172a;">Booking Details:</p>
+          <ul style="margin: 15px 0 0 0; padding-left: 20px; color: #475569;">
+            <li><strong>ID:</strong> ${details.bookingId}</li>
+            <li><strong>Category:</strong> ${details.serviceType}</li>
+            <li><strong>Dates:</strong> ${details.startDate} to ${details.endDate}</li>
+            <li><strong>Total Paid:</strong> ₹${details.amount.toLocaleString()}</li>
+            ${details.vendorPhone ? `<li><strong>Vendor Contact:</strong> ${details.vendorPhone}</li>` : ''}
+          </ul>
         </div>
+        <p>You can manage your booking and view more details in your dashboard.</p>
       `;
 
       await mailTransporter.sendMail({
-        from: `"CARR Platform" <${env.SMTP_FROM}>`,
+        from: `"UniExo Bookings" <${env.SMTP_FROM}>`,
         to: userEmail,
-        subject: `Booking Confirmed: ${details.serviceName}`,
-        html: userHtml,
+        subject: `Confirmed: ${details.serviceName} 🏠`,
+        html: this.renderBaseTemplate('Booking Confirmed', userContent, { text: 'View Dashboard', link: `${env.CLIENT_URL}/dashboard` }),
       });
 
-      // 2. Email to the Vendor (Notification)
-      const vendorHtml = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #333;">New Booking Alert!</h2>
-          <p>Hi Provider,</p>
-          <p>Great news! A user just booked your listing: <strong>${details.serviceName}</strong> (${details.serviceType}).</p>
-          <div style="background: #e8f5e9; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <p><strong>Booking ID:</strong> ${details.bookingId}</p>
-            <p><strong>Check-in/Start:</strong> ${details.startDate}</p>
-            <p><strong>Check-out/End:</strong> ${details.endDate}</p>
-            <p><strong>Earnings (before commission):</strong> ₹${details.amount.toFixed(2)}</p>
-          </div>
-          <p>Please log in to your dashboard to view more details.</p>
-          <p style="color: #999; font-size: 12px; margin-top: 20px;">
-            This is an automated notification from CARR Platform.
-          </p>
+      const vendorContent = `
+        <p>Great news! A customer has successfully booked your listing: <strong>${details.serviceName}</strong>.</p>
+        <div class="highlight-box" style="background-color: #ecfdf5; border-color: #d1fae5;">
+          <p style="margin: 0; font-weight: 700; color: #065f46;">New Order Summary:</p>
+          <ul style="margin: 15px 0 0 0; padding-left: 20px; color: #065f46;">
+            <li><strong>Booking ID:</strong> ${details.bookingId}</li>
+            <li><strong>Check-in/Start:</strong> ${details.startDate}</li>
+            <li><strong>Check-out/End:</strong> ${details.endDate}</li>
+            <li><strong>Net Earnings:</strong> ₹${details.amount.toLocaleString()}</li>
+          </ul>
         </div>
+        <p>Please prepare for the service and contact the user if necessary.</p>
       `;
 
       await mailTransporter.sendMail({
-        from: `"CARR Platform" <${env.SMTP_FROM}>`,
+        from: `"UniExo Vendor Alert" <${env.SMTP_FROM}>`,
         to: vendorEmail,
-        subject: `New Booking: ${details.serviceName}`,
-        html: vendorHtml,
+        subject: `New Sale: ${details.serviceName} 💰`,
+        html: this.renderBaseTemplate('New Booking Alert', vendorContent, { text: 'Manage Order', link: `${env.CLIENT_URL}/vendor/dashboard` }),
       });
 
       logger.info(`Booking confirmation emails sent for ${details.bookingId}`);
     } catch (error) {
       logger.error('Failed to send booking confirmation emails:', error);
-      // We don't throw here to avoid failing the payment verification just because email failed
     }
   }
 
@@ -128,56 +216,38 @@ export class EmailService {
     }
   ): Promise<void> {
     try {
-      const userHtml = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #333;">Booking Received</h2>
-          <p>Hi there,</p>
-          <p>Your booking for <strong>${details.serviceName}</strong> (${details.serviceType}) has been received and is pending vendor confirmation.</p>
-          <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <p><strong>Booking ID:</strong> ${details.bookingId}</p>
-            <p><strong>Dates:</strong> ${details.startDate} to ${details.endDate}</p>
-            <p><strong>Amount:</strong> ₹${details.amount.toFixed(2)} (${details.paymentMethod})</p>
-          </div>
-          <p style="color: #999; font-size: 12px; margin-top: 20px;">
-            This is an automated notification from CARR Platform.
-          </p>
+      const userContent = `
+        <p>Your request for <strong>${details.serviceName}</strong> has been received and is currently being processed.</p>
+        <div class="highlight-box">
+          <p><strong>Booking ID:</strong> ${details.bookingId}</p>
+          <p><strong>Status:</strong> Pending Vendor Confirmation</p>
+          <p><strong>Method:</strong> ${details.paymentMethod}</p>
         </div>
+        <p>We'll notify you as soon as the vendor responds!</p>
       `;
 
       await mailTransporter.sendMail({
-        from: `"CARR Platform" <${env.SMTP_FROM}>`,
+        from: `"UniExo Platform" <${env.SMTP_FROM}>`,
         to: userEmail,
-        subject: `Booking Request: ${details.serviceName}`,
-        html: userHtml,
+        subject: `Request Received: ${details.serviceName}`,
+        html: this.renderBaseTemplate('Booking Request Received', userContent),
       });
 
-      const vendorHtml = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #333;">New Booking Request!</h2>
-          <p>Hi Provider,</p>
-          <p>A user just requested to book your listing: <strong>${details.serviceName}</strong> (${details.serviceType}).</p>
-          <div style="background: #e8f5e9; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <p><strong>Booking ID:</strong> ${details.bookingId}</p>
-            <p><strong>Start:</strong> ${details.startDate}</p>
-            <p><strong>End:</strong> ${details.endDate}</p>
-            <p><strong>Payment Method:</strong> ${details.paymentMethod}</p>
-            <p><strong>Earnings (before commission):</strong> ₹${details.amount.toFixed(2)}</p>
-          </div>
-          <p>Please log in to your dashboard to accept or reject this booking.</p>
-          <p style="color: #999; font-size: 12px; margin-top: 20px;">
-            This is an automated notification from CARR Platform.
-          </p>
+      const vendorContent = `
+        <p>You have a new booking request for <strong>${details.serviceName}</strong>. Please review it at your earliest convenience.</p>
+        <div class="highlight-box">
+          <p><strong>Request ID:</strong> ${details.bookingId}</p>
+          <p><strong>Payment Method:</strong> ${details.paymentMethod}</p>
+          <p><strong>Estimated Earnings:</strong> ₹${details.amount.toLocaleString()}</p>
         </div>
       `;
 
       await mailTransporter.sendMail({
-        from: `"CARR Platform" <${env.SMTP_FROM}>`,
+        from: `"UniExo Vendor Alert" <${env.SMTP_FROM}>`,
         to: vendorEmail,
-        subject: `New Booking Request: ${details.serviceName}`,
-        html: vendorHtml,
+        subject: `Action Required: New Request for ${details.serviceName}`,
+        html: this.renderBaseTemplate('New Request Received', vendorContent, { text: 'Review Request', link: `${env.CLIENT_URL}/vendor/bookings` }),
       });
-
-      logger.info(`Booking request emails sent for ${details.bookingId}`);
     } catch (error) {
       logger.error('Failed to send booking request emails:', error);
     }
@@ -195,38 +265,52 @@ export class EmailService {
     }
   ): Promise<void> {
     try {
-      const buyerHtml = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #333;">Your Offer has been Accepted! 🎉</h2>
-          <p>Hi there,</p>
-          <p>Great news! The seller has <strong>accepted</strong> your offer for <strong>${details.itemTitle}</strong>.</p>
-          <div style="background: #e8f5e9; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <p><strong>Item:</strong> ${details.itemTitle}</p>
-            <p><strong>Agreed Price:</strong> ₹${details.offeredPrice.toFixed(2)}</p>
-            <hr style="border: none; border-top: 1px solid #c8e6c9; margin: 12px 0;" />
-            <p style="font-weight: bold; margin-bottom: 4px;">Seller Contact Details:</p>
-            <p><strong>Name:</strong> ${details.sellerName}</p>
-            <p><strong>Email:</strong> ${details.sellerEmail}</p>
-            <p><strong>Phone:</strong> ${details.sellerPhone}</p>
-          </div>
-          ${details.message ? `<p><strong>Seller's Message:</strong> ${details.message}</p>` : ''}
-          <p>Please coordinate with the seller directly to complete the transaction. Do not send payment without inspecting the item first!</p>
-          <p style="color: #999; font-size: 12px; margin-top: 20px;">
-            This is an automated notification from CARR Platform.
-          </p>
+      const content = `
+        <p>Great news! Your offer for <strong>${details.itemTitle}</strong> has been <strong>accepted</strong>. 🎉</p>
+        <div class="highlight-box" style="background-color: #f0f9ff; border-color: #bae6fd;">
+          <p style="margin: 0; font-weight: 700; color: #0369a1;">Transaction Details:</p>
+          <ul style="margin: 15px 0 0 0; padding-left: 20px; color: #0369a1;">
+            <li><strong>Final Price:</strong> ₹${details.offeredPrice.toLocaleString()}</li>
+            <li><strong>Seller:</strong> ${details.sellerName}</li>
+            <li><strong>Email:</strong> ${details.sellerEmail}</li>
+            <li><strong>Phone:</strong> ${details.sellerPhone}</li>
+          </ul>
         </div>
+        ${details.message ? `<p style="font-style: italic; color: #64748b;">" ${details.message} "</p>` : ''}
+        <p>Please coordinate directly with the seller to finalize the deal.</p>
       `;
 
       await mailTransporter.sendMail({
-        from: `"CARR Platform" <${env.SMTP_FROM}>`,
+        from: `"UniExo Marketplace" <${env.SMTP_FROM}>`,
         to: buyerEmail,
         subject: `Offer Accepted: ${details.itemTitle}`,
-        html: buyerHtml,
+        html: this.renderBaseTemplate('Offer Accepted!', content),
       });
-
-      logger.info(`Offer accepted email sent to ${buyerEmail} for item "${details.itemTitle}"`);
     } catch (error) {
       logger.error('Failed to send offer accepted email:', error);
+    }
+  }
+
+  static async sendGenericNotification(
+    email: string,
+    title: string,
+    message: string,
+    metadata?: any
+  ): Promise<void> {
+    try {
+      const content = `
+        <p style="font-size: 16px; color: #475569;">${message}</p>
+        ${metadata ? `<div class="highlight-box"><pre style="font-size: 12px; margin:0;">${JSON.stringify(metadata, null, 2)}</pre></div>` : ''}
+      `;
+
+      await mailTransporter.sendMail({
+        from: `"UniExo Notifications" <${env.SMTP_FROM}>`,
+        to: email,
+        subject: title,
+        html: this.renderBaseTemplate(title, content),
+      });
+    } catch (error) {
+      logger.error(`Failed to send notification email to ${email}:`, error);
     }
   }
 }

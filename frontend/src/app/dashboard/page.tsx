@@ -34,10 +34,11 @@ const userSections = [
 
 const vendorSections = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-  { id: 'vehicles', label: 'My Vehicles', icon: Car },
-  { id: 'houses', label: 'My Houses', icon: Home },
+  { id: 'vehicles', label: 'My Vehicles', icon: Car, serviceType: 'CAR' },
+  { id: 'houses', label: 'My Houses', icon: Home, serviceType: 'HOUSE' },
   { id: 'bookings', label: 'Booking Requests', icon: CalendarCheck },
-  { id: 'offers', label: 'Offers Received', icon: Handshake },
+  { id: 'offers', label: 'Offers Received', icon: Handshake, serviceType: 'ITEM' },
+  { id: 'my-orders', label: 'My Orders (User)', icon: ListOrdered },
 ];
 
 // ─── Status badge helper ────────────────────────────────────────────
@@ -355,12 +356,14 @@ function VendorDashboard() {
 
   const isProfileComplete = Boolean(vendorProfile?.businessAddress && vendorProfile?.businessPhone);
 
+  const filteredSections = vendorSections.filter(s => !s.serviceType || s.serviceType === vendorProfile?.serviceType);
+
   return (
     <div className="flex flex-col lg:flex-row gap-6">
       {/* Sidebar */}
       <aside className="lg:w-56 shrink-0">
         <nav className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0">
-          {vendorSections.map((s) => (
+          {filteredSections.map((s) => (
             <button
               key={s.id}
               onClick={() => setSection(s.id)}
@@ -393,27 +396,31 @@ function VendorDashboard() {
         {section === 'overview' && (
           <>
             <h2 className="text-2xl font-bold tracking-tight">Vendor Overview</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">My Vehicles</CardTitle>
-                  <Car className="h-4 w-4 text-blue-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{loadingStats ? '...' : totalVehicles}</div>
-                  <p className="text-xs text-muted-foreground mt-1">Active listings</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">My Houses</CardTitle>
-                  <Home className="h-4 w-4 text-purple-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{loadingStats ? '...' : totalHouses}</div>
-                  <p className="text-xs text-muted-foreground mt-1">Properties listed</p>
-                </CardContent>
-              </Card>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {(!vendorProfile?.serviceType || vendorProfile.serviceType === 'CAR') && (
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">My Vehicles</CardTitle>
+                    <Car className="h-4 w-4 text-blue-500" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{loadingStats ? '...' : totalVehicles}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Active listings</p>
+                  </CardContent>
+                </Card>
+              )}
+              {(!vendorProfile?.serviceType || vendorProfile.serviceType === 'HOUSE') && (
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">My Houses</CardTitle>
+                    <Home className="h-4 w-4 text-purple-500" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{loadingStats ? '...' : totalHouses}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Properties listed</p>
+                  </CardContent>
+                </Card>
+              )}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Booking Requests</CardTitle>
@@ -424,18 +431,6 @@ function VendorDashboard() {
                     {loadingStats ? '...' : pendingBookings}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">Pending approval</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Revenue</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-emerald-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {loadingStats ? '...' : `₹${(statsData?.revenue || 0).toLocaleString()}`}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Total earnings</p>
                 </CardContent>
               </Card>
             </div>
@@ -731,8 +726,56 @@ function VendorDashboard() {
             )}
           </>
         )}
+        {section === 'my-orders' && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold tracking-tight">My Purchases & Bookings</h2>
+            <UserDashboardOrders />
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+function UserDashboardOrders() {
+  const { data: bookingsData, isLoading: loadingBookings } = useUserBookings();
+  const bookings = bookingsData?.bookings || [];
+
+  return (
+    <>
+      {loadingBookings ? (
+        <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <Card key={i} className="p-6 animate-pulse"><div className="h-4 bg-muted rounded w-48" /></Card>)}</div>
+      ) : bookings.length === 0 ? (
+        <Card className="p-12 text-center">
+          <CalendarCheck className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+          <h3 className="text-lg font-medium">No bookings yet</h3>
+          <p className="text-muted-foreground text-sm mt-1">Browse vehicles or rooms to make your first booking.</p>
+        </Card>
+      ) : (
+        <Card className="overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50"><tr>
+                <th className="px-4 py-3 text-left font-medium">Item</th>
+                <th className="px-4 py-3 text-left font-medium">Dates</th>
+                <th className="px-4 py-3 text-left font-medium">Amount</th>
+                <th className="px-4 py-3 text-left font-medium">Status</th>
+              </tr></thead>
+              <tbody className="divide-y">
+                {bookings.map((b: any) => (
+                  <tr key={b._id} className="hover:bg-muted/30 transition-colors">
+                    <td className="px-4 py-3 font-medium">{b.serviceType === 'vehicle' ? '🚗' : '🏠'} {b.serviceId?.name || b.serviceId?.title || 'N/A'}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{new Date(b.startDate).toLocaleDateString()} – {new Date(b.endDate).toLocaleDateString()}</td>
+                    <td className="px-4 py-3">₹{b.totalAmount}</td>
+                    <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+    </>
   );
 }
 

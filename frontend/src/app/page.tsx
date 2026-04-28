@@ -1,27 +1,37 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useScroll, useSpring, useTransform } from 'framer-motion';
 import {
-  CheckCircle2,
   Home,
   Car,
   ShoppingBag,
   WashingMachine,
-  Play,
   Star,
   ShieldCheck,
   Zap,
+  MapPin,
+  Upload,
+  CheckCircle2,
+  Play,
   ArrowRight
 } from 'lucide-react';
-
-import { useRouter } from 'next/navigation';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" as const } }
+};
+
+const wordReveal = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.1, duration: 0.5, ease: "easeOut" }
+  })
 };
 
 const staggerContainer = {
@@ -32,9 +42,46 @@ const staggerContainer = {
   }
 };
 
+const Counter = ({ value, duration = 2 }: { value: number, duration?: number }) => {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let start = 0;
+    const end = value;
+    if (start === end) return;
+
+    const totalMiliseconds = duration * 1000;
+    const incrementTime = Math.max(totalMiliseconds / end, 1);
+
+    const timer = setInterval(() => {
+      start += Math.ceil(end / (totalMiliseconds / 16)); // ~60fps
+      if (start >= end) {
+        setCount(end);
+        clearInterval(timer);
+      } else {
+        setCount(start);
+      }
+    }, 16);
+
+    return () => clearInterval(timer);
+  }, [value, duration]);
+
+  return <span>{count.toLocaleString()}</span>;
+};
+
 export default function LandingPage() {
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'house' | 'vehicle' | 'marketplace' | 'laundry'>('house');
+  
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.001
+  });
+
+  const heroY = useTransform(scrollYProgress, [0, 0.2], [0, -50]);
+  const badgeY1 = useTransform(scrollYProgress, [0, 0.2], [0, -100]);
+  const badgeY2 = useTransform(scrollYProgress, [0, 0.2], [0, 100]);
 
   const storefrontFeatures: Record<string, string[]> = {
     house: [
@@ -64,72 +111,84 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen overflow-hidden">
+    <div className="flex flex-col min-h-screen overflow-hidden mesh-gradient relative">
+      {/* Scroll Progress Indicator */}
+      <motion.div
+        className="fixed top-0 left-0 right-0 h-1 bg-primary z-[60] origin-left"
+        style={{ scaleX }}
+      />
+
       {/* 1. Hero Section */}
-      <section className="relative pt-24 pb-16 md:pt-32 md:pb-24">
+      <section className="relative pt-24 pb-16 md:pt-40 md:pb-32 overflow-hidden">
+        {/* Background Decorative Blobs */}
+        <div className="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl -z-10" />
+        <div className="absolute bottom-0 left-0 translate-y-1/4 -translate-x-1/4 w-[500px] h-[500px] bg-accent/5 rounded-full blur-3xl -z-10" />
+
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             {/* Left Column (Text & Actions) */}
             <motion.div 
               initial="hidden" 
               animate="visible" 
               variants={staggerContainer}
-              className="max-w-xl"
+              className="max-w-2xl"
+              style={{ y: heroY }}
             >
-              <motion.h1 variants={fadeUp} className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6 leading-tight">
-                The easiest way to <br />
-                find your <span className="text-[#1faa00]">Needs</span>
-              </motion.h1>
-              <motion.p variants={fadeUp} className="text-lg md:text-xl text-muted-foreground mb-8">
-                Join India's largest Multi-service marketplace.
-                <span className="text-[#1faa00] font-medium block mt-1">Save time. Work less. Earn more.</span>
+              <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-bold mb-6">
+                <Zap className="w-3 h-3 fill-current" />
+                <span>INDIA'S LARGEST MULTI-SERVICE HUB</span>
+              </motion.div>
+
+              <h1 className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tight mb-8 leading-[1.1]">
+                {"The easiest way to find your Needs".split(" ").map((word, i) => (
+                  <motion.span
+                    key={i}
+                    custom={i}
+                    variants={wordReveal}
+                    initial="hidden"
+                    animate="visible"
+                    className="inline-block mr-[0.2em]"
+                  >
+                    {word === "Needs" ? <span className="text-accent underline decoration-accent/30 underline-offset-8">Needs</span> : word}
+                  </motion.span>
+                ))}
+              </h1>
+
+              <motion.p variants={fadeUp} className="text-xl text-muted-foreground mb-10 leading-relaxed max-w-lg">
+                Join the revolution. <span className="text-foreground font-semibold">Save time. Work less. Earn more.</span> 
+                Verified listings for everyone, everywhere.
               </motion.p>
 
-              <motion.div variants={fadeUp} className="mb-6">
-                <p className="font-medium text-lg mb-4">I am looking for a</p>
+              <motion.div variants={fadeUp} className="mb-10">
                 <div className="flex flex-wrap gap-4">
-                  <motion.div 
-                    whileHover={{ scale: 1.05 }} 
-                    onClick={() => router.push('/vehicles')}
-                    className="flex flex-col items-center justify-center p-3 border rounded-xl hover:border-primary hover:shadow-md cursor-pointer transition w-24 h-24 bg-white"
-                  >
-                    <Car className="w-8 h-8 text-primary mb-2" />
-                    <span className="text-xs font-medium">Vehicle</span>
-                  </motion.div>
-                  <motion.div 
-                    whileHover={{ scale: 1.05 }} 
-                    onClick={() => router.push('/houses')}
-                    className="flex flex-col items-center justify-center p-3 border rounded-xl hover:border-[#1faa00] hover:shadow-md cursor-pointer transition w-24 h-24 bg-white shadow-sm ring-1 ring-[#1faa00]/20"
-                  >
-                    <Home className="w-8 h-8 text-[#1faa00] mb-2" />
-                    <span className="text-xs font-medium text-[#1faa00]">Room</span>
-                  </motion.div>
-                  <motion.div 
-                    whileHover={{ scale: 1.05 }} 
-                    onClick={() => router.push('/marketplace')}
-                    className="flex flex-col items-center justify-center p-3 border rounded-xl hover:border-primary hover:shadow-md cursor-pointer transition w-24 h-24 bg-white"
-                  >
-                    <ShoppingBag className="w-8 h-8 text-primary mb-2" />
-                    <span className="text-xs font-medium">Item</span>
-                  </motion.div>
-                  <motion.div 
-                    whileHover={{ scale: 1.05 }} 
-                    onClick={() => router.push('/laundry')}
-                    className="flex flex-col items-center justify-center p-3 border rounded-xl hover:border-primary hover:shadow-md cursor-pointer transition w-24 h-24 bg-white"
-                  >
-                    <WashingMachine className="w-8 h-8 text-primary mb-2" />
-                    <span className="text-xs font-medium">Laundry</span>
-                  </motion.div>
+                  {[
+                    { icon: Car, label: 'Vehicle', color: 'blue' },
+                    { icon: Home, label: 'Room', color: 'green' },
+                    { icon: ShoppingBag, label: 'Item', color: 'orange' },
+                    { icon: WashingMachine, label: 'Laundry', color: 'purple' }
+                  ].map((item, idx) => (
+                    <motion.div 
+                      key={idx}
+                      whileHover={{ y: -5, scale: 1.02 }}
+                      className={`glass p-4 rounded-2xl flex flex-col items-center justify-center w-28 h-28 cursor-pointer transition-all hover:border-primary/50 group ${item.label === 'Room' ? 'ring-2 ring-accent shadow-accent/10' : ''}`}
+                    >
+                      <item.icon className="w-8 h-8 text-primary mb-3 group-hover:scale-110 transition-transform" />
+                      <span className="text-xs font-bold uppercase tracking-wider">{item.label}</span>
+                    </motion.div>
+                  ))}
                 </div>
               </motion.div>
 
-              <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3 max-w-md mt-8">
-                <Input
-                  placeholder="Enter location or query"
-                  className="h-12 text-base"
-                />
-                <Button size="lg" className="h-12 px-8 bg-primary hover:bg-primary/90 text-white font-medium whitespace-nowrap">
-                  Get free demo &rarr;
+              <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4 max-w-md">
+                <div className="relative flex-1 group">
+                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                  <Input
+                    placeholder="Enter location or query"
+                    className="h-14 pl-12 text-base rounded-2xl border-2 focus-visible:ring-primary/20 bg-white/50 backdrop-blur-sm"
+                  />
+                </div>
+                <Button size="lg" className="h-14 px-10 bg-primary hover:bg-primary/90 text-white font-bold rounded-2xl shadow-xl shadow-primary/20 transition-all hover:-translate-y-1">
+                  Explore Now
                 </Button>
               </motion.div>
             </motion.div>
@@ -138,265 +197,332 @@ export default function LandingPage() {
             <motion.div 
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="relative hidden lg:block h-full min-h-[500px]"
+              transition={{ duration: 1, delay: 0.2 }}
+              className="relative hidden lg:block h-full min-h-[600px]"
             >
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 origin-center scale-[1.2]">
-                <img
-                  src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=600&h=800"
-                  alt="Professional Service"
-                  className="rounded-2xl shadow-2xl object-cover w-[350px] h-[450px]"
-                />
+              <motion.div 
+                style={{ y: heroY }}
+                className="relative z-20"
+              >
+                <div className="relative group perspective-[1000px]">
+                  <img
+                    src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=800&h=1000"
+                    alt="Professional Service"
+                    className="rounded-[2.5rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.3)] object-cover w-[400px] h-[550px] mx-auto transition-transform duration-500 group-hover:rotate-y-6"
+                  />
+                  <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-t from-primary/20 to-transparent pointer-events-none" />
+                </div>
 
                 {/* Floating Notification Badge */}
                 <motion.div 
-                  animate={{ y: [0, -10, 0] }}
-                  transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-                  className="absolute top-10 -left-12 bg-primary text-white p-4 rounded-xl shadow-xl flex flex-col gap-1 max-w-[200px]"
+                  style={{ y: badgeY1 }}
+                  className="glass absolute top-12 -left-16 p-5 rounded-3xl shadow-2xl flex flex-col gap-2 max-w-[220px] animate-float z-30"
                 >
-                  <p className="text-sm font-semibold">100% Secure &</p>
-                  <p className="text-sm font-semibold">Verified Vendors. 5 mins max!</p>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                      <ShieldCheck className="w-4 h-4" />
+                    </div>
+                    <span className="text-sm font-bold">100% Verified</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">Top-rated vendors approved in under 5 minutes.</p>
                 </motion.div>
 
                 {/* Floating Rating Badge */}
                 <motion.div 
-                  animate={{ y: [0, 10, 0] }}
-                  transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 1 }}
-                  className="absolute bottom-16 -right-16 bg-white border p-3 rounded-xl shadow-lg flex items-center gap-3"
+                  style={{ y: badgeY2 }}
+                  className="glass absolute bottom-20 -right-20 p-5 rounded-3xl shadow-2xl flex items-center gap-4 animate-float z-30"
                 >
-                  <div className="flex gap-1 text-[#1faa00]">
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <Star key={s} className="w-4 h-4 fill-[#1faa00] text-[#1faa00]" />
+                  <div className="flex flex-col">
+                    <div className="flex gap-1 text-accent mb-1">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <Star key={s} className="w-4 h-4 fill-current" />
+                      ))}
+                    </div>
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-tighter">Avg Rating 4.9/5</p>
+                  </div>
+                  <div className="w-[2px] h-8 bg-border" />
+                  <div className="flex -space-x-3">
+                    {[1, 2, 3].map(i => (
+                      <Avatar key={i} className="w-8 h-8 border-2 border-white">
+                        <AvatarImage src={`https://i.pravatar.cc/100?u=${i + 10}`} />
+                      </Avatar>
                     ))}
                   </div>
-                  <div>
-                    <p className="text-sm font-bold leading-none">4.9</p>
-                    <p className="text-xs text-muted-foreground">675 Reviews</p>
-                  </div>
                 </motion.div>
-              </div>
+              </motion.div>
             </motion.div>
           </div>
         </div>
+      </section>
 
-        {/* Stats Strip */}
+      {/* Stats Strip */}
+      <section className="relative">
         <motion.div 
           initial="hidden" 
           whileInView="visible" 
           viewport={{ once: true, margin: "-100px" }}
           variants={staggerContainer}
-          className="container mx-auto px-4 md:px-8 mt-16 lg:mt-24"
+          className="container mx-auto px-4 md:px-8 mt-16 lg:mt-24 relative z-20"
         >
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 py-8 border-y bg-slate-50/50">
+          <div className="glass rounded-[3rem] p-10 md:p-16 grid grid-cols-2 md:grid-cols-4 gap-12 border-white/40 shadow-2xl">
             <motion.div variants={fadeUp} className="flex flex-col items-center justify-center text-center">
-              <Home className="w-6 h-6 text-primary mb-2" />
-              <p className="text-sm text-muted-foreground mb-1">Listings</p>
-              <p className="text-2xl font-bold">15,000+</p>
+              <div className="w-16 h-16 rounded-3xl bg-blue-50 flex items-center justify-center mb-6 shadow-inner group-hover:rotate-12 transition-transform">
+                <Home className="w-8 h-8 text-primary" />
+              </div>
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-2">Properties</p>
+              <h3 className="text-4xl md:text-5xl font-black text-slate-900"><Counter value={15000} />+</h3>
             </motion.div>
-            <motion.div variants={fadeUp} className="flex flex-col items-center justify-center text-center border-l border-border/50">
-              <Car className="w-6 h-6 text-primary mb-2" />
-              <p className="text-sm text-muted-foreground mb-1">Vehicles</p>
-              <p className="text-2xl font-bold">3 Lacs+</p>
+            
+            <motion.div variants={fadeUp} className="flex flex-col items-center justify-center text-center">
+              <div className="w-16 h-16 rounded-3xl bg-emerald-50 flex items-center justify-center mb-6 shadow-inner">
+                <Car className="w-8 h-8 text-accent" />
+              </div>
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-2">Vehicles</p>
+              <h3 className="text-4xl md:text-5xl font-black text-slate-900"><Counter value={300} />K+</h3>
             </motion.div>
-            <motion.div variants={fadeUp} className="flex flex-col items-center justify-center text-center border-l md:border-l-border/50 border-l-transparent">
-              <svg className="w-6 h-6 text-primary mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-              <p className="text-sm text-muted-foreground mb-1">Users</p>
-              <p className="text-2xl font-bold">2.3 Lacs+</p>
+
+            <motion.div variants={fadeUp} className="flex flex-col items-center justify-center text-center">
+              <div className="w-16 h-16 rounded-3xl bg-orange-50 flex items-center justify-center mb-6 shadow-inner">
+                <Star className="w-8 h-8 text-orange-500" />
+              </div>
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-2">Reviews</p>
+              <h3 className="text-4xl md:text-5xl font-black text-slate-900"><Counter value={45} />K+</h3>
             </motion.div>
-            <motion.div variants={fadeUp} className="flex flex-col items-center justify-center text-center border-l border-border/50">
-              <span className="text-xl font-bold text-primary mb-2">₹</span>
-              <p className="text-sm text-muted-foreground mb-1">Value</p>
-              <p className="text-2xl font-bold">100 Cr+</p>
+
+            <motion.div variants={fadeUp} className="flex flex-col items-center justify-center text-center">
+              <div className="w-16 h-16 rounded-3xl bg-purple-50 flex items-center justify-center mb-6 shadow-inner">
+                <Zap className="w-8 h-8 text-purple-600" />
+              </div>
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-2">Active Users</p>
+              <h3 className="text-4xl md:text-5xl font-black text-slate-900"><Counter value={250} />K+</h3>
             </motion.div>
           </div>
         </motion.div>
       </section>
 
-      {/* 2. Lead Conversion (Convert leads into booking) */}
-      <section className="py-20 bg-slate-50/50">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
+      {/* 2. Lead Conversion */}
+      <section className="py-32 relative">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+        
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
           <motion.div 
             initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
-            className="text-center mb-16"
+            className="text-center mb-24"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Find your perfect match. <span className="font-extrabold text-primary">10X Faster!</span>
+            <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight">
+              Find your perfect match. <br />
+              <span className="text-primary italic">10X Faster than before.</span>
             </h2>
-            <p className="text-lg text-muted-foreground">
-              Why wait weeks to find what you need? Get it 10X Faster.
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              Why wait weeks to find what you need? Uniexo automates the search, 
+              verification, and booking process so you can focus on what matters.
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
             {/* Features List */}
             <motion.div 
               initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerContainer}
-              className="space-y-4"
+              className="space-y-6"
             >
-              <motion.div variants={fadeUp} className="p-4 rounded-xl border border-primary/20 bg-white/50 hover:bg-white shadow-sm transition">
-                <p className="font-medium text-primary text-lg">Browse verified categories in One-click</p>
-              </motion.div>
-              <motion.div variants={fadeUp} className="p-4 rounded-xl border border-primary/20 bg-white/50 hover:bg-white shadow-sm transition">
-                <p className="font-medium text-primary text-lg">Real-time availability & Schedule Visit/Booking</p>
-              </motion.div>
-              <motion.div variants={fadeUp} className="p-4 rounded-xl border border-primary/20 bg-white/50 hover:bg-white shadow-sm transition">
-                <p className="font-medium text-primary text-lg">Connect with verified vendors instantly</p>
-              </motion.div>
-              <motion.div variants={fadeUp} className="p-4 rounded-xl border border-primary/20 bg-white/50 hover:bg-white shadow-sm transition">
-                <p className="font-medium text-primary text-lg">Secure Token Payments with Payment link & QR</p>
-              </motion.div>
+              {[
+                { title: "Smart Category Filters", desc: "Browse verified categories with AI-powered matching." },
+                { title: "Real-time Availability", desc: "Instant status updates for every single listing." },
+                { title: "Direct Vendor Connection", desc: "Connect with verified owners via secure channels." },
+                { title: "Secure Token Payments", desc: "Reserve your items with instant QR-based payments." }
+              ].map((feat, i) => (
+                <motion.div 
+                  key={i} 
+                  variants={fadeUp} 
+                  whileHover={{ x: 10 }}
+                  className="group p-6 rounded-3xl border border-white/40 glass hover:bg-white/60 transition-all duration-300"
+                >
+                  <div className="flex items-start gap-5">
+                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-bold text-xl group-hover:bg-primary group-hover:text-white transition-colors">
+                      {i + 1}
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold mb-1 text-slate-900">{feat.title}</h4>
+                      <p className="text-muted-foreground">{feat.desc}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
 
-              <motion.div variants={fadeUp} className="pt-6">
-                <Button className="bg-[#1faa00] hover:bg-[#1caa00] text-white h-12 px-8 text-base">
-                  Try for free <ArrowRight className="ml-2 w-4 h-4" />
+              <motion.div variants={fadeUp} className="pt-8">
+                <Button className="bg-accent hover:bg-accent/90 text-white h-14 px-10 text-lg rounded-2xl font-bold shadow-lg shadow-accent/20">
+                  Start Your Search <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
               </motion.div>
             </motion.div>
 
-            {/* Mobile Mock UI */}
+            {/* Mobile Mock UI with Parallax */}
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }} 
-              whileInView={{ opacity: 1, scale: 1 }} 
+              initial={{ opacity: 0, scale: 0.9, rotateY: -10 }} 
+              whileInView={{ opacity: 1, scale: 1, rotateY: 0 }} 
               viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="relative mx-auto w-full max-w-[320px] isolate"
+              transition={{ duration: 0.8 }}
+              className="relative mx-auto w-full max-w-[360px]"
             >
-              <div className="absolute inset-0 bg-primary/5 rounded-[3rem] -z-10 translate-x-4 -translate-y-4"></div>
-              <div className="border-[8px] border-slate-100 rounded-[2.5rem] bg-white shadow-2xl overflow-hidden aspect-[1/2] flex flex-col items-center">
+              <div className="absolute inset-0 bg-primary/10 rounded-[4rem] blur-3xl -z-10 translate-x-10 translate-y-10" />
+              <div className="border-[12px] border-slate-900 rounded-[3.5rem] bg-white shadow-[0_50px_100px_-20px_rgba(0,0,0,0.4)] overflow-hidden aspect-[9/19] flex flex-col items-center relative">
                 {/* Mock Phone Header */}
                 <div className="w-full h-14 bg-slate-50 border-b flex items-center justify-center font-semibold text-primary">
                   Book Item
                 </div>
                 {/* Mock Content */}
-                <div className="p-4 w-full space-y-4 flex-1 mt-2">
-                  <div className="h-10 bg-slate-100 rounded border px-3 flex items-center text-sm text-slate-500">John Doe</div>
-                  <div className="h-10 bg-slate-100 rounded border px-3 flex items-center text-sm text-slate-500">+91 9876543210</div>
-                  <div className="p-3 bg-blue-50/50 rounded-lg border border-blue-100 space-y-2 relative">
-                    <span className="text-xs font-semibold text-primary">Selected Property</span>
-                    <div className="flex justify-between items-center bg-white p-2 rounded text-sm">
-                      <span>BMW 5 Series</span>
-                      <span className="text-green-600 font-medium">Available</span>
+                <div className="p-6 w-full space-y-6 flex-1 mt-4">
+                  <div className="h-12 bg-slate-100 rounded-2xl border px-4 flex items-center text-sm font-medium text-slate-700">John Doe</div>
+                  <div className="h-12 bg-slate-100 rounded-2xl border px-4 flex items-center text-sm font-medium text-slate-700">+91 9876543210</div>
+                  <div className="p-5 bg-blue-50/50 rounded-2xl border border-blue-100 space-y-3 relative">
+                    <span className="text-xs font-bold text-primary uppercase tracking-tighter">Selected Property</span>
+                    <div className="flex justify-between items-center bg-white p-3 rounded-xl shadow-sm text-sm">
+                      <span className="font-bold">BMW 5 Series</span>
+                      <span className="text-accent font-black">Available</span>
                     </div>
-                    <motion.div 
-                      animate={{ scale: [1, 1.05, 1] }} 
-                      transition={{ repeat: Infinity, duration: 2 }}
-                      className="absolute -left-16 top-1/2 bg-slate-800 text-white p-2 text-xs rounded-lg whitespace-nowrap hidden md:block after:content-[''] after:absolute after:top-1/2 after:-right-2 after:-mt-1 after:border-t-4 after:border-t-transparent after:border-b-4 after:border-b-transparent after:border-l-4 after:border-l-slate-800"
-                    >
-                      Availability Check
-                    </motion.div>
                   </div>
-                  <div className="h-10 bg-slate-100 rounded border px-3 flex items-center text-sm text-slate-500">25/09/2026 9:00 AM</div>
+                  <div className="h-12 bg-slate-100 rounded-2xl border px-4 flex items-center text-sm font-medium text-slate-700">25/09/2026 9:00 AM</div>
 
-                  <div className="mt-auto pt-6 w-full space-y-2">
-                    <div className="h-10 w-full bg-slate-100 rounded border px-3 flex items-center justify-center text-sm font-medium text-slate-600">Enter Token Amount</div>
-                    <div className="h-10 w-full bg-primary rounded flex items-center justify-center text-sm font-medium text-white shadow-sm">Confirm Booking</div>
+                  <div className="mt-auto pt-10 w-full space-y-3">
+                    <div className="h-12 w-full bg-slate-100 rounded-2xl border px-4 flex items-center justify-center text-sm font-bold text-slate-600">Enter Token Amount</div>
+                    <div className="h-12 w-full bg-primary rounded-2xl flex items-center justify-center text-sm font-bold text-white shadow-lg shadow-primary/30">Confirm Booking</div>
                   </div>
                 </div>
               </div>
+
+              {/* Floating Parallax Element */}
+              <motion.div 
+                animate={{ y: [0, -20, 0] }}
+                transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+                className="absolute -right-16 top-1/3 glass p-4 rounded-2xl shadow-xl z-20 hidden md:block"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent">
+                    <CheckCircle2 className="w-5 h-5" />
+                  </div>
+                  <span className="text-sm font-bold whitespace-nowrap">Instant Approval</span>
+                </div>
+              </motion.div>
             </motion.div>
           </div>
         </div>
       </section>
 
       {/* 3. Automatic Operations */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
+      <section className="py-32 relative bg-slate-900 overflow-hidden">
+        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/10 rounded-full blur-[120px] -z-10 translate-x-1/3 -translate-y-1/3" />
+        
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
           <motion.div 
             initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
-            className="text-center mb-16"
+            className="text-center mb-24"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              100% Secure Transactions. <span className="font-extrabold text-[#1faa00]">5 mins max!</span>
+            <h2 className="text-4xl md:text-6xl font-black mb-6 text-white tracking-tight">
+              100% Secure. <br />
+              <span className="text-accent italic">Zero friction operations.</span>
             </h2>
-            <p className="text-lg text-muted-foreground">
-              No more scams. No more waiting. No more jhikjhik.
+            <p className="text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
+              Automate the boring stuff. From receipts to reminders, 
+              Uniexo handles everything so you don't have to.
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
             {/* Features List */}
             <motion.div 
               initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerContainer}
-              className="space-y-4 order-last lg:order-first"
+              className="space-y-6 order-last lg:order-first"
             >
-              <motion.div variants={fadeUp} className="p-4 rounded-xl border border-primary/20 bg-white/50 hover:bg-white shadow-sm transition">
-                <p className="font-medium text-primary text-lg">Automatic receipt & booking confirmation</p>
-              </motion.div>
-              <motion.div variants={fadeUp} className="p-4 rounded-xl border border-primary/20 bg-white/50 hover:bg-white shadow-sm transition">
-                <p className="font-medium text-primary text-lg">Automatic status updates on WhatsApp, SMS & App</p>
-              </motion.div>
-              <motion.div variants={fadeUp} className="p-4 rounded-xl border border-primary/20 bg-white/50 hover:bg-white shadow-sm transition">
-                <p className="font-medium text-primary text-lg">One-click bulk reminders with Payment Link</p>
-              </motion.div>
-              <motion.div variants={fadeUp} className="p-4 rounded-xl border border-primary/20 bg-white/50 hover:bg-white shadow-sm transition">
-                <p className="font-medium text-primary text-lg">Automatic refund initiation after secure period</p>
-              </motion.div>
+              {[
+                { title: "Smart Invoicing", desc: "Automatic receipt & booking confirmation sent instantly." },
+                { title: "Multi-channel Alerts", desc: "Status updates via WhatsApp, SMS, and App notifications." },
+                { title: "One-click Reminders", desc: "Bulk payment links sent to users with one tap." },
+                { title: "Escrow Protection", desc: "Secure holding of funds until service delivery." }
+              ].map((feat, i) => (
+                <motion.div 
+                  key={i} 
+                  variants={fadeUp} 
+                  whileHover={{ x: -10 }}
+                  className="group p-6 rounded-3xl border border-white/5 glass-dark hover:bg-white/10 transition-all duration-300"
+                >
+                  <div className="flex items-start gap-5">
+                    <div className="w-12 h-12 rounded-2xl bg-accent/20 flex items-center justify-center text-accent font-bold text-xl group-hover:bg-accent group-hover:text-white transition-colors">
+                      <ShieldCheck className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold mb-1 text-white">{feat.title}</h4>
+                      <p className="text-slate-400">{feat.desc}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
 
-              <motion.div variants={fadeUp} className="pt-6">
-                <Button className="bg-[#1faa00] hover:bg-[#1caa00] text-white h-12 px-8 text-base">
-                  Try for free <ArrowRight className="ml-2 w-4 h-4" />
+              <motion.div variants={fadeUp} className="pt-8 text-center lg:text-left">
+                <Button className="bg-primary hover:bg-primary/90 text-white h-14 px-10 text-lg rounded-2xl font-bold shadow-lg shadow-primary/20">
+                  Join as Vendor <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
               </motion.div>
             </motion.div>
 
             {/* Mobile Mock UI - List */}
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }} 
-              whileInView={{ opacity: 1, scale: 1 }} 
+              initial={{ opacity: 0, scale: 0.9, x: 20 }} 
+              whileInView={{ opacity: 1, scale: 1, x: 0 }} 
               viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="relative mx-auto w-full max-w-[320px] isolate"
+              transition={{ duration: 0.8 }}
+              className="relative mx-auto w-full max-w-[360px]"
             >
-              <div className="absolute inset-0 bg-[#1faa00]/5 rounded-[3rem] -z-10 -translate-x-4 -translate-y-4"></div>
-              <div className="border-[8px] border-slate-100 rounded-[2.5rem] bg-white shadow-2xl overflow-hidden aspect-[1/2] flex flex-col">
-                <div className="w-full h-14 bg-slate-50 border-b flex items-center px-4 font-semibold text-primary">
-                  Select Booking
+              <div className="absolute inset-0 bg-accent/10 rounded-[4rem] blur-3xl -z-10 -translate-x-10 translate-y-10" />
+              <div className="border-[12px] border-slate-800 rounded-[3.5rem] bg-white shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] overflow-hidden aspect-[9/19] flex flex-col">
+                <div className="w-full h-16 bg-slate-50 border-b flex items-center px-6 font-bold text-slate-900">
+                  Manage Bookings
                 </div>
-                <div className="flex-1 overflow-y-auto p-2 space-y-2 bg-slate-50">
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
                   {[
                     { name: 'John Doe', price: '₹12,000', pending: true, img: 'https://i.pravatar.cc/150?u=1' },
                     { name: 'Sarah Smith', price: '₹5,000', pending: false, img: 'https://i.pravatar.cc/150?u=2' },
                     { name: 'Mike Ross', price: '₹8,500', pending: true, img: 'https://i.pravatar.cc/150?u=3' },
-                    { name: 'Jane Austin', price: '₹3,200', pending: false, img: 'https://i.pravatar.cc/150?u=4' },
-                    { name: 'Robert Fox', price: '₹15,000', pending: false, img: 'https://i.pravatar.cc/150?u=5' }
+                    { name: 'Jane Austin', price: '₹3,200', pending: false, img: 'https://i.pravatar.cc/150?u=4' }
                   ].map((user, i) => (
                     <motion.div 
                       key={i} 
                       whileHover={{ scale: 1.02 }}
-                      className="bg-white p-3 rounded-xl border shadow-sm flex items-center justify-between relative"
+                      className="bg-white p-4 rounded-2xl border shadow-sm flex items-center justify-between relative"
                     >
-                      <div className="flex items-center gap-3">
-                        <img src={user.img} className="w-10 h-10 rounded-full object-cover" alt="" />
+                      <div className="flex items-center gap-4">
+                        <Avatar className="w-10 h-10">
+                          <AvatarImage src={user.img} />
+                        </Avatar>
                         <div>
-                          <p className="text-sm font-medium leading-none mb-1">{user.name}</p>
-                          <p className="text-xs text-muted-foreground">Order: #ORD-{800 + i}</p>
+                          <p className="text-sm font-bold text-slate-900">{user.name}</p>
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-widest">ORD-{800 + i}</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className={`text-sm font-semibold ${user.pending ? 'text-orange-500' : 'text-slate-700'}`}>{user.price}</p>
+                        <p className={`text-sm font-black ${user.pending ? 'text-orange-500' : 'text-slate-900'}`}>{user.price}</p>
                       </div>
-                      {/* Floating Action */}
+                      
                       {i === 0 && (
                         <motion.div 
-                          animate={{ x: [0, 5, 0] }}
-                          transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-                          className="absolute top-1/2 left-full translate-x-4 -translate-y-1/2 bg-white border p-3 rounded-xl shadow-lg w-48 hidden md:block"
+                          animate={{ x: [0, 10, 0] }}
+                          transition={{ repeat: Infinity, duration: 3 }}
+                          className="absolute -right-24 top-1/2 -translate-y-1/2 glass p-4 rounded-2xl shadow-2xl w-48 hidden md:block z-20"
                         >
-                          <p className="text-xs font-semibold text-slate-800 mb-2">Send WhatsApp Reminder</p>
-                          <div className="h-2 bg-slate-100 rounded-full mb-1"></div>
-                          <div className="h-2 bg-slate-100 rounded-full w-2/3 mb-4"></div>
-                          <div className="flex items-center gap-1 text-primary text-xs font-semibold">
-                            <Play className="w-3 h-3 fill-current" /> Send Now
+                          <div className="flex items-center gap-2 mb-2 text-primary">
+                            <Zap className="w-4 h-4 fill-current" />
+                            <span className="text-[10px] font-black uppercase">Quick Remind</span>
                           </div>
+                          <div className="h-2 bg-slate-100 rounded-full w-full mb-1" />
+                          <div className="h-2 bg-slate-100 rounded-full w-2/3" />
                         </motion.div>
                       )}
                     </motion.div>
                   ))}
                 </div>
-                <div className="p-3 bg-white border-t">
-                  <div className="w-full h-10 bg-primary text-white rounded text-sm font-medium flex items-center justify-center shadow-md">
-                    Action (2 Selected)
-                  </div>
+                <div className="p-5 bg-white border-t">
+                  <Button className="w-full h-12 bg-primary rounded-xl font-bold">
+                    Process Selection
+                  </Button>
                 </div>
               </div>
             </motion.div>
@@ -405,23 +531,25 @@ export default function LandingPage() {
       </section>
 
       {/* 4. Dynamic Storefront Section */}
-      <section className="py-20 bg-slate-50/50">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
+      <section className="py-32 bg-white relative">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
           <motion.div 
             initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
-            className="text-center mb-10"
+            className="text-center mb-20"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Get your Digital Storefront. Market it online & Offline
+            <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight">
+              Your Digital Storefront. <br />
+              <span className="text-primary italic">Live in seconds.</span>
             </h2>
-            <p className="text-lg text-muted-foreground mb-8">
-              No more repeating the same thing 20 times a day. Less Calls, More conversion.
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-12">
+              Less calling, more conversion. Give your customers the digital experience 
+              they deserve with a professional storefront.
             </p>
 
-            {/* Tabs */}
-            <div className="flex justify-center gap-2 flex-wrap mb-4">
+            {/* Premium Tabs */}
+            <div className="flex justify-center gap-3 flex-wrap p-2 glass max-w-fit mx-auto rounded-[2rem] border-slate-200 shadow-xl">
               {[
-                { id: 'house', label: 'Houses & Rooms', icon: Home },
+                { id: 'house', label: 'Houses', icon: Home },
                 { id: 'vehicle', label: 'Vehicles', icon: Car },
                 { id: 'marketplace', label: 'Used Items', icon: ShoppingBag },
                 { id: 'laundry', label: 'Laundry', icon: WashingMachine }
@@ -429,65 +557,65 @@ export default function LandingPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold transition-all ${
+                  className={`flex items-center gap-3 px-8 py-3.5 rounded-[1.5rem] text-sm font-bold transition-all duration-300 ${
                     activeTab === tab.id 
-                      ? 'bg-[#1faa00] text-white shadow-md' 
-                      : 'bg-white text-slate-600 border hover:bg-slate-50'
+                      ? 'bg-primary text-white shadow-xl shadow-primary/30' 
+                      : 'text-slate-500 hover:bg-slate-50'
                   }`}
                 >
-                  <tab.icon className="w-4 h-4" /> {tab.label}
+                  <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? 'text-white' : 'text-primary'}`} /> 
+                  {tab.label}
                 </button>
               ))}
             </div>
           </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center min-h-[550px]">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center min-h-[600px]">
             {/* Dynamic Mobile Mock UI */}
-            <div className="relative mx-auto w-full max-w-[320px] isolate">
-              <div className="border-[8px] border-slate-100 rounded-[2.5rem] bg-white shadow-2xl overflow-hidden aspect-[1/2] flex flex-col pt-8 relative">
+            <div className="relative mx-auto w-full max-w-[360px] perspective-[1000px]">
+              <div className="border-[12px] border-slate-900 rounded-[3.5rem] bg-white shadow-[0_50px_100px_-20px_rgba(0,0,0,0.4)] overflow-hidden aspect-[9/19] flex flex-col pt-10 relative group transition-transform duration-500 hover:rotate-y-3">
                 
                 <AnimatePresence mode="wait">
                   {/* HOUSE MOCK */}
                   {activeTab === 'house' && (
                     <motion.div 
                       key="house" 
-                      initial={{ opacity: 0, x: -20 }} 
-                      animate={{ opacity: 1, x: 0 }} 
-                      exit={{ opacity: 0, x: 20 }}
-                      transition={{ duration: 0.3 }}
-                      className="absolute inset-0 flex flex-col pt-8"
+                      initial={{ opacity: 0, scale: 0.95 }} 
+                      animate={{ opacity: 1, scale: 1 }} 
+                      exit={{ opacity: 0, scale: 1.05 }}
+                      transition={{ duration: 0.4 }}
+                      className="absolute inset-0 flex flex-col pt-10"
                     >
-                      <div className="px-4 mb-4">
-                        <div className="aspect-[4/3] rounded-2xl overflow-hidden bg-slate-200">
+                      <div className="px-6 mb-6">
+                        <div className="aspect-[4/3] rounded-3xl overflow-hidden shadow-lg">
                           <img src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80" className="w-full h-full object-cover" alt="Storefront" />
                         </div>
                       </div>
-                      <div className="px-5">
-                        <div className="flex items-center justify-between mb-1">
-                          <h3 className="font-bold text-lg">Premium Suite</h3>
-                          <div className="flex items-center text-xs font-bold text-[#1faa00]">
-                            <ShieldCheck className="w-3 h-3 text-[#1faa00] mr-1" /> Verified
+                      <div className="px-8">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="font-black text-2xl text-slate-900">Premium Suite</h3>
+                          <ShieldCheck className="w-5 h-5 text-accent" />
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-6">City Center • Fully Furnished</p>
+
+                        <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-100 mb-6">
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-2xl font-black text-primary">₹15,000</span>
+                            <span className="text-xs font-bold text-muted-foreground uppercase">/ Month</span>
                           </div>
                         </div>
-                        <p className="text-xs text-muted-foreground mb-4">City Center, Downtown</p>
 
-                        <div className="p-3 border rounded-xl shadow-sm mb-4 bg-blue-50/50">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-sm font-semibold text-primary">₹ 15,000 / Month</span>
-                          </div>
+                        <div className="grid grid-cols-2 gap-4 mb-8">
+                          {['Wi-Fi', 'Parking', 'Security', 'AC'].map(a => (
+                            <div key={a} className="flex items-center gap-2 text-xs font-bold text-slate-600">
+                              <CheckCircle2 className="w-4 h-4 text-accent" /> {a}
+                            </div>
+                          ))}
                         </div>
 
-                        <p className="text-sm font-semibold mb-2">Amenities</p>
-                        <div className="grid grid-cols-2 gap-2 mb-6">
-                          <div className="flex items-center gap-1 text-xs text-slate-600"><CheckCircle2 className="w-3 h-3 text-[#1faa00]" /> Air Cond.</div>
-                          <div className="flex items-center gap-1 text-xs text-slate-600"><CheckCircle2 className="w-3 h-3 text-[#1faa00]" /> Furniture</div>
-                          <div className="flex items-center gap-1 text-xs text-slate-600"><CheckCircle2 className="w-3 h-3 text-[#1faa00]" /> Security</div>
-                          <div className="flex items-center gap-1 text-xs text-slate-600"><CheckCircle2 className="w-3 h-3 text-[#1faa00]" /> Parking</div>
-                        </div>
-
-                        <div className="w-full h-12 bg-primary text-white rounded-xl text-sm font-medium flex items-center justify-center shadow-lg">
+                        <Button className="w-full h-14 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20">
                           Check Availability
-                        </div>
+                        </Button>
                       </div>
                     </motion.div>
                   )}
@@ -496,44 +624,42 @@ export default function LandingPage() {
                   {activeTab === 'vehicle' && (
                     <motion.div 
                       key="vehicle" 
-                      initial={{ opacity: 0, x: -20 }} 
-                      animate={{ opacity: 1, x: 0 }} 
-                      exit={{ opacity: 0, x: 20 }}
-                      transition={{ duration: 0.3 }}
-                      className="absolute inset-0 flex flex-col pt-8"
+                      initial={{ opacity: 0, scale: 0.95 }} 
+                      animate={{ opacity: 1, scale: 1 }} 
+                      exit={{ opacity: 0, scale: 1.05 }}
+                      transition={{ duration: 0.4 }}
+                      className="absolute inset-0 flex flex-col pt-10"
                     >
-                      <div className="px-4 mb-4">
-                        <div className="aspect-[4/3] rounded-2xl overflow-hidden bg-slate-200">
+                      <div className="px-6 mb-6">
+                        <div className="aspect-[4/3] rounded-3xl overflow-hidden shadow-lg">
                           <img src="https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&q=80" className="w-full h-full object-cover" alt="Vehicle" />
                         </div>
                       </div>
-                      <div className="px-5">
-                        <div className="flex items-center justify-between mb-1">
-                          <h3 className="font-bold text-lg">BMW 5 Series</h3>
-                          <div className="flex items-center text-xs font-bold text-[#1faa00]">
-                            <ShieldCheck className="w-3 h-3 text-[#1faa00] mr-1" /> Verified
+                      <div className="px-8">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="font-black text-2xl text-slate-900">BMW 5 Series</h3>
+                          <Zap className="w-5 h-5 text-orange-500" />
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-6">Automatic • Diesel • Luxury</p>
+
+                        <div className="p-4 rounded-2xl bg-orange-50 border border-orange-100 mb-6">
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-2xl font-black text-orange-600">₹3,500</span>
+                            <span className="text-xs font-bold text-orange-400 uppercase">/ Day</span>
                           </div>
                         </div>
-                        <p className="text-xs text-muted-foreground mb-4">Automatic • Diesel • 5 Seater</p>
 
-                        <div className="p-3 border rounded-xl shadow-sm mb-4 bg-orange-50/50">
-                          <div className="flex items-center gap-2">
-                            <Zap className="w-4 h-4 text-orange-500" />
-                            <span className="text-sm font-semibold text-orange-600">₹ 3,500 / Day</span>
-                          </div>
+                        <div className="grid grid-cols-2 gap-4 mb-8">
+                          {['Sunroof', 'Leather', 'GPS', 'Fastag'].map(a => (
+                            <div key={a} className="flex items-center gap-2 text-xs font-bold text-slate-600">
+                              <CheckCircle2 className="w-4 h-4 text-orange-500" /> {a}
+                            </div>
+                          ))}
                         </div>
 
-                        <p className="text-sm font-semibold mb-2">Features</p>
-                        <div className="grid grid-cols-2 gap-2 mb-6">
-                          <div className="flex items-center gap-1 text-xs text-slate-600"><CheckCircle2 className="w-3 h-3 text-orange-500" /> Sunroof</div>
-                          <div className="flex items-center gap-1 text-xs text-slate-600"><CheckCircle2 className="w-3 h-3 text-orange-500" /> Bluetooth</div>
-                          <div className="flex items-center gap-1 text-xs text-slate-600"><CheckCircle2 className="w-3 h-3 text-orange-500" /> Fastag</div>
-                          <div className="flex items-center gap-1 text-xs text-slate-600"><CheckCircle2 className="w-3 h-3 text-orange-500" /> Ext. Warranty</div>
-                        </div>
-
-                        <div className="w-full h-12 bg-orange-500 text-white rounded-xl text-sm font-medium flex items-center justify-center shadow-lg">
-                          Book Now
-                        </div>
+                        <Button className="w-full h-14 bg-orange-500 text-white rounded-2xl font-bold shadow-lg shadow-orange-500/20">
+                          Book Instant
+                        </Button>
                       </div>
                     </motion.div>
                   )}
@@ -542,42 +668,39 @@ export default function LandingPage() {
                   {activeTab === 'marketplace' && (
                     <motion.div 
                       key="marketplace" 
-                      initial={{ opacity: 0, x: -20 }} 
-                      animate={{ opacity: 1, x: 0 }} 
-                      exit={{ opacity: 0, x: 20 }}
-                      transition={{ duration: 0.3 }}
-                      className="absolute inset-0 flex flex-col pt-8"
+                      initial={{ opacity: 0, scale: 0.95 }} 
+                      animate={{ opacity: 1, scale: 1 }} 
+                      exit={{ opacity: 0, scale: 1.05 }}
+                      transition={{ duration: 0.4 }}
+                      className="absolute inset-0 flex flex-col pt-10"
                     >
-                      <div className="px-4 mb-4">
-                        <div className="aspect-[4/3] rounded-2xl overflow-hidden bg-slate-200 p-4 flex items-center justify-center bg-gray-50">
-                          <img src="https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&q=80" className="w-full h-full object-cover rounded-lg" alt="Laptop" />
+                      <div className="px-6 mb-6">
+                        <div className="aspect-[4/3] rounded-3xl overflow-hidden shadow-lg bg-slate-50 flex items-center justify-center">
+                          <img src="https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&q=80" className="w-full h-full object-cover" alt="Laptop" />
                         </div>
                       </div>
-                      <div className="px-5">
-                        <div className="flex items-center justify-between mb-1">
-                          <h3 className="font-bold text-lg">Dell XPS 13 (2021)</h3>
-                          <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-semibold rounded-full border">Used</span>
+                      <div className="px-8">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="font-black text-2xl text-slate-900">Dell XPS 13</h3>
+                          <span className="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-black rounded-full">LIKE NEW</span>
                         </div>
-                        <p className="text-xs text-muted-foreground mb-4">Electronics • Laptops</p>
+                        <p className="text-sm text-muted-foreground mb-6">16GB RAM • 512GB SSD</p>
 
-                        <div className="p-3 border rounded-xl shadow-sm mb-4 bg-emerald-50/50">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xl font-bold text-emerald-700">₹ 45,000</span>
-                            <span className="text-xs line-through text-slate-400">₹ 85,000</span>
+                        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 mb-6">
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-2xl font-black text-emerald-700">₹45,000</span>
+                            <span className="text-xs font-bold text-emerald-400 line-through">₹85K</span>
                           </div>
                         </div>
 
-                        <p className="text-xs text-slate-600 mb-6 leading-relaxed">
-                          Rarely used Dell XPS. 16GB RAM, 512GB SSD. No scratches. Comes with original charger and box.
+                        <p className="text-xs text-slate-500 leading-relaxed mb-8">
+                          Barely used for 6 months. Perfect for students and developers. 
+                          Includes all original accessories.
                         </p>
 
-                        <div className="grid grid-cols-2 gap-2 mt-auto">
-                          <div className="w-full h-12 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium flex items-center justify-center shadow-sm">
-                            Make Offer
-                          </div>
-                          <div className="w-full h-12 bg-emerald-600 text-white rounded-xl text-sm font-medium flex items-center justify-center shadow-lg">
-                            Buy Now
-                          </div>
+                        <div className="flex gap-3">
+                          <Button variant="outline" className="flex-1 h-14 rounded-2xl font-bold border-2">Offer</Button>
+                          <Button className="flex-1 h-14 bg-emerald-600 rounded-2xl font-bold shadow-lg shadow-emerald-600/20">Buy Now</Button>
                         </div>
                       </div>
                     </motion.div>
@@ -587,106 +710,96 @@ export default function LandingPage() {
                   {activeTab === 'laundry' && (
                     <motion.div 
                       key="laundry" 
-                      initial={{ opacity: 0, x: -20 }} 
-                      animate={{ opacity: 1, x: 0 }} 
-                      exit={{ opacity: 0, x: 20 }}
-                      transition={{ duration: 0.3 }}
-                      className="absolute inset-0 flex flex-col pt-8 bg-sky-50/30"
+                      initial={{ opacity: 0, scale: 0.95 }} 
+                      animate={{ opacity: 1, scale: 1 }} 
+                      exit={{ opacity: 0, scale: 1.05 }}
+                      transition={{ duration: 0.4 }}
+                      className="absolute inset-0 flex flex-col pt-10"
                     >
-                      <div className="px-4 mb-4">
-                        <div className="aspect-[4/3] rounded-2xl overflow-hidden flex items-center justify-center bg-gradient-to-br from-cyan-400 to-blue-500 shadow-inner">
-                           <WashingMachine className="w-20 h-20 text-white opacity-90" />
+                      <div className="px-6 mb-6">
+                        <div className="aspect-[4/3] rounded-3xl overflow-hidden bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center shadow-inner">
+                           <WashingMachine className="w-24 h-24 text-white opacity-90 animate-bounce" />
                         </div>
                       </div>
-                      <div className="px-5">
-                        <div className="flex items-center justify-between mb-1">
-                          <h3 className="font-bold text-lg text-slate-800">Premium Wash & Fold</h3>
-                        </div>
-                        <p className="text-xs text-muted-foreground mb-4">Includes pickup & delivery</p>
+                      <div className="px-8">
+                        <h3 className="font-black text-2xl text-slate-900 mb-2">Premium Wash</h3>
+                        <p className="text-sm text-muted-foreground mb-6">Pick-up & Drop included</p>
 
-                        <div className="space-y-3 mb-6">
-                           <div className="flex justify-between items-center bg-white p-3 border rounded-lg shadow-sm">
-                             <span className="text-sm font-medium">Shirts / T-Shirts</span>
-                             <div className="flex items-center gap-3">
-                               <button className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200">-</button>
-                               <span className="text-sm font-bold w-4 text-center">5</span>
-                               <button className="w-6 h-6 rounded bg-blue-100 flex items-center justify-center text-blue-600 hover:bg-blue-200">+</button>
+                        <div className="space-y-3 mb-8">
+                           {['Shirts', 'Pants'].map((item, idx) => (
+                             <div key={item} className="flex justify-between items-center bg-white p-4 border rounded-2xl shadow-sm">
+                               <span className="text-sm font-bold">{item}</span>
+                               <div className="flex items-center gap-4">
+                                 <button className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center font-bold">-</button>
+                                 <span className="text-sm font-black">{idx === 0 ? '5' : '2'}</span>
+                                 <button className="w-8 h-8 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-bold">+</button>
+                               </div>
                              </div>
-                           </div>
-                           <div className="flex justify-between items-center bg-white p-3 border rounded-lg shadow-sm">
-                             <span className="text-sm font-medium">Pants / Jeans</span>
-                             <div className="flex items-center gap-3">
-                               <button className="w-6 h-6 rounded bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200">-</button>
-                               <span className="text-sm font-bold w-4 text-center">2</span>
-                               <button className="w-6 h-6 rounded bg-blue-100 flex items-center justify-center text-blue-600 hover:bg-blue-200">+</button>
-                             </div>
-                           </div>
+                           ))}
                         </div>
 
-                        <div className="flex justify-between items-center border-t border-slate-200 pt-4 mb-4">
-                           <span className="text-sm text-slate-600">Total (7 items)</span>
-                           <span className="font-bold text-lg text-blue-600">₹ 350</span>
+                        <div className="flex justify-between items-center mb-6">
+                           <span className="text-sm font-bold text-slate-500">Total Due</span>
+                           <span className="text-2xl font-black text-blue-600">₹350</span>
                         </div>
 
-                        <div className="w-full h-12 bg-blue-600 text-white rounded-xl text-sm font-medium flex items-center justify-center shadow-lg">
-                          Schedule Pickup
-                        </div>
+                        <Button className="w-full h-14 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-600/20">
+                          Schedule Pick-up
+                        </Button>
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
-
-                {/* Floating QR Links */}
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="absolute right-0 translate-x-1/2 top-40 hidden md:flex flex-col gap-4 z-10"
-                >
-                  <motion.div 
-                    whileHover={{ scale: 1.1 }}
-                    animate={{ y: [0, -5, 0] }}
-                    transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-                    className="bg-white p-3 border rounded-xl shadow-lg text-center flex flex-col items-center cursor-pointer"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center mb-1 text-[#1faa00] text-xs font-bold">₹</div>
-                    <span className="text-[10px] font-bold text-slate-700">For Payment</span>
-                    <span className="text-[10px] font-semibold text-primary mt-1">Generate QR</span>
-                  </motion.div>
-                  <motion.div 
-                    whileHover={{ scale: 1.1 }}
-                    animate={{ y: [0, 5, 0] }}
-                    transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut", delay: 0.5 }}
-                    className="bg-white p-3 border rounded-xl shadow-lg text-center flex flex-col items-center cursor-pointer"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mb-1 text-primary text-xs font-bold">W</div>
-                    <span className="text-[10px] font-bold text-slate-700">For Website</span>
-                    <span className="text-[10px] font-semibold text-primary mt-1">Generate QR</span>
-                  </motion.div>
-                </motion.div>
               </div>
+
+              {/* Floating Interaction Elements */}
+              <motion.div 
+                animate={{ x: [0, 10, 0] }}
+                transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+                className="absolute -right-10 top-1/2 -translate-y-1/2 space-y-4 hidden md:block"
+              >
+                <div className="glass p-3 rounded-2xl shadow-2xl flex flex-col items-center gap-1 cursor-pointer hover:scale-110 transition-transform">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">₹</div>
+                  <span className="text-[8px] font-black uppercase">Payment</span>
+                </div>
+                <div className="glass p-3 rounded-2xl shadow-2xl flex flex-col items-center gap-1 cursor-pointer hover:scale-110 transition-transform">
+                  <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center text-primary font-bold">W</div>
+                  <span className="text-[8px] font-black uppercase">Web Link</span>
+                </div>
+              </motion.div>
             </div>
 
             {/* Features List */}
-            <div className="space-y-4 relative">
+            <div className="space-y-12">
               <AnimatePresence mode="wait">
                 <motion.div 
                   key={activeTab}
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.3 }}
-                  className="space-y-4"
+                  transition={{ duration: 0.4 }}
+                  className="space-y-8"
                 >
-                  {storefrontFeatures[activeTab].map((feat, idx) => (
-                    <div key={idx} className="p-4 rounded-xl border border-orange-200 bg-white/50 hover:bg-white shadow-sm transition">
-                      <p className="font-medium text-orange-600 text-lg">{feat}</p>
-                    </div>
-                  ))}
+                  <div className="space-y-6">
+                    {storefrontFeatures[activeTab].map((feat, idx) => (
+                      <motion.div 
+                        key={idx} 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.1 }}
+                        className="flex items-start gap-4 p-6 rounded-[2rem] border border-slate-100 hover:border-primary/20 hover:bg-slate-50/50 transition-all group"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0 group-hover:bg-primary group-hover:text-white transition-colors">
+                          {idx + 1}
+                        </div>
+                        <p className="text-xl font-bold text-slate-800 leading-snug">{feat}</p>
+                      </motion.div>
+                    ))}
+                  </div>
 
-                  <div className="pt-6">
-                    <Button className="bg-[#1faa00] hover:bg-[#1caa00] text-white h-12 px-8 text-base">
-                      Try for free <ArrowRight className="ml-2 w-4 h-4" />
+                  <div className="pt-4">
+                    <Button className="bg-slate-900 hover:bg-slate-800 text-white h-16 px-12 text-xl rounded-[2rem] font-bold shadow-2xl transition-all hover:-translate-y-1">
+                      Build Your Storefront <ArrowRight className="ml-3 w-6 h-6" />
                     </Button>
                   </div>
                 </motion.div>
@@ -697,75 +810,118 @@ export default function LandingPage() {
       </section>
 
       {/* 5. Trusted Partners / Testimonial */}
-      <section className="py-24 bg-white text-center border-t">
-        <div className="container mx-auto px-4 max-w-5xl">
+      <section className="py-32 relative bg-slate-50/50">
+        <div className="container mx-auto px-4 max-w-7xl">
           <motion.div 
             initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ duration: 1 }}
-            className="flex flex-wrap items-center justify-center gap-8 md:gap-16 opacity-40 grayscale mb-16"
+            className="flex flex-wrap items-center justify-center gap-12 md:gap-24 opacity-30 grayscale hover:grayscale-0 transition-all duration-700 mb-32"
           >
-            <span className="font-bold text-xl">BRAND LOGO</span>
-            <span className="font-bold text-xl">BRAND LOGO</span>
-            <span className="font-bold text-xl">BRAND LOGO</span>
-            <span className="font-bold text-xl">BRAND LOGO</span>
-            <span className="font-bold text-xl">BRAND LOGO</span>
+            {['LOGO 1', 'LOGO 2', 'LOGO 3', 'LOGO 4', 'LOGO 5'].map(l => (
+              <span key={l} className="font-black text-2xl tracking-tighter text-slate-400">{l}</span>
+            ))}
           </motion.div>
 
-          <motion.h2 
-            initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            className="text-3xl md:text-4xl font-bold mb-8"
-          >
-            Uniexo is the most <span className="text-[#1faa00]">trusted & reliable</span> helper for everyone
-          </motion.h2>
-
-          <motion.div 
-            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerContainer}
-            className="flex flex-wrap justify-center gap-3 mb-16"
-          >
-            <motion.span variants={fadeUp} className="px-6 py-2 rounded-full border-2 border-orange-400 text-orange-500 font-semibold bg-orange-50">Vehicles</motion.span>
-            <motion.span variants={fadeUp} className="px-6 py-2 rounded-full border-2 border-pink-400 text-pink-500 font-semibold bg-pink-50">Houses & Rooms</motion.span>
-            <motion.span variants={fadeUp} className="px-6 py-2 rounded-full border-2 border-green-400 text-green-600 font-semibold bg-green-50">Marketplace</motion.span>
-            <motion.span variants={fadeUp} className="px-6 py-2 rounded-full border-2 border-purple-400 text-purple-500 font-semibold bg-purple-50">Laundry</motion.span>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 gap-12 items-center text-left max-w-4xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-20 items-center">
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ duration: 0.5 }}
-              className="relative aspect-video rounded-2xl overflow-hidden bg-slate-800 shadow-2xl group cursor-pointer"
+              initial={{ opacity: 0, x: -50 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
+              className="relative"
             >
-              <img src="https://images.unsplash.com/photo-1542314831-c5a4d408ebf3?auto=format&fit=crop&q=80" className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition duration-500" alt="Testimonial Video" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-20 h-20 bg-primary text-white rounded-full flex items-center justify-center shadow-2xl group-hover:scale-110 transition">
-                  <Play className="w-8 h-8 fill-current ml-2" />
-                </div>
-              </div>
-              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-slate-300 border-2 border-white overflow-hidden">
-                    <img src="https://i.pravatar.cc/150?u=9" className="w-full h-full object-cover" alt="" />
-                  </div>
+              <div className="aspect-square rounded-[4rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.2)]">
+                <img src="https://images.unsplash.com/photo-1542314831-c5a4d408ebf3?auto=format&fit=crop&q=80" className="w-full h-full object-cover" alt="Success Story" />
+                <div className="absolute inset-0 bg-primary/20 mix-blend-overlay" />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
+                
+                <div className="absolute bottom-10 left-10 right-10 flex items-center gap-4">
+                  <Avatar className="w-16 h-16 border-4 border-white shadow-xl">
+                    <AvatarImage src="https://i.pravatar.cc/150?u=9" />
+                  </Avatar>
                   <div>
-                    <p className="text-white font-bold">Mr. Rahul Sharma</p>
-                    <p className="text-white/80 text-sm">Premium Vendor</p>
+                    <p className="text-white font-black text-xl">Rahul Sharma</p>
+                    <p className="text-white/70 text-sm font-bold uppercase tracking-widest">Premium Vendor Partner</p>
                   </div>
                 </div>
               </div>
+
+              {/* Decorative Play Button */}
+              <motion.button 
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-2xl text-primary z-10"
+              >
+                <Play className="w-10 h-10 fill-current ml-2" />
+              </motion.button>
             </motion.div>
 
-            <motion.div 
-              initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerContainer}
-              className="space-y-6"
-            >
-              <motion.p variants={fadeUp} className="text-xl md:text-2xl font-medium text-slate-800 leading-relaxed">
-                "This is a perfect platform which really gonna help vendors and as well as users because they feel more secure by getting transparent agreements and swift payments with this app."
-              </motion.p>
-              <motion.div variants={fadeUp}>
-                <p className="text-primary font-bold text-lg">Mr. Rahul Sharma</p>
-                <p className="text-sm font-medium text-[#1faa00] flex items-center gap-1 mt-1">
-                  <CheckCircle2 className="w-4 h-4 fill-current text-[#1faa00]" /> Using Uniexo since last 25 months
-                </p>
+            <div className="space-y-10">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 text-accent font-bold text-sm"
+              >
+                <Star className="w-4 h-4 fill-current" />
+                <span>RATED 4.9/5 BY VENDORS</span>
               </motion.div>
-            </motion.div>
+
+              <motion.h2 
+                initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+                className="text-4xl md:text-6xl font-black text-slate-900 leading-[1.1] tracking-tight"
+              >
+                Uniexo is the helper <br />
+                <span className="text-primary">everyone trusts.</span>
+              </motion.h2>
+
+              <motion.div 
+                initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerContainer}
+                className="space-y-8"
+              >
+                <motion.p variants={fadeUp} className="text-2xl text-slate-600 font-medium leading-relaxed italic">
+                  "Uniexo completely transformed how I list my properties. 
+                  The automatic reminders and secure payments removed 90% of my daily stress."
+                </motion.p>
+
+                <motion.div variants={fadeUp} className="flex gap-4">
+                  <div className="flex flex-col">
+                    <span className="text-slate-900 font-black text-lg">25+ Months</span>
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Active Partner</span>
+                  </div>
+                  <div className="w-px h-10 bg-slate-200" />
+                  <div className="flex flex-col">
+                    <span className="text-slate-900 font-black text-lg">500+ Deals</span>
+                    <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Completed</span>
+                  </div>
+                </motion.div>
+              </motion.div>
+            </div>
           </div>
+        </div>
+      </section>
+
+      {/* Final CTA Section */}
+      <section className="py-32 bg-primary relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10" />
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary via-primary to-blue-900 -z-10" />
+        
+        <div className="container mx-auto px-4 text-center relative z-10">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="max-w-4xl mx-auto space-y-12"
+          >
+            <h2 className="text-5xl md:text-8xl font-black text-white tracking-tighter leading-none">
+              READY TO <br />
+              <span className="text-accent underline decoration-white/20 underline-offset-[20px]">GET STARTED?</span>
+            </h2>
+            <p className="text-xl md:text-2xl text-white/80 font-medium max-w-2xl mx-auto">
+              Join India's most innovative multi-service hub. 
+              Sign up today and experience the difference.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-6 justify-center pt-8">
+              <Button size="lg" className="h-20 px-16 bg-white text-primary hover:bg-slate-50 text-2xl font-black rounded-[2.5rem] shadow-2xl transition-all hover:-translate-y-2">
+                Join Now — It's Free
+              </Button>
+              <Button size="lg" variant="outline" className="h-20 px-16 border-4 border-white/20 text-white hover:bg-white/10 text-2xl font-black rounded-[2.5rem] transition-all hover:-translate-y-2">
+                Contact Sales
+              </Button>
+            </div>
+          </motion.div>
         </div>
       </section>
     </div>

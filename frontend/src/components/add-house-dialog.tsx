@@ -25,9 +25,10 @@ export function AddHouseDialog() {
     bedrooms: '1',
     bathrooms: '1',
     area: '100',
+    roomSize: 'small',
+    bedType: 'single',
     pricePerMonth: '', // Legacy PG
     pricePerDay: '', // Room
-    pricePerHour: '', // Room Hourly
     singleSharingPrice: '', // PG
     doubleSharingPrice: '', // PG
     tripleSharingPrice: '', // PG
@@ -63,7 +64,9 @@ export function AddHouseDialog() {
       setOpen(false);
       setFormData({
         title: '', description: '', propertyType: '', address: '', city: '', state: '',
-        pincode: '', bedrooms: '1', bathrooms: '1', area: '100', pricePerMonth: '', pricePerDay: '', pricePerHour: '',
+        pincode: '', bedrooms: '1', bathrooms: '1', area: '100', 
+        roomSize: 'small', bedType: 'single',
+        pricePerMonth: '', pricePerDay: '', 
         singleSharingPrice: '', doubleSharingPrice: '', tripleSharingPrice: '',
         securityDeposit: '', lockinPeriod: '0 months', noticePeriod: '15 days', electricityIncluded: 'true', electricityCharge: '',
         locationUrl: '', tenantsStaying: '0'
@@ -93,7 +96,7 @@ export function AddHouseDialog() {
     Object.entries(formData).forEach(([key, value]) => {
       // conditionally skip irrelevant fields
       if (formData.propertyType === 'room' && ['pricePerMonth', 'singleSharingPrice', 'doubleSharingPrice', 'tripleSharingPrice', 'securityDeposit', 'electricityIncluded', 'electricityCharge'].includes(key)) return;
-      if (formData.propertyType === 'pg' && ['pricePerDay', 'pricePerHour'].includes(key)) return;
+      if (formData.propertyType === 'pg' && ['pricePerDay'].includes(key)) return;
       
       fd.append(key, value);
     });
@@ -160,24 +163,53 @@ export function AddHouseDialog() {
             </div>
 
             <div className="bg-slate-50 p-4 rounded-lg border space-y-4">
-              <h3 className="font-semibold text-sm text-slate-800">Pricing & Terms</h3>
+              <h3 className="font-semibold text-sm text-slate-800">Room Specifications & Pricing</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="roomSize">Room Size</Label>
+                  <select 
+                    id="roomSize" 
+                    name="roomSize" 
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm cursor-pointer"
+                    onChange={handleChange}
+                  >
+                    <option value="small">Small (approx 100 sqft)</option>
+                    <option value="medium">Medium (approx 150 sqft)</option>
+                    <option value="large">Large (approx 200+ sqft)</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="bedType">Bed Type</Label>
+                  <select 
+                    id="bedType" 
+                    name="bedType" 
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm cursor-pointer"
+                    onChange={handleChange}
+                  >
+                    <option value="single">Single Bed</option>
+                    <option value="double">Double Bed</option>
+                    <option value="king">King Size Bed</option>
+                  </select>
+                </div>
+              </div>
+
               {formData.propertyType === 'pg' && (
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 gap-4 pt-4 border-t">
                   <div className="space-y-2">
                     <Label htmlFor="singleSharingPrice">Single Sharing Rate (₹)</Label>
-                    <Input id="singleSharingPrice" name="singleSharingPrice" type="number" step="0.01" min="0" value={formData.singleSharingPrice} onChange={handleChange} placeholder="Optional" />
+                    <Input id="singleSharingPrice" name="singleSharingPrice" type="number" step="0.01" min="0" value={formData.singleSharingPrice} onChange={handleChange} placeholder="e.g. 8000" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="doubleSharingPrice">Double Sharing Rate (₹)</Label>
-                    <Input id="doubleSharingPrice" name="doubleSharingPrice" type="number" step="0.01" min="0" value={formData.doubleSharingPrice} onChange={handleChange} placeholder="Optional" />
+                    <Input id="doubleSharingPrice" name="doubleSharingPrice" type="number" step="0.01" min="0" value={formData.doubleSharingPrice} onChange={handleChange} placeholder="e.g. 5000" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="tripleSharingPrice">Triple Sharing Rate (₹)</Label>
-                    <Input id="tripleSharingPrice" name="tripleSharingPrice" type="number" step="0.01" min="0" value={formData.tripleSharingPrice} onChange={handleChange} placeholder="Optional" />
+                    <Input id="tripleSharingPrice" name="tripleSharingPrice" type="number" step="0.01" min="0" value={formData.tripleSharingPrice} onChange={handleChange} placeholder="e.g. 4000" />
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="pricePerMonth">Base/Default Rent (₹/mo)</Label>
+                    <Label htmlFor="pricePerMonth">Default Base Rent (₹/mo)</Label>
                     <Input id="pricePerMonth" name="pricePerMonth" type="number" step="0.01" required min="0" value={formData.pricePerMonth} onChange={handleChange} />
                   </div>
                   <div className="space-y-2">
@@ -187,7 +219,7 @@ export function AddHouseDialog() {
                   
                   <div className="space-y-2 col-span-3">
                     <Label htmlFor="electricityIncluded">Electricity Included?</Label>
-                    <select id="electricityIncluded" name="electricityIncluded" required value={formData.electricityIncluded} onChange={handleChange} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                    <select id="electricityIncluded" name="electricityIncluded" required value={formData.electricityIncluded} onChange={handleChange} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm cursor-pointer">
                       <option value="true">Yes, included in rent</option>
                       <option value="false">No, charged separately</option>
                     </select>
@@ -202,14 +234,10 @@ export function AddHouseDialog() {
               )}
 
               {formData.propertyType === 'room' && (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4 pt-4 border-t">
                   <div className="space-y-2">
                     <Label htmlFor="pricePerDay">Price Per Day (₹)</Label>
                     <Input id="pricePerDay" name="pricePerDay" type="number" step="0.01" required min="0" value={formData.pricePerDay} onChange={handleChange} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="pricePerHour">Price Per Hour (₹)</Label>
-                    <Input id="pricePerHour" name="pricePerHour" type="number" step="0.01" min="0" value={formData.pricePerHour} onChange={handleChange} placeholder="Optional" />
                   </div>
                 </div>
               )}

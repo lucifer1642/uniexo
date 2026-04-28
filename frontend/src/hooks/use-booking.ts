@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 
 interface CreateBookingParams {
@@ -44,16 +44,6 @@ export const useUpdateBookingStatus = () => {
             queryClient.invalidateQueries({ queryKey: ['vendorBookings'] });
             queryClient.invalidateQueries({ queryKey: ['userBookings'] });
             queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
-        },
-    });
-};
-
-export const useUserBookings = () => {
-    return useQuery({
-        queryKey: ['userBookings'],
-        queryFn: async () => {
-            const res = await api.get('/bookings/my');
-            return res.data;
         },
     });
 };

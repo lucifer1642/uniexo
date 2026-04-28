@@ -13,13 +13,6 @@ export interface User {
     universityId?: string;
     location?: string;
     idCardPhotoUrl?: string;
-    kycStatus?: 'pending' | 'approved' | 'rejected' | 'none';
-    bankDetails?: {
-        accountHolder: string;
-        accountNumber: string;
-        ifscCode: string;
-        bankName: string;
-    };
 }
 
 interface AuthState {

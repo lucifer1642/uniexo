@@ -96,6 +96,8 @@ export function Navbar() {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  {user.role === 'admin' ? (
+                    <>
                       <DropdownMenuItem asChild>
                         <Link href="/admin">Admin Panel</Link>
                       </DropdownMenuItem>
@@ -206,7 +208,7 @@ export function Navbar() {
                         Admin Panel
                       </Link>
                       <button
-                        onClick={() => { logout(); setIsMobileMenuOpen(false); router.push('/login'); }}
+                        onClick={() => { logout(); setIsMobileMenuOpen(false); }}
                         className="block w-full text-left rounded-md px-3 py-2 text-base font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                       >
                         Sign out

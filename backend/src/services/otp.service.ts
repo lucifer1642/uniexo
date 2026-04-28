@@ -2,11 +2,50 @@ import { redis } from '../config/redis';
 import { generateOTP } from '../utils/helpers';
 import { OTPLog } from '../database/models';
 import { logger } from '../config/logger';
+import { EmailService } from './email.service';
 
-const OTP_EXPIRY_SECONDS = 300; // 5 minutes
+const OTP_EXPIRY_SECONDS = 300; // 5 minutes (TTL)
 const OTP_PREFIX = 'otp';
 
 export class OTPService {
+  /**
+   * Generates a secure random OTP, stores it in Redis with TTL, 
+   * and automatically sends it to the user's email.
+   */
+  static async generateAndSend(
+    email: string,
+    purpose: string,
+    userData?: Record<string, unknown>
+  ): Promise<string> {
+    // 1. Generate secure OTP
+    const otp = generateOTP(6);
+    const key = `${OTP_PREFIX}:${purpose}:${email}`;
+
+    // 2. Store in Redis for auto-expiry (Dynamic validation)
+    const data = JSON.stringify({ otp, email, purpose, userData });
+    await redis.set(key, data, 'EX', OTP_EXPIRY_SECONDS);
+
+    // 3. Send via Email automatically
+    await EmailService.sendOTP(email, otp, purpose);
+
+    // 4. Log for audit trails
+    await OTPLog.create({
+      email,
+      otp,
+      purpose,
+      expiresAt: new Date(Date.now() + OTP_EXPIRY_SECONDS * 1000),
+    });
+
+    logger.info(`OTP Engine: Generated and sent ${purpose} OTP to ${email}`);
+    
+    // In dev, we also log to console for convenience
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`\n[OTP DEBUG] ${email} (${purpose}) -> ${otp}\n`);
+    }
+
+    return otp;
+  }
+
   static async generate(
     email: string,
     purpose: string,

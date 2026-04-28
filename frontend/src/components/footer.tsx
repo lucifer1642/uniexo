@@ -1,16 +1,7 @@
-'use client';
-
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { Facebook, Instagram, Linkedin, Youtube } from 'lucide-react';
 
 export function Footer() {
-  const pathname = usePathname();
-
-  if (pathname === '/profile') {
-    return null;
-  }
-
   return (
     <footer className="bg-zinc-950 px-4 py-12 md:px-8 text-white w-full mt-auto">
       <div className="container mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">

@@ -99,4 +99,36 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  .glass {
+    @apply bg-white/40 backdrop-blur-md border border-white/20 shadow-xl;
+  }
+
+  .glass-dark {
+    @apply bg-slate-900/40 backdrop-blur-md border border-white/10 shadow-xl;
+  }
+
+  .mesh-gradient {
+    background-color: hsla(0, 0%, 100%, 1);
+    background-image: 
+      radial-gradient(at 0% 0%, hsla(220, 100%, 95%, 1) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(140, 100%, 95%, 1) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, hsla(220, 100%, 95%, 1) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, hsla(140, 100%, 95%, 1) 0px, transparent 50%);
+  }
+
+  .parallax {
+    transform: translateY(var(--parallax-offset, 0));
+    transition: transform 0.1s linear;
+  }
+
+  @keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+    100% { transform: translateY(0px); }
+  }
+
+  .animate-float {
+    animation: float 4s ease-in-out infinite;
+  }
 }

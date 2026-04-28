@@ -1,7 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { AuthRepository } from './auth.repository';
 import { OTPService } from '../../services/otp.service';
-import { EmailService } from '../../services/email.service';
 import { TokenService } from '../../services/token.service';
 import { JWTPayload } from '../../types';
 import {
@@ -41,8 +40,7 @@ export class AuthService {
     const hashedPassword = await bcrypt.hash(data.password, SALT_ROUNDS);
     const userData = { ...data, password: hashedPassword };
 
-    const otp = await OTPService.generate(data.email, 'signup', userData as any);
-    await EmailService.sendOTP(data.email, otp, 'signup');
+    await OTPService.generateAndSend(data.email, 'signup', userData as any);
   }
 
   async verifySignupOTP(email: string, otp: string): Promise<{
@@ -212,8 +210,7 @@ export class AuthService {
       return;
     }
 
-    const otp = await OTPService.generate(email, 'password-reset');
-    await EmailService.sendOTP(email, otp, 'password-reset');
+    await OTPService.generateAndSend(email, 'password-reset');
   }
 
   async resetPassword(email: string, otp: string, newPassword: string): Promise<void> {
@@ -240,7 +237,6 @@ export class AuthService {
       // Just regenerate OTP
     }
 
-    const otp = await OTPService.generate(email, purpose);
-    await EmailService.sendOTP(email, otp, purpose);
+    await OTPService.generateAndSend(email, purpose);
   }
 }
