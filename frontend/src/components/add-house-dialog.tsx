@@ -27,6 +27,7 @@ export function AddHouseDialog() {
     area: '100',
     pricePerMonth: '', // Legacy PG
     pricePerDay: '', // Room
+    pricePerHour: '', // Room Hourly
     singleSharingPrice: '', // PG
     doubleSharingPrice: '', // PG
     tripleSharingPrice: '', // PG
@@ -62,7 +63,7 @@ export function AddHouseDialog() {
       setOpen(false);
       setFormData({
         title: '', description: '', propertyType: '', address: '', city: '', state: '',
-        pincode: '', bedrooms: '1', bathrooms: '1', area: '100', pricePerMonth: '', pricePerDay: '', 
+        pincode: '', bedrooms: '1', bathrooms: '1', area: '100', pricePerMonth: '', pricePerDay: '', pricePerHour: '',
         singleSharingPrice: '', doubleSharingPrice: '', tripleSharingPrice: '',
         securityDeposit: '', lockinPeriod: '0 months', noticePeriod: '15 days', electricityIncluded: 'true', electricityCharge: '',
         locationUrl: '', tenantsStaying: '0'
@@ -92,7 +93,7 @@ export function AddHouseDialog() {
     Object.entries(formData).forEach(([key, value]) => {
       // conditionally skip irrelevant fields
       if (formData.propertyType === 'room' && ['pricePerMonth', 'singleSharingPrice', 'doubleSharingPrice', 'tripleSharingPrice', 'securityDeposit', 'electricityIncluded', 'electricityCharge'].includes(key)) return;
-      if (formData.propertyType === 'pg' && ['pricePerDay'].includes(key)) return;
+      if (formData.propertyType === 'pg' && ['pricePerDay', 'pricePerHour'].includes(key)) return;
       
       fd.append(key, value);
     });
@@ -205,6 +206,10 @@ export function AddHouseDialog() {
                   <div className="space-y-2">
                     <Label htmlFor="pricePerDay">Price Per Day (₹)</Label>
                     <Input id="pricePerDay" name="pricePerDay" type="number" step="0.01" required min="0" value={formData.pricePerDay} onChange={handleChange} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="pricePerHour">Price Per Hour (₹)</Label>
+                    <Input id="pricePerHour" name="pricePerHour" type="number" step="0.01" min="0" value={formData.pricePerHour} onChange={handleChange} placeholder="Optional" />
                   </div>
                 </div>
               )}

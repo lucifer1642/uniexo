@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import { LocateFixed } from 'lucide-react';
+import { LocateFixed, CreditCard, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 
 export default function ProfilePage() {
   const { user, updateUser } = useAuthStore();
@@ -31,6 +31,10 @@ export default function ProfilePage() {
     businessAddress: '',
     businessPhone: '',
     description: '',
+    accountHolder: user?.bankDetails?.accountHolder || '',
+    accountNumber: user?.bankDetails?.accountNumber || '',
+    ifscCode: user?.bankDetails?.ifscCode || '',
+    bankName: user?.bankDetails?.bankName || '',
   });
 
   useEffect(() => {
@@ -42,9 +46,13 @@ export default function ProfilePage() {
         phone: user.phone || '',
         location: user.location || '',
         universityId: user.universityId || '',
+        accountHolder: user.bankDetails?.accountHolder || '',
+        accountNumber: user.bankDetails?.accountNumber || '',
+        ifscCode: user.bankDetails?.ifscCode || '',
+        bankName: user.bankDetails?.bankName || '',
       }));
     }
-  }, [user?.name, user?.email, user?.phone, user?.location, user?.universityId]);
+  }, [user]);
 
   // Fetch live user profile on mount to overwrite any stale cached fields
   useEffect(() => {
@@ -111,6 +119,43 @@ export default function ProfilePage() {
     }
   };
 
+  const handleBankSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const bankData = {
+        accountHolder: formData.accountHolder,
+        accountNumber: formData.accountNumber,
+        ifscCode: formData.ifscCode,
+        bankName: formData.bankName,
+      };
+      const response = await api.post('/users/kyc', bankData);
+      updateUser({ 
+        bankDetails: bankData,
+        kycStatus: response.data.data.status 
+      });
+      toast.success('KYC details submitted for approval');
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to submit KYC details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getKycBadge = () => {
+    const status = user?.kycStatus || 'none';
+    switch (status) {
+      case 'approved':
+        return <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full text-xs font-bold border border-emerald-100"><CheckCircle2 className="w-3.5 h-3.5" /> Approved</div>;
+      case 'pending':
+        return <div className="flex items-center gap-1.5 text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full text-xs font-bold border border-amber-100"><Clock className="w-3.5 h-3.5" /> Pending Approval</div>;
+      case 'rejected':
+        return <div className="flex items-center gap-1.5 text-rose-600 bg-rose-50 px-2.5 py-1 rounded-full text-xs font-bold border border-rose-100"><AlertCircle className="w-3.5 h-3.5" /> Rejected</div>;
+      default:
+        return <div className="flex items-center gap-1.5 text-slate-500 bg-slate-50 px-2.5 py-1 rounded-full text-xs font-bold border border-slate-100">Not Submitted</div>;
+    }
+  };
+
   return (
     <ProtectedRoute>
       <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -157,7 +202,7 @@ export default function ProfilePage() {
                     }
                   }}
                 />
-                <Button variant="outline" className="w-full pointer-events-none" disabled={uploadingAvatar}>
+                <Button variant="outline" className="w-full pointer-events-none cursor-pointer" disabled={uploadingAvatar}>
                   {uploadingAvatar ? 'Uploading...' : 'Upload Picture'}
                 </Button>
               </div>
@@ -222,7 +267,7 @@ export default function ProfilePage() {
                           type="button" 
                           variant="ghost" 
                           size="sm" 
-                          className="h-6 text-xs px-2 text-primary"
+                          className="h-6 text-xs px-2 text-primary cursor-pointer"
                           onClick={() => {
                             if ('geolocation' in navigator) {
                               navigator.geolocation.getCurrentPosition(
@@ -264,55 +309,6 @@ export default function ProfilePage() {
                         value={formData.location || ''}
                         onChange={handleChange}
                         className="w-full"
-                      />
-                    </div>
-                    <div className="space-y-2 pt-2 pb-2">
-                      <Label htmlFor="idCard">Upload ID Card (Required for first booking)</Label>
-                      {user?.idCardPhotoUrl || idCardPreview ? (
-                        <div className="flex flex-col space-y-2">
-                          <div className="flex items-center space-x-4">
-                            <span className="text-sm text-green-600 font-medium">✓ Uploaded</span>
-                            <span className="text-sm text-muted-foreground">(Upload again to replace)</span>
-                          </div>
-                          <div className="relative w-48 h-32 rounded-md border overflow-hidden bg-muted flex items-center justify-center">
-                            {(idCardPreview || user?.idCardPhotoUrl) ? (
-                              <img src={idCardPreview || user?.idCardPhotoUrl} alt="ID Card Preview" className="w-full h-full object-cover" />
-                            ) : null}
-                            {uploadingIdCard && (
-                              <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xs">
-                                Uploading...
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ) : null}
-                      <Input
-                        id="idCard"
-                        name="idCard"
-                        type="file"
-                        accept="image/*"
-                        disabled={uploadingIdCard}
-                        onChange={async (e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            const file = e.target.files[0];
-                            setIdCardPreview(URL.createObjectURL(file));
-                            setUploadingIdCard(true);
-                            const uploadData = new FormData();
-                            uploadData.append('idCard', file);
-                            try {
-                              const res = await api.post('/users/id-card', uploadData, {
-                                headers: { 'Content-Type': 'multipart/form-data' }
-                              });
-                              updateUser({ idCardPhotoUrl: res.data.data.idCardPhotoUrl });
-                              toast.success('ID Card uploaded successfully');
-                            } catch (err: any) {
-                              toast.error(err.response?.data?.message || 'Failed to upload ID Card');
-                              setIdCardPreview(null);
-                            } finally {
-                              setUploadingIdCard(false);
-                            }
-                          }
-                        }}
                       />
                     </div>
                   </>
@@ -420,9 +416,80 @@ export default function ProfilePage() {
                   </>
                 )}
 
-                <Button type="submit" disabled={loading} className="mt-4">
+                <Button type="submit" disabled={loading} className="mt-4 cursor-pointer">
                   {loading ? 'Saving...' : 'Save Changes'}
                 </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card className="col-span-1 md:col-span-3 border-border/50">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Bank Details & KYC</CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">Provide your bank details for payments and settlements.</p>
+              </div>
+              {getKycBadge()}
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleBankSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="accountHolder">Account Holder Name</Label>
+                  <Input
+                    id="accountHolder"
+                    name="accountHolder"
+                    placeholder="Enter full name"
+                    value={formData.accountHolder}
+                    onChange={handleChange}
+                    className="cursor-pointer"
+                    disabled={user?.kycStatus === 'approved' || user?.kycStatus === 'pending'}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="bankName">Bank Name</Label>
+                  <Input
+                    id="bankName"
+                    name="bankName"
+                    placeholder="E.g. HDFC Bank"
+                    value={formData.bankName}
+                    onChange={handleChange}
+                    className="cursor-pointer"
+                    disabled={user?.kycStatus === 'approved' || user?.kycStatus === 'pending'}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="accountNumber">Account Number</Label>
+                  <Input
+                    id="accountNumber"
+                    name="accountNumber"
+                    placeholder="Enter account number"
+                    value={formData.accountNumber}
+                    onChange={handleChange}
+                    className="cursor-pointer"
+                    disabled={user?.kycStatus === 'approved' || user?.kycStatus === 'pending'}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ifscCode">IFSC Code</Label>
+                  <Input
+                    id="ifscCode"
+                    name="ifscCode"
+                    placeholder="E.g. HDFC0001234"
+                    value={formData.ifscCode}
+                    onChange={handleChange}
+                    className="cursor-pointer"
+                    disabled={user?.kycStatus === 'approved' || user?.kycStatus === 'pending'}
+                  />
+                </div>
+                <div className="md:col-span-2 flex justify-end">
+                  <Button 
+                    type="submit" 
+                    disabled={loading || user?.kycStatus === 'approved' || user?.kycStatus === 'pending'} 
+                    className="cursor-pointer"
+                  >
+                    {user?.kycStatus === 'pending' ? 'Verification Pending' : user?.kycStatus === 'approved' ? 'Verified' : 'Submit for KYC'}
+                  </Button>
+                </div>
               </form>
             </CardContent>
           </Card>

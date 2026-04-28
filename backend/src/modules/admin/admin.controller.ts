@@ -102,10 +102,27 @@ export class AdminController {
     }
   }
 
-  static async backfillVendorProfiles(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const result = await adminService.backfillVendorProfiles();
       ResponseFormatter.ok(res, `Backfill complete: ${result.created} created, ${result.skipped} already existed`, result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async listKycRequests(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const requests = await adminService.listKycRequests();
+      ResponseFormatter.ok(res, 'KYC requests fetched', requests);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async processKycRequest(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { kycId } = req.params;
+      const { action, rejectionReason } = req.body;
+      const result = await adminService.processKycRequest(kycId, action, rejectionReason);
+      ResponseFormatter.ok(res, `KYC request ${action}d`, result);
     } catch (error) {
       next(error);
     }

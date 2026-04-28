@@ -18,6 +18,17 @@ export interface IBooking extends Document {
   paymentId?: Types.ObjectId;
   cancellationReason?: string;
   notes?: string;
+  securityDeposit?: number;
+  monthlyRent?: number;
+  totalMonths?: number;
+  idCardUrl?: string;
+  installments?: {
+    month: number;
+    amount: number;
+    status: 'pending' | 'paid';
+    dueDate: Date;
+    paymentId?: Types.ObjectId;
+  }[];
   isDeleted: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -61,6 +72,17 @@ const bookingSchema = new Schema<IBooking>(
     paymentId: { type: Schema.Types.ObjectId, ref: 'Payment' },
     cancellationReason: { type: String },
     notes: { type: String },
+    securityDeposit: { type: Number, min: 0 },
+    monthlyRent: { type: Number, min: 0 },
+    totalMonths: { type: Number, min: 1, max: 12 },
+    idCardUrl: { type: String },
+    installments: [{
+      month: { type: Number, required: true },
+      amount: { type: Number, required: true },
+      status: { type: String, enum: ['pending', 'paid'], default: 'pending' },
+      dueDate: { type: Date, required: true },
+      paymentId: { type: Schema.Types.ObjectId, ref: 'Payment' }
+    }],
     isDeleted: { type: Boolean, default: false },
   },
   { timestamps: true },

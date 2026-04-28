@@ -14,6 +14,8 @@ export { Message } from './Message';
 export { Offer } from './Offer';
 export { OTPLog } from './OTPLog';
 export { AdminSettings } from './AdminSettings';
+export { KycRequest } from './KycRequest';
+export { Notification } from './Notification';
 
 export type { IUser } from './User';
 export type { IVendorProfile } from './VendorProfile';
@@ -31,3 +33,5 @@ export type { IMessage } from './Message';
 export type { IOffer } from './Offer';
 export type { IOTPLog } from './OTPLog';
 export type { IAdminSettings } from './AdminSettings';
+export type { IKycRequest } from './KycRequest';
+export type { INotification } from './Notification';

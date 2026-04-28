@@ -11,6 +11,8 @@ router.get('/dashboard', AdminController.getDashboard);
 router.get('/users', AdminController.listUsers);
 router.patch('/users/:userId/suspend', AdminController.suspendUser);
 router.get('/reports', AdminController.getReportedItems);
+router.get('/kyc', AdminController.listKycRequests);
+router.patch('/kyc/:kycId', AdminController.processKycRequest);
 router.delete('/reports/:itemId', AdminController.removeReportedItem);
 router.get('/settings', AdminController.getSettings);
 router.post('/settings', AdminController.updateSetting);

@@ -16,6 +16,7 @@ export interface IHouse extends Document {
   area: number;
   pricePerMonth?: number; // For PG
   pricePerDay?: number; // For Room
+  pricePerHour?: number; // For Room/Hourly
   singleSharingPrice?: number; // For PG
   doubleSharingPrice?: number; // For PG
   tripleSharingPrice?: number; // For PG
@@ -57,6 +58,7 @@ const houseSchema = new Schema<IHouse>(
     area: { type: Number, required: true },
     pricePerMonth: { type: Number, min: 0 },
     pricePerDay: { type: Number, min: 0 },
+    pricePerHour: { type: Number, min: 0 },
     singleSharingPrice: { type: Number, min: 0 },
     doubleSharingPrice: { type: Number, min: 0 },
     tripleSharingPrice: { type: Number, min: 0 },

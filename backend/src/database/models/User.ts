@@ -12,9 +12,15 @@ export interface IUser extends Document {
   isSuspended: boolean;
   isDeleted: boolean;
   avatar?: string;
-  universityId?: string;
   location?: string;
   idCardPhotoUrl?: string;
+  kycStatus: 'pending' | 'approved' | 'rejected' | 'none';
+  bankDetails?: {
+    accountHolder: string;
+    accountNumber: string;
+    ifscCode: string;
+    bankName: string;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,9 +36,19 @@ const userSchema = new Schema<IUser>(
     isSuspended: { type: Boolean, default: false },
     isDeleted: { type: Boolean, default: false },
     avatar: { type: String },
-    universityId: { type: String, trim: true },
     location: { type: String, trim: true },
     idCardPhotoUrl: { type: String },
+    kycStatus: { 
+      type: String, 
+      enum: ['pending', 'approved', 'rejected', 'none'], 
+      default: 'none' 
+    },
+    bankDetails: {
+      accountHolder: { type: String, trim: true },
+      accountNumber: { type: String, trim: true },
+      ifscCode: { type: String, trim: true },
+      bankName: { type: String, trim: true },
+    },
   },
   { timestamps: true },
 );

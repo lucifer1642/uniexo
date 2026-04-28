@@ -2,6 +2,8 @@ import bcrypt from 'bcryptjs';
 import { UserRepository } from './user.repository';
 import { CloudinaryService } from '../../services/cloudinary.service';
 import { NotFoundError, BadRequestError } from '../../utils/errors';
+import { KycRequest, KycStatus } from '../../database/models/KycRequest';
+import { User } from '../../database/models/User';
 
 const SALT_ROUNDS = 12;
 
@@ -25,6 +27,8 @@ export class UserService {
       universityId: user.universityId,
       location: user.location,
       idCardPhotoUrl: user.idCardPhotoUrl,
+      kycStatus: user.kycStatus,
+      bankDetails: user.bankDetails,
       isEmailVerified: user.isEmailVerified,
       createdAt: user.createdAt,
     };
@@ -43,6 +47,8 @@ export class UserService {
       universityId: user.universityId,
       location: user.location,
       idCardPhotoUrl: user.idCardPhotoUrl,
+      kycStatus: user.kycStatus,
+      bankDetails: user.bankDetails,
     };
   }
 
@@ -73,5 +79,26 @@ export class UserService {
 
   async deleteAccount(userId: string) {
     await this.userRepo.softDelete(userId);
+  }
+
+  async submitKyc(userId: string, bankDetails: any) {
+    const user = await User.findById(userId);
+    if (!user) throw new NotFoundError('User not found');
+
+    if (user.kycStatus === KycStatus.APPROVED || user.kycStatus === KycStatus.PENDING) {
+      throw new BadRequestError(`Cannot submit KYC when status is ${user.kycStatus}`);
+    }
+
+    const kycRequest = await KycRequest.findOneAndUpdate(
+      { userId },
+      { bankDetails, status: KycStatus.PENDING, rejectionReason: null },
+      { upsert: true, new: true }
+    );
+
+    user.kycStatus = KycStatus.PENDING;
+    user.bankDetails = bankDetails;
+    await user.save();
+
+    return kycRequest;
   }
 }

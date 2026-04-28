@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Menu, X, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 
@@ -28,6 +28,7 @@ const NAV_LINKS = [
 export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const { user, isAuthenticated, logout } = useAuthStore();
 
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -95,26 +96,29 @@ export function Navbar() {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  {user.role === 'admin' ? (
-                    <>
                       <DropdownMenuItem asChild>
                         <Link href="/admin">Admin Panel</Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => logout()}>
+                      <DropdownMenuItem onClick={() => { logout(); router.push('/login'); }}>
                         Log out
                       </DropdownMenuItem>
                     </>
                   ) : (
                     <>
+                      {user.role === 'vendor' && (
+                        <DropdownMenuItem asChild>
+                          <Link href="/dashboard">Dashboard</Link>
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem asChild>
-                        <Link href="/dashboard">Dashboard</Link>
+                        <Link href="/orders">Order History</Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link href="/profile">Profile</Link>
+                        <Link href="/profile">Profile & KYC</Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => logout()}>
+                      <DropdownMenuItem onClick={() => { logout(); router.push('/login'); }}>
                         Log out
                       </DropdownMenuItem>
                     </>
@@ -202,7 +206,7 @@ export function Navbar() {
                         Admin Panel
                       </Link>
                       <button
-                        onClick={() => { logout(); setIsMobileMenuOpen(false); }}
+                        onClick={() => { logout(); setIsMobileMenuOpen(false); router.push('/login'); }}
                         className="block w-full text-left rounded-md px-3 py-2 text-base font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                       >
                         Sign out
@@ -210,22 +214,31 @@ export function Navbar() {
                     </>
                   ) : (
                     <>
+                      {user.role === 'vendor' && (
+                        <Link
+                          href="/dashboard"
+                          className="block rounded-md px-3 py-2 text-base font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                          onClick={() => setIsMobileMenuOpen(false)}
+                        >
+                          Dashboard
+                        </Link>
+                      )}
                       <Link
-                        href="/dashboard"
+                        href="/orders"
                         className="block rounded-md px-3 py-2 text-base font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
-                        Dashboard
+                        Order History
                       </Link>
                       <Link
                         href="/profile"
                         className="block rounded-md px-3 py-2 text-base font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
-                        Profile
+                        Profile & KYC
                       </Link>
                       <button
-                        onClick={() => { logout(); setIsMobileMenuOpen(false); }}
+                        onClick={() => { logout(); setIsMobileMenuOpen(false); router.push('/login'); }}
                         className="block w-full text-left rounded-md px-3 py-2 text-base font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                       >
                         Sign out

@@ -40,15 +40,17 @@ export class UserController {
     }
   }
 
-  static async uploadIdCard(req: Request, res: Response, next: NextFunction): Promise<void> {
+      ResponseFormatter.ok(res, 'ID Card uploaded', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async submitKyc(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { userId } = (req as AuthRequest).user!;
-      if (!req.file) {
-        ResponseFormatter.badRequest(res, 'ID Card image file is required');
-        return;
-      }
-      const result = await userService.uploadIdCard(userId, req.file);
-      ResponseFormatter.ok(res, 'ID Card uploaded', result);
+      const kycRequest = await userService.submitKyc(userId, req.body);
+      ResponseFormatter.ok(res, 'KYC submitted for review', kycRequest);
     } catch (error) {
       next(error);
     }

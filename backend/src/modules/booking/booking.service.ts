@@ -24,6 +24,8 @@ export class BookingService {
       notes?: string;
       bookingType?: 'hourly' | 'daily';
       paymentMethod?: 'online';
+      totalMonths?: number;
+      idCardUrl?: string;
     },
   ) {
     const userDoc = await User.findById(userId);
@@ -31,8 +33,8 @@ export class BookingService {
       throw new NotFoundError('User not found');
     }
 
-    if (!userDoc.name || !userDoc.phone || !userDoc.universityId || !userDoc.location || !userDoc.idCardPhotoUrl) {
-      throw new BadRequestError('Profile incomplete. Please update your name, phone, university ID, location, and upload your ID Card before booking.');
+    if (!userDoc.name || !userDoc.phone) {
+      throw new BadRequestError('Profile incomplete. Please update your name and phone before booking.');
     }
 
     const startDate = new Date(data.startDate);
@@ -74,18 +76,22 @@ export class BookingService {
       serviceName = house.title;
 
       let basePrice = 0;
+      let monthlyRent = 0;
+      let securityDeposit = 0;
+      let totalMonths = data.totalMonths || 1;
+
       if (house.propertyType === 'pg') {
-        const months = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30));
-        basePrice = (house.pricePerMonth || 0) * Math.max(1, months);
+        // Find which sharing price to use (assuming single for now if not specified)
+        monthlyRent = house.pricePerMonth || 0;
+        securityDeposit = house.securityDeposit || 0;
+        const electricity = house.electricityIncluded === false ? (house.electricityCharge || 0) : 0;
+        
+        // 1st month = rent + security + electricity
+        totalAmount = monthlyRent + securityDeposit + electricity;
       } else {
         const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-        basePrice = (house.pricePerDay || 0) * Math.max(1, days);
+        totalAmount = (house.pricePerDay || 0) * Math.max(1, days);
       }
-
-      const securityDep = house.propertyType === 'pg' ? (house.securityDeposit || 0) : 0;
-      const electricity = (house.propertyType === 'pg' && house.electricityIncluded === false) ? (house.electricityCharge || 0) : 0;
-
-      totalAmount = basePrice + securityDep + electricity;
     } else {
       throw new BadRequestError('Invalid service type for booking');
     }
@@ -120,6 +126,18 @@ export class BookingService {
       commissionAmount,
       commissionPercent,
       notes: data.notes,
+      totalMonths: data.totalMonths,
+      idCardUrl: data.idCardUrl,
+      securityDeposit: house.propertyType === 'pg' ? house.securityDeposit : 0,
+      monthlyRent: house.propertyType === 'pg' ? house.pricePerMonth : 0,
+      installments: data.serviceType === ServiceType.HOUSE && house.propertyType === 'pg' && (data.totalMonths || 1) > 1 
+        ? Array.from({ length: (data.totalMonths || 1) - 1 }).map((_, i) => ({
+            month: i + 2,
+            amount: house.pricePerMonth || 0,
+            status: 'pending',
+            dueDate: new Date(new Date(startDate).setMonth(new Date(startDate).getMonth() + i + 1)),
+          }))
+        : [],
     });
 
     try {

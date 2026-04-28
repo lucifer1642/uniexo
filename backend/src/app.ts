@@ -8,6 +8,8 @@ import { connectDatabase } from './database/connection';
 import { globalLimiter } from './middleware/rateLimiter';
 import { errorHandler, notFoundHandler } from './middleware/error';
 import routes from './routes';
+import cron from 'node-cron';
+import { ReminderJob } from './jobs/reminder.job';
 
 // Initialize Redis (auto-connects on import)
 import './config/redis';
@@ -61,8 +63,13 @@ app.get('/health', (_req, res) => {
   });
 });
 
-// ─── API Routes ──────────────────────────────────────────
 app.use('/api/v1', routes);
+
+// ─── Scheduled Jobs ──────────────────────────────────────
+// Run every day at midnight
+cron.schedule('0 0 * * *', () => {
+  ReminderJob.run();
+});
 
 // ─── Error Handling ──────────────────────────────────────
 app.use(notFoundHandler);

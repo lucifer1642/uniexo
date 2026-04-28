@@ -1,7 +1,9 @@
 import { AdminRepository } from './admin.repository';
 import { NotFoundError, BadRequestError } from '../../utils/errors';
-import { User, MarketplaceItem, VendorProfile } from '../../database/models';
+import { User, MarketplaceItem, VendorProfile, KycRequest } from '../../database/models';
 import { UserRole } from '../../types/enums';
+import { KycStatus } from '../../database/models/KycRequest';
+import { NotificationService } from '../../services/notification.service';
 
 export class AdminService {
   private adminRepo: AdminRepository;
@@ -80,5 +82,33 @@ export class AdminService {
     }
 
     return { created, skipped };
+  }
+
+  async listKycRequests() {
+    return KycRequest.find({ isDeleted: false })
+      .populate('userId', 'name email')
+      .sort({ createdAt: -1 });
+  }
+
+  async processKycRequest(kycId: string, action: 'approve' | 'reject', rejectionReason?: string) {
+    const kycRequest = await KycRequest.findById(kycId);
+    if (!kycRequest) throw new NotFoundError('KYC request not found');
+
+    const status = action === 'approve' ? KycStatus.APPROVED : KycStatus.REJECTED;
+    kycRequest.status = status;
+    if (rejectionReason) kycRequest.rejectionReason = rejectionReason;
+    await kycRequest.save();
+
+    // Update user status
+    const user = await User.findById(kycRequest.userId);
+    if (user) {
+      user.kycStatus = action === 'approve' ? 'approved' : 'rejected';
+      await user.save();
+      
+      // Send notification
+      await NotificationService.sendKycUpdate(user._id.toString(), user.kycStatus, rejectionReason);
+    }
+
+    return kycRequest;
   }
 }

@@ -17,6 +17,8 @@ import {
   ArrowRight
 } from 'lucide-react';
 
+import { useRouter } from 'next/navigation';
+
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" as const } }
@@ -31,6 +33,7 @@ const staggerContainer = {
 };
 
 export default function LandingPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'house' | 'vehicle' | 'marketplace' | 'laundry'>('house');
 
   const storefrontFeatures: Record<string, string[]> = {
@@ -85,19 +88,35 @@ export default function LandingPage() {
               <motion.div variants={fadeUp} className="mb-6">
                 <p className="font-medium text-lg mb-4">I am looking for a</p>
                 <div className="flex flex-wrap gap-4">
-                  <motion.div whileHover={{ scale: 1.05 }} className="flex flex-col items-center justify-center p-3 border rounded-xl hover:border-[#1faa00] hover:shadow-sm cursor-pointer transition w-24 h-24">
+                  <motion.div 
+                    whileHover={{ scale: 1.05 }} 
+                    onClick={() => router.push('/vehicles')}
+                    className="flex flex-col items-center justify-center p-3 border rounded-xl hover:border-primary hover:shadow-md cursor-pointer transition w-24 h-24 bg-white"
+                  >
                     <Car className="w-8 h-8 text-primary mb-2" />
                     <span className="text-xs font-medium">Vehicle</span>
                   </motion.div>
-                  <motion.div whileHover={{ scale: 1.05 }} className="flex flex-col items-center justify-center p-3 border rounded-xl hover:border-[#1faa00] hover:shadow-sm cursor-pointer transition w-24 h-24 bg-white shadow-sm ring-1 ring-[#1faa00]/20">
+                  <motion.div 
+                    whileHover={{ scale: 1.05 }} 
+                    onClick={() => router.push('/houses')}
+                    className="flex flex-col items-center justify-center p-3 border rounded-xl hover:border-[#1faa00] hover:shadow-md cursor-pointer transition w-24 h-24 bg-white shadow-sm ring-1 ring-[#1faa00]/20"
+                  >
                     <Home className="w-8 h-8 text-[#1faa00] mb-2" />
                     <span className="text-xs font-medium text-[#1faa00]">Room</span>
                   </motion.div>
-                  <motion.div whileHover={{ scale: 1.05 }} className="flex flex-col items-center justify-center p-3 border rounded-xl hover:border-[#1faa00] hover:shadow-sm cursor-pointer transition w-24 h-24">
+                  <motion.div 
+                    whileHover={{ scale: 1.05 }} 
+                    onClick={() => router.push('/marketplace')}
+                    className="flex flex-col items-center justify-center p-3 border rounded-xl hover:border-primary hover:shadow-md cursor-pointer transition w-24 h-24 bg-white"
+                  >
                     <ShoppingBag className="w-8 h-8 text-primary mb-2" />
                     <span className="text-xs font-medium">Item</span>
                   </motion.div>
-                  <motion.div whileHover={{ scale: 1.05 }} className="flex flex-col items-center justify-center p-3 border rounded-xl hover:border-[#1faa00] hover:shadow-sm cursor-pointer transition w-24 h-24">
+                  <motion.div 
+                    whileHover={{ scale: 1.05 }} 
+                    onClick={() => router.push('/laundry')}
+                    className="flex flex-col items-center justify-center p-3 border rounded-xl hover:border-primary hover:shadow-md cursor-pointer transition w-24 h-24 bg-white"
+                  >
                     <WashingMachine className="w-8 h-8 text-primary mb-2" />
                     <span className="text-xs font-medium">Laundry</span>
                   </motion.div>
