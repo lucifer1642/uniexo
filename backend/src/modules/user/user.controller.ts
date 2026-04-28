@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 import { UserService } from './user.service';
 import { ResponseFormatter } from '../../utils/response';
 import { AuthRequest } from '../../types';
+import { CloudinaryService } from '../../services/cloudinary.service';
+import { BadRequestError } from '../../utils/errors';
 
 const userService = new UserService();
 
@@ -49,7 +51,27 @@ export class UserController {
   static async submitKyc(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { userId } = (req as AuthRequest).user!;
-      const kycRequest = await userService.submitKyc(userId, req.body);
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+      
+      if (!files?.idProof) {
+        throw new BadRequestError('Identity Proof is required');
+      }
+
+      const documents = [];
+      
+      // Upload ID Proof
+      const idProofUrl = await CloudinaryService.uploadImage(files.idProof[0].buffer, 'kyc-docs');
+      documents.push({ type: 'id_proof', url: idProofUrl });
+
+      // Upload Business Proof if provided
+      if (files.businessProof) {
+        const businessProofUrl = await CloudinaryService.uploadImage(files.businessProof[0].buffer, 'kyc-docs');
+        documents.push({ type: 'business_proof', url: businessProofUrl });
+      }
+
+      const bankDetails = JSON.parse(req.body.bankDetails || '{}');
+
+      const kycRequest = await userService.submitKyc(userId, bankDetails, documents);
       ResponseFormatter.ok(res, 'KYC submitted for review', kycRequest);
     } catch (error) {
       next(error);

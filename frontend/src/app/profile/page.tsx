@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
-import { LocateFixed, CreditCard, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { LocateFixed, CreditCard, CheckCircle2, Clock, AlertCircle, Upload, XCircle } from 'lucide-react';
 
 export default function ProfilePage() {
   const { user, updateUser } = useAuthStore();
@@ -19,6 +19,10 @@ export default function ProfilePage() {
   const [idCardPreview, setIdCardPreview] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingIdCard, setUploadingIdCard] = useState(false);
+  const [idProofFile, setIdProofFile] = useState<File | null>(null);
+  const [businessProofFile, setBusinessProofFile] = useState<File | null>(null);
+  const [idProofPreview, setIdProofPreview] = useState<string | null>(null);
+  const [businessProofPreview, setBusinessProofPreview] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -123,18 +127,33 @@ export default function ProfilePage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const bankData = {
+      if (!idProofFile && !user?.kycDocuments?.some((d: any) => d.type === 'id_proof')) {
+        toast.error('Identity Proof is required for KYC');
+        setLoading(false);
+        return;
+      }
+
+      const kycData = new FormData();
+      const bankDetails = {
         accountHolder: formData.accountHolder,
         accountNumber: formData.accountNumber,
         ifscCode: formData.ifscCode,
         bankName: formData.bankName,
       };
-      const response = await api.post('/users/kyc', bankData);
+      
+      kycData.append('bankDetails', JSON.stringify(bankDetails));
+      if (idProofFile) kycData.append('idProof', idProofFile);
+      if (businessProofFile) kycData.append('businessProof', businessProofFile);
+
+      const response = await api.post('/users/kyc', kycData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
       updateUser({ 
-        bankDetails: bankData,
+        bankDetails: bankDetails,
         kycStatus: response.data.data.status 
       });
-      toast.success('KYC details submitted for approval');
+      toast.success('KYC details and documents submitted for approval');
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to submit KYC details');
     } finally {
@@ -481,6 +500,91 @@ export default function ProfilePage() {
                     disabled={user?.kycStatus === 'approved' || user?.kycStatus === 'pending'}
                   />
                 </div>
+
+                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
+                  <div className="space-y-3">
+                    <Label className="flex items-center gap-2">
+                      Identity Proof <span className="text-rose-500">*</span>
+                      <span className="text-[10px] text-muted-foreground font-normal">(Aadhar / PAN / Passport)</span>
+                    </Label>
+                    <div className="relative border-2 border-dashed border-muted-foreground/20 rounded-xl p-4 hover:bg-slate-50 transition-colors cursor-pointer group">
+                      {idProofPreview ? (
+                        <div className="relative aspect-video rounded-lg overflow-hidden border">
+                          <img src={idProofPreview} className="w-full h-full object-cover" />
+                          <button 
+                            type="button"
+                            onClick={() => { setIdProofFile(null); setIdProofPreview(null); }}
+                            className="absolute top-2 right-2 bg-rose-500 text-white p-1 rounded-full shadow-lg"
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-4 gap-2">
+                          <div className="p-3 rounded-full bg-primary/5 text-primary group-hover:scale-110 transition-transform">
+                            <Upload className="w-6 h-6" />
+                          </div>
+                          <p className="text-xs font-medium">Click to upload ID Proof</p>
+                          <p className="text-[10px] text-muted-foreground">JPG, PNG or PDF (Max 5MB)</p>
+                        </div>
+                      )}
+                      <Input 
+                        type="file" 
+                        accept="image/*,application/pdf"
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            setIdProofFile(e.target.files[0]);
+                            setIdProofPreview(URL.createObjectURL(e.target.files[0]));
+                          }
+                        }}
+                        disabled={user?.kycStatus === 'approved' || user?.kycStatus === 'pending'}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label className="flex items-center gap-2">
+                      Business Proof
+                      <span className="text-[10px] text-muted-foreground font-normal">(GST / Trade License / Work ID)</span>
+                    </Label>
+                    <div className="relative border-2 border-dashed border-muted-foreground/20 rounded-xl p-4 hover:bg-slate-50 transition-colors cursor-pointer group">
+                      {businessProofPreview ? (
+                        <div className="relative aspect-video rounded-lg overflow-hidden border">
+                          <img src={businessProofPreview} className="w-full h-full object-cover" />
+                          <button 
+                            type="button"
+                            onClick={() => { setBusinessProofFile(null); setBusinessProofPreview(null); }}
+                            className="absolute top-2 right-2 bg-rose-500 text-white p-1 rounded-full shadow-lg"
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center py-4 gap-2">
+                          <div className="p-3 rounded-full bg-primary/5 text-primary group-hover:scale-110 transition-transform">
+                            <Upload className="w-6 h-6" />
+                          </div>
+                          <p className="text-xs font-medium">Click to upload Business Proof</p>
+                          <p className="text-[10px] text-muted-foreground">Optional for individuals</p>
+                        </div>
+                      )}
+                      <Input 
+                        type="file" 
+                        accept="image/*,application/pdf"
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            setBusinessProofFile(e.target.files[0]);
+                            setBusinessProofPreview(URL.createObjectURL(e.target.files[0]));
+                          }
+                        }}
+                        disabled={user?.kycStatus === 'approved' || user?.kycStatus === 'pending'}
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="md:col-span-2 flex justify-end">
                   <Button 
                     type="submit" 

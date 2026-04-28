@@ -81,7 +81,7 @@ export class UserService {
     await this.userRepo.softDelete(userId);
   }
 
-  async submitKyc(userId: string, bankDetails: any) {
+  async submitKyc(userId: string, bankDetails: any, documents: any[]) {
     const user = await User.findById(userId);
     if (!user) throw new NotFoundError('User not found');
 
@@ -91,7 +91,7 @@ export class UserService {
 
     const kycRequest = await KycRequest.findOneAndUpdate(
       { userId },
-      { bankDetails, status: KycStatus.PENDING, rejectionReason: null },
+      { bankDetails, documents, status: KycStatus.PENDING, rejectionReason: null },
       { upsert: true, new: true }
     );
 

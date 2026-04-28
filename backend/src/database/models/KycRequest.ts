@@ -15,6 +15,10 @@ export interface IKycRequest extends Document {
     ifscCode: string;
     bankName: string;
   };
+  documents: {
+    type: string;
+    url: string;
+  }[];
   status: KycStatus;
   rejectionReason?: string;
   isDeleted: boolean;
@@ -31,6 +35,12 @@ const kycRequestSchema = new Schema<IKycRequest>(
       ifscCode: { type: String, required: true, trim: true },
       bankName: { type: String, required: true, trim: true },
     },
+    documents: [
+      {
+        type: { type: String, required: true },
+        url: { type: String, required: true },
+      }
+    ],
     status: {
       type: String,
       enum: Object.values(KycStatus),

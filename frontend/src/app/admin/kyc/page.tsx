@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { CheckCircle, XCircle, Clock, Search, Banknote } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Search, Banknote, FileText, ExternalLink } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
 interface KycRequest {
@@ -23,6 +23,10 @@ interface KycRequest {
     ifscCode: string;
     bankName: string;
   };
+  documents: {
+    type: string;
+    url: string;
+  }[];
   status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
 }
@@ -144,6 +148,35 @@ export default function AdminKycPage() {
                         <div className="space-y-1">
                           <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">IFSC Code</p>
                           <p className="font-mono font-medium text-blue-600">{req.bankDetails.ifscCode}</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-8 pt-6 border-t">
+                        <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider mb-4">Official Documents</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {req.documents?.map((doc, idx) => (
+                            <a 
+                              key={idx}
+                              href={doc.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-between p-3 rounded-lg border bg-white hover:border-primary/50 hover:shadow-sm transition-all group cursor-pointer"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="p-2 rounded bg-primary/5 text-primary">
+                                  <FileText className="w-5 h-5" />
+                                </div>
+                                <div>
+                                  <p className="text-sm font-semibold capitalize">{doc.type.replace('_', ' ')}</p>
+                                  <p className="text-[10px] text-muted-foreground">Click to view document</p>
+                                </div>
+                              </div>
+                              <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                            </a>
+                          ))}
+                          {(!req.documents || req.documents.length === 0) && (
+                            <p className="text-sm text-muted-foreground italic">No documents uploaded</p>
+                          )}
                         </div>
                       </div>
 
