@@ -101,7 +101,9 @@ export class AdminController {
       next(error);
     }
   }
-
+  static async backfillVendorProfiles(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await adminService.backfillVendorProfiles();
       ResponseFormatter.ok(res, `Backfill complete: ${result.created} created, ${result.skipped} already existed`, result);
     } catch (error) {
       next(error);
