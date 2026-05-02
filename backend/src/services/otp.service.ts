@@ -25,18 +25,22 @@ export class OTPService {
     const data = JSON.stringify({ otp, email, purpose, userData });
     await redis.set(key, data, 'EX', OTP_EXPIRY_SECONDS);
 
-    // 3. Send via Email automatically
-    await EmailService.sendOTP(email, otp, purpose);
+    // 3. Send via Email automatically - Fire and Forget for speed
+    EmailService.sendOTP(email, otp, purpose).catch(err => {
+      logger.error(`Background OTP Email Failure for ${email}:`, err);
+    });
 
-    // 4. Log for audit trails
-    await OTPLog.create({
+    // 4. Log for audit trails - Run in background as well
+    OTPLog.create({
       email,
       otp,
       purpose,
       expiresAt: new Date(Date.now() + OTP_EXPIRY_SECONDS * 1000),
+    }).catch(err => {
+      logger.error(`Background OTP Log Failure for ${email}:`, err);
     });
 
-    logger.info(`OTP Engine: Generated and sent ${purpose} OTP to ${email}`);
+    logger.info(`OTP Engine: Triggered ${purpose} OTP to ${email}`);
     
     // In dev, we also log to console for convenience
     if (process.env.NODE_ENV !== 'production') {
@@ -94,12 +98,12 @@ export class OTPService {
     // Delete OTP after successful verification
     await redis.del(key);
 
-    // Mark as used in log
-    await OTPLog.findOneAndUpdate(
+    // Mark as used in log - Backgrounded for speed
+    OTPLog.findOneAndUpdate(
       { email, otp, purpose, isUsed: false },
       { isUsed: true },
       { sort: { createdAt: -1 } },
-    );
+    ).catch(err => logger.error(`Verification log update failure for ${email}:`, err));
 
     return { valid: true, userData: data.userData };
   }

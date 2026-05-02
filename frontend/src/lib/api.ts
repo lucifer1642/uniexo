@@ -60,9 +60,9 @@ api.interceptors.response.use(
             } catch (refreshError) {
                 // Refresh failed, log user out
                 useAuthStore.getState().logout();
-                // Redirect to login if on client side
+                // Redirect to landing page if on client side
                 if (typeof window !== 'undefined') {
-                    window.location.href = '/login';
+                    window.location.href = '/';
                 }
             }
         }

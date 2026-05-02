@@ -38,7 +38,19 @@ export default function RootLayout({
           </main>
           <Footer />
         </Providers>
-        <Toaster position="bottom-right" theme="system" />
+        <Toaster 
+          position="bottom-right" 
+          closeButton 
+          toastOptions={{
+            classNames: {
+              success: 'border-green-500 bg-black text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.4)]',
+              error: 'border-red-500 bg-black text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.4)]',
+              toast: 'border bg-black/90 backdrop-blur-md rounded-lg font-medium tracking-wide',
+              closeButton: 'bg-zinc-800 hover:bg-zinc-700 text-white border-none'
+            },
+            duration: 4000,
+          }} 
+        />
       </body>
     </html>
   );

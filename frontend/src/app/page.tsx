@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { motion, AnimatePresence, useScroll, useSpring, useTransform } from 'framer-motion';
 import {
-  Home,
+  Home as HomeIcon,
   Car,
   ShoppingBag,
   WashingMachine,
@@ -19,6 +19,8 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useAuthStore } from '@/store/auth.store';
+import { Dashboard } from '@/components/dashboard';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -69,7 +71,7 @@ const Counter = ({ value, duration = 2 }: { value: number, duration?: number }) 
   return <span>{count.toLocaleString()}</span>;
 };
 
-export default function LandingPage() {
+function Landing() {
   const [activeTab, setActiveTab] = useState<'house' | 'vehicle' | 'marketplace' | 'laundry'>('house');
   
   const { scrollYProgress } = useScroll();
@@ -119,7 +121,7 @@ export default function LandingPage() {
       />
 
       {/* 1. Hero Section */}
-      <section className="relative pt-24 pb-16 md:pt-40 md:pb-32 overflow-hidden">
+      <section className="relative pt-20 pb-12 md:pt-32 md:pb-24 overflow-hidden">
         {/* Background Decorative Blobs */}
         <div className="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl -z-10" />
         <div className="absolute bottom-0 left-0 translate-y-1/4 -translate-x-1/4 w-[500px] h-[500px] bg-accent/5 rounded-full blur-3xl -z-10" />
@@ -139,7 +141,7 @@ export default function LandingPage() {
                 <span>INDIA'S LARGEST MULTI-SERVICE HUB</span>
               </motion.div>
 
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tight mb-8 leading-[1.1]">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight mb-6 leading-[1.1]">
                 {"The easiest way to find your Needs".split(" ").map((word, i) => (
                   <motion.span
                     key={i}
@@ -154,16 +156,16 @@ export default function LandingPage() {
                 ))}
               </h1>
 
-              <motion.p variants={fadeUp} className="text-xl text-muted-foreground mb-10 leading-relaxed max-w-lg">
+              <motion.p variants={fadeUp} className="text-lg text-muted-foreground mb-8 leading-relaxed max-w-lg">
                 Join the revolution. <span className="text-foreground font-semibold">Save time. Work less. Earn more.</span> 
                 Verified listings for everyone, everywhere.
               </motion.p>
 
-              <motion.div variants={fadeUp} className="mb-10">
+              <motion.div variants={fadeUp} className="mb-8">
                 <div className="flex flex-wrap gap-4">
                   {[
                     { icon: Car, label: 'Vehicle', color: 'blue' },
-                    { icon: Home, label: 'Room', color: 'green' },
+                    { icon: HomeIcon, label: 'Room', color: 'green' },
                     { icon: ShoppingBag, label: 'Item', color: 'orange' },
                     { icon: WashingMachine, label: 'Laundry', color: 'purple' }
                   ].map((item, idx) => (
@@ -184,10 +186,10 @@ export default function LandingPage() {
                   <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                   <Input
                     placeholder="Enter location or query"
-                    className="h-14 pl-12 text-base rounded-2xl border-2 focus-visible:ring-primary/20 bg-white/50 backdrop-blur-sm"
+                    className="h-12 pl-12 text-base rounded-2xl border-2 focus-visible:ring-primary/20 bg-white/50 backdrop-blur-sm"
                   />
                 </div>
-                <Button size="lg" className="h-14 px-10 bg-primary hover:bg-primary/90 text-white font-bold rounded-2xl shadow-xl shadow-primary/20 transition-all hover:-translate-y-1">
+                <Button size="lg" className="h-12 px-8 bg-primary hover:bg-primary/90 text-white font-bold rounded-2xl shadow-xl shadow-primary/20 transition-all hover:-translate-y-1">
                   Explore Now
                 </Button>
               </motion.div>
@@ -264,13 +266,13 @@ export default function LandingPage() {
           variants={staggerContainer}
           className="container mx-auto px-4 md:px-8 mt-16 lg:mt-24 relative z-20"
         >
-          <div className="glass rounded-[3rem] p-10 md:p-16 grid grid-cols-2 md:grid-cols-4 gap-12 border-white/40 shadow-2xl">
+          <div className="glass rounded-[3rem] p-8 md:p-12 grid grid-cols-2 md:grid-cols-4 gap-12 border-white/40 shadow-2xl">
             <motion.div variants={fadeUp} className="flex flex-col items-center justify-center text-center">
               <div className="w-16 h-16 rounded-3xl bg-blue-50 flex items-center justify-center mb-6 shadow-inner group-hover:rotate-12 transition-transform">
-                <Home className="w-8 h-8 text-primary" />
+                <HomeIcon className="w-8 h-8 text-primary" />
               </div>
               <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-2">Properties</p>
-              <h3 className="text-4xl md:text-5xl font-black text-slate-900"><Counter value={15000} />+</h3>
+              <h3 className="text-3xl md:text-4xl font-black text-slate-900"><Counter value={15000} />+</h3>
             </motion.div>
             
             <motion.div variants={fadeUp} className="flex flex-col items-center justify-center text-center">
@@ -278,7 +280,7 @@ export default function LandingPage() {
                 <Car className="w-8 h-8 text-accent" />
               </div>
               <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-2">Vehicles</p>
-              <h3 className="text-4xl md:text-5xl font-black text-slate-900"><Counter value={300} />K+</h3>
+              <h3 className="text-3xl md:text-4xl font-black text-slate-900"><Counter value={300} />K+</h3>
             </motion.div>
 
             <motion.div variants={fadeUp} className="flex flex-col items-center justify-center text-center">
@@ -286,7 +288,7 @@ export default function LandingPage() {
                 <Star className="w-8 h-8 text-orange-500" />
               </div>
               <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-2">Reviews</p>
-              <h3 className="text-4xl md:text-5xl font-black text-slate-900"><Counter value={45} />K+</h3>
+              <h3 className="text-3xl md:text-4xl font-black text-slate-900"><Counter value={45} />K+</h3>
             </motion.div>
 
             <motion.div variants={fadeUp} className="flex flex-col items-center justify-center text-center">
@@ -294,32 +296,32 @@ export default function LandingPage() {
                 <Zap className="w-8 h-8 text-purple-600" />
               </div>
               <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-2">Active Users</p>
-              <h3 className="text-4xl md:text-5xl font-black text-slate-900"><Counter value={250} />K+</h3>
+              <h3 className="text-3xl md:text-4xl font-black text-slate-900"><Counter value={250} />K+</h3>
             </motion.div>
           </div>
         </motion.div>
       </section>
 
       {/* 2. Lead Conversion */}
-      <section className="py-32 relative">
+      <section className="py-24 relative">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-px bg-gradient-to-r from-transparent via-border to-transparent" />
         
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
           <motion.div 
             initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
-            className="text-center mb-24"
+            className="text-center mb-16"
           >
-            <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight">
+            <h2 className="text-3xl md:text-5xl font-black mb-6 tracking-tight">
               Find your perfect match. <br />
               <span className="text-primary italic">10X Faster than before.</span>
             </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
               Why wait weeks to find what you need? Uniexo automates the search, 
               verification, and booking process so you can focus on what matters.
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 md:gap-16 items-center">
             {/* Features List */}
             <motion.div 
               initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerContainer}
@@ -349,8 +351,8 @@ export default function LandingPage() {
                 </motion.div>
               ))}
 
-              <motion.div variants={fadeUp} className="pt-8">
-                <Button className="bg-accent hover:bg-accent/90 text-white h-14 px-10 text-lg rounded-2xl font-bold shadow-lg shadow-accent/20">
+              <motion.div variants={fadeUp} className="pt-6">
+                <Button className="bg-accent hover:bg-accent/90 text-white h-12 px-8 text-base rounded-2xl font-bold shadow-lg shadow-accent/20">
                   Start Your Search <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
               </motion.div>
@@ -409,25 +411,25 @@ export default function LandingPage() {
       </section>
 
       {/* 3. Automatic Operations */}
-      <section className="py-32 relative bg-slate-900 overflow-hidden">
+      <section className="py-24 relative bg-slate-900 overflow-hidden">
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/10 rounded-full blur-[120px] -z-10 translate-x-1/3 -translate-y-1/3" />
         
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
           <motion.div 
             initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
-            className="text-center mb-24"
+            className="text-center mb-16"
           >
-            <h2 className="text-4xl md:text-6xl font-black mb-6 text-white tracking-tight">
+            <h2 className="text-3xl md:text-5xl font-black mb-6 text-white tracking-tight">
               100% Secure. <br />
               <span className="text-accent italic">Zero friction operations.</span>
             </h2>
-            <p className="text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
               Automate the boring stuff. From receipts to reminders, 
               Uniexo handles everything so you don't have to.
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 md:gap-16 items-center">
             {/* Features List */}
             <motion.div 
               initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerContainer}
@@ -457,8 +459,8 @@ export default function LandingPage() {
                 </motion.div>
               ))}
 
-              <motion.div variants={fadeUp} className="pt-8 text-center lg:text-left">
-                <Button className="bg-primary hover:bg-primary/90 text-white h-14 px-10 text-lg rounded-2xl font-bold shadow-lg shadow-primary/20">
+              <motion.div variants={fadeUp} className="pt-6 text-center lg:text-left">
+                <Button className="bg-primary hover:bg-primary/90 text-white h-12 px-8 text-base rounded-2xl font-bold shadow-lg shadow-primary/20">
                   Join as Vendor <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
               </motion.div>
@@ -531,17 +533,17 @@ export default function LandingPage() {
       </section>
 
       {/* 4. Dynamic Storefront Section */}
-      <section className="py-32 bg-white relative">
+      <section className="py-24 bg-white relative">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
           <motion.div 
             initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
-            className="text-center mb-20"
+            className="text-center mb-16"
           >
-            <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tight">
+            <h2 className="text-3xl md:text-5xl font-black mb-6 tracking-tight">
               Your Digital Storefront. <br />
               <span className="text-primary italic">Live in seconds.</span>
             </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-12">
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-10">
               Less calling, more conversion. Give your customers the digital experience 
               they deserve with a professional storefront.
             </p>
@@ -549,7 +551,7 @@ export default function LandingPage() {
             {/* Premium Tabs */}
             <div className="flex justify-center gap-3 flex-wrap p-2 glass max-w-fit mx-auto rounded-[2rem] border-slate-200 shadow-xl">
               {[
-                { id: 'house', label: 'Houses', icon: Home },
+                { id: 'house', label: 'Houses', icon: HomeIcon },
                 { id: 'vehicle', label: 'Vehicles', icon: Car },
                 { id: 'marketplace', label: 'Used Items', icon: ShoppingBag },
                 { id: 'laundry', label: 'Laundry', icon: WashingMachine }
@@ -570,7 +572,7 @@ export default function LandingPage() {
             </div>
           </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center min-h-[600px]">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 md:gap-16 items-center min-h-[550px]">
             {/* Dynamic Mobile Mock UI */}
             <div className="relative mx-auto w-full max-w-[360px] perspective-[1000px]">
               <div className="border-[12px] border-slate-900 rounded-[3.5rem] bg-white shadow-[0_50px_100px_-20px_rgba(0,0,0,0.4)] overflow-hidden aspect-[9/19] flex flex-col pt-10 relative group transition-transform duration-500 hover:rotate-y-3">
@@ -917,7 +919,7 @@ export default function LandingPage() {
               <Button size="lg" className="h-20 px-16 bg-white text-primary hover:bg-slate-50 text-2xl font-black rounded-[2.5rem] shadow-2xl transition-all hover:-translate-y-2">
                 Join Now — It's Free
               </Button>
-              <Button size="lg" variant="outline" className="h-20 px-16 border-4 border-white/20 text-white hover:bg-white/10 text-2xl font-black rounded-[2.5rem] transition-all hover:-translate-y-2">
+              <Button size="lg" variant="outline" className="h-20 px-16 bg-transparent border-4 border-white/20 text-white hover:bg-white/10 text-2xl font-black rounded-[2.5rem] transition-all hover:-translate-y-2">
                 Contact Sales
               </Button>
             </div>
@@ -926,4 +928,17 @@ export default function LandingPage() {
       </section>
     </div>
   );
+}
+
+export default function Home() {
+  const { isAuthenticated } = useAuthStore();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) return null;
+
+  return isAuthenticated ? <Dashboard /> : <Landing />;
 }

@@ -4,9 +4,11 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Menu, X, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 
+import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -32,6 +34,34 @@ export function Navbar() {
   const { user, isAuthenticated, logout } = useAuthStore();
 
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
+
+  const handleLogout = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Clear store and local storage
+      logout();
+      
+      // Explicitly clear all cookies as a secondary safety measure
+      if (typeof document !== 'undefined') {
+        const cookies = document.cookie.split(";");
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i];
+          const eqPos = cookie.indexOf("=");
+          const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+          document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+        }
+      }
+
+      toast.success('Successfully logged out from all sessions', { icon: '👋' });
+      
+      // Use hard reload to clear any remaining in-memory states/cache
+      window.location.href = '/';
+      if (isMobileMenuOpen) setIsMobileMenuOpen(false);
+    }
+  };
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
@@ -102,7 +132,7 @@ export function Navbar() {
                         <Link href="/admin">Admin Panel</Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => { logout(); router.push('/login'); }}>
+                      <DropdownMenuItem onClick={handleLogout}>
                         Log out
                       </DropdownMenuItem>
                     </>
@@ -120,7 +150,7 @@ export function Navbar() {
                         <Link href="/profile">Profile & KYC</Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => { logout(); router.push('/login'); }}>
+                      <DropdownMenuItem onClick={handleLogout}>
                         Log out
                       </DropdownMenuItem>
                     </>
@@ -208,7 +238,7 @@ export function Navbar() {
                         Admin Panel
                       </Link>
                       <button
-                        onClick={() => { logout(); setIsMobileMenuOpen(false); }}
+                        onClick={handleLogout}
                         className="block w-full text-left rounded-md px-3 py-2 text-base font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                       >
                         Sign out
@@ -240,7 +270,7 @@ export function Navbar() {
                         Profile & KYC
                       </Link>
                       <button
-                        onClick={() => { logout(); setIsMobileMenuOpen(false); router.push('/login'); }}
+                        onClick={handleLogout}
                         className="block w-full text-left rounded-md px-3 py-2 text-base font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                       >
                         Sign out

@@ -69,12 +69,10 @@ export class AuthService {
       location: result.userData.location as string,
     });
 
-    // Create wallet for user
-    await Wallet.create({ userId: user._id });
-
-    // If vendor, auto-create a VendorProfile so admin can approve them
-    if (user.role === UserRole.VENDOR) {
-      await VendorProfile.create({
+    // Create wallet and profile in background to speed up verification response
+    Promise.all([
+      Wallet.create({ userId: user._id }),
+      user.role === UserRole.VENDOR ? VendorProfile.create({
         userId: user._id,
         businessName: (result.userData.businessName as string) || user.name,
         serviceType: (result.userData.serviceType as string) || 'CAR',
@@ -82,8 +80,12 @@ export class AuthService {
         businessAddress: '',
         businessPhone: user.phone || '',
         description: '',
-      });
-    }
+      }) : Promise.resolve()
+    ]).catch(err => {
+      // We log but don't fail the verification if these non-critical background tasks fail
+      // In a production app, we might use a robust queue like BullMQ here
+      console.error('Background Signup Task Failure:', err);
+    });
 
     const payload: JWTPayload = {
       userId: user._id.toString(),
