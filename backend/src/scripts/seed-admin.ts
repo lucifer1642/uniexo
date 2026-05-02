@@ -20,11 +20,19 @@ if (!MONGODB_URI) {
 async function seedAdmin() {
   try {
     console.log('⏳ Connecting to database...');
-    const uri = (MONGODB_URI as string).includes('?') 
-      ? (MONGODB_URI as string).replace('cluster0.o3s7rcm.mongodb.net/', 'cluster0.o3s7rcm.mongodb.net/uniexo')
-      : (MONGODB_URI as string) + '/uniexo';
     
-    await mongoose.connect(uri);
+    // Ensure we are connecting to the 'uniexo' database
+    let uri = MONGODB_URI as string;
+    if (!uri.includes('mongodb.net/uniexo')) {
+      uri = uri.includes('?') 
+        ? uri.replace('mongodb.net/', 'mongodb.net/uniexo')
+        : uri.endsWith('/') ? uri + 'uniexo' : uri + '/uniexo';
+    }
+
+    await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 10000,
+    });
+    
     console.log('✅ Connected to database');
 
     const db = mongoose.connection.db;
@@ -34,6 +42,9 @@ async function seedAdmin() {
     
     console.log('🗑️  Clearing all collections...');
     for (const collection of collections) {
+      // Skip system collections if any
+      if (collection.name.startsWith('system.')) continue;
+      
       await db.collection(collection.name).deleteMany({});
       console.log(`   - Cleared ${collection.name}`);
     }
@@ -41,7 +52,7 @@ async function seedAdmin() {
     const salt = await bcrypt.genSalt(12);
     const hashedPassword = await bcrypt.hash('Uniexo@26', salt);
 
-    // Create Super Admin
+    // Create Super Admin in 'users' collection
     await db.collection('users').insertOne({
       name: 'UniExo Admin',
       email: 'uniexo.in@gmail.com',
@@ -62,8 +73,23 @@ async function seedAdmin() {
     console.log('   Password: Uniexo@26');
 
     process.exit(0);
-  } catch (error) {
-    console.error('❌ Seeding failed:', error);
+  } catch (error: any) {
+    console.error('\n❌ Seeding failed!');
+    
+    if (error.message.includes('MongooseServerSelectionError') || error.message.includes('SSL alert number 80')) {
+      console.error('\n=========================================================');
+      console.error('🛑 IP WHITELIST ERROR DETECTED');
+      console.error('Your current IP address is not allowed to access this Atlas cluster.');
+      console.error('\nTO FIX THIS:');
+      console.error('1. Log in to https://cloud.mongodb.com/');
+      console.error('2. Go to "Network Access" in the left sidebar.');
+      console.error('3. Click "+ Add IP Address".');
+      console.error('4. Click "Add Current IP Address" and then "Confirm".');
+      console.error('5. Wait 1-2 minutes for the changes to deploy, then run this again.');
+      console.error('=========================================================\n');
+    } else {
+      console.error(error);
+    }
     process.exit(1);
   }
 }
