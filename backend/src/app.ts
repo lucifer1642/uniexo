@@ -74,12 +74,8 @@ if (!process.env.VERCEL) {
     createProxyMiddleware({
       target: 'http://localhost:3001',
       changeOrigin: true,
-      ws: true, // support websockets for hot reloading in dev
-      logLevel: 'error',
-      // Don't proxy if it's an API route or health check (already handled above)
-      filter: (pathname) => {
-        return !pathname.startsWith('/api') && !pathname.startsWith('/health');
-      },
+      ws: true,
+      pathFilter: (pathname: string) => !pathname.startsWith('/api') && !pathname.startsWith('/health'),
     }),
   );
 }

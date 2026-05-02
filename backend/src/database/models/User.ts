@@ -14,6 +14,7 @@ export interface IUser extends Document {
   avatar?: string;
   location?: string;
   idCardPhotoUrl?: string;
+  universityId?: string;
   kycStatus: 'pending' | 'approved' | 'rejected' | 'none';
   bankDetails?: {
     accountHolder: string;
@@ -38,6 +39,7 @@ const userSchema = new Schema<IUser>(
     avatar: { type: String },
     location: { type: String, trim: true },
     idCardPhotoUrl: { type: String },
+    universityId: { type: String, trim: true },
     kycStatus: { 
       type: String, 
       enum: ['pending', 'approved', 'rejected', 'none'], 

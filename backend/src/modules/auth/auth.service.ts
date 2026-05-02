@@ -69,14 +69,16 @@ export class AuthService {
       location: result.userData.location as string,
     });
 
+    const userData = result.userData;
+
     // Create wallet and profile in background to speed up verification response
     Promise.all([
       Wallet.create({ userId: user._id }),
       user.role === UserRole.VENDOR ? (async () => {
         const vendorData: any = {
           userId: user._id,
-          businessName: (result.userData.businessName as string) || user.name,
-          serviceType: (result.userData.serviceType as string) || 'CAR',
+          businessName: (userData.businessName as string) || user.name,
+          serviceType: (userData.serviceType as string) || 'CAR',
           email: user.email,
           businessAddress: '',
           businessPhone: user.phone || '',
@@ -85,9 +87,9 @@ export class AuthService {
 
         // For laundry vendors, store pickup preferences
         if (vendorData.serviceType === 'LAUNDRY') {
-          vendorData.onsitePickup = result.userData.onsitePickup ?? false;
-          vendorData.onStoreService = result.userData.onStoreService ?? true;
-          vendorData.onsitePickupCharge = Number(result.userData.onsitePickupCharge) || 0;
+          vendorData.onsitePickup = userData.onsitePickup ?? false;
+          vendorData.onStoreService = userData.onStoreService ?? true;
+          vendorData.onsitePickupCharge = Number(userData.onsitePickupCharge) || 0;
         }
 
         await VendorProfile.create(vendorData);

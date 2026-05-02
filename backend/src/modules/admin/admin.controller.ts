@@ -123,7 +123,7 @@ export class AdminController {
     try {
       const { kycId } = req.params;
       const { action, rejectionReason } = req.body;
-      const result = await adminService.processKycRequest(kycId, action, rejectionReason);
+      const result = await adminService.processKycRequest(kycId as string, action, rejectionReason);
       ResponseFormatter.ok(res, `KYC request ${action}d`, result);
     } catch (error) {
       next(error);
@@ -146,7 +146,7 @@ export class AdminController {
     try {
       const { vendorProfileId } = req.params;
       const { rank } = req.body;
-      const result = await adminService.updateVendorRank(vendorProfileId, Number(rank));
+      const result = await adminService.updateVendorRank(vendorProfileId as string, Number(rank));
       ResponseFormatter.ok(res, 'Vendor rank updated', result);
     } catch (error) {
       next(error);

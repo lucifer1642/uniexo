@@ -52,6 +52,7 @@ export class BookingService {
     let vendorId: string;
     let totalAmount: number;
     let serviceName: string = '';
+    let house: any = null;
 
     if (data.serviceType === ServiceType.VEHICLE) {
       const vehicle = await Vehicle.findById(data.serviceId);
@@ -68,7 +69,7 @@ export class BookingService {
         totalAmount = vehicle.pricePerDay * Math.max(1, days);
       }
     } else if (data.serviceType === ServiceType.HOUSE) {
-      const house = await House.findById(data.serviceId);
+      house = await House.findById(data.serviceId);
       if (!house || house.approvalStatus !== ListingApprovalStatus.APPROVED || !house.isAvailable) {
         throw new NotFoundError('House not available');
       }
@@ -128,9 +129,9 @@ export class BookingService {
       notes: data.notes,
       totalMonths: data.totalMonths,
       idCardUrl: data.idCardUrl,
-      securityDeposit: house.propertyType === 'pg' ? house.securityDeposit : 0,
-      monthlyRent: house.propertyType === 'pg' ? house.pricePerMonth : 0,
-      installments: data.serviceType === ServiceType.HOUSE && house.propertyType === 'pg' && (data.totalMonths || 1) > 1 
+      securityDeposit: (house && house.propertyType === 'pg') ? house.securityDeposit : 0,
+      monthlyRent: (house && house.propertyType === 'pg') ? house.pricePerMonth : 0,
+      installments: data.serviceType === ServiceType.HOUSE && house && house.propertyType === 'pg' && (data.totalMonths || 1) > 1 
         ? Array.from({ length: (data.totalMonths || 1) - 1 }).map((_, i) => ({
             month: i + 2,
             amount: house.pricePerMonth || 0,
