@@ -72,15 +72,43 @@ export class AuthService {
     // Create wallet and profile in background to speed up verification response
     Promise.all([
       Wallet.create({ userId: user._id }),
-      user.role === UserRole.VENDOR ? VendorProfile.create({
-        userId: user._id,
-        businessName: (result.userData.businessName as string) || user.name,
-        serviceType: (result.userData.serviceType as string) || 'CAR',
-        email: user.email,
-        businessAddress: '',
-        businessPhone: user.phone || '',
-        description: '',
-      }) : Promise.resolve()
+      user.role === UserRole.VENDOR ? (async () => {
+        const vendorData: any = {
+          userId: user._id,
+          businessName: (result.userData.businessName as string) || user.name,
+          serviceType: (result.userData.serviceType as string) || 'CAR',
+          email: user.email,
+          businessAddress: '',
+          businessPhone: user.phone || '',
+          description: '',
+        };
+
+        // For laundry vendors, store pickup preferences
+        if (vendorData.serviceType === 'LAUNDRY') {
+          vendorData.onsitePickup = result.userData.onsitePickup ?? false;
+          vendorData.onStoreService = result.userData.onStoreService ?? true;
+          vendorData.onsitePickupCharge = Number(result.userData.onsitePickupCharge) || 0;
+        }
+
+        await VendorProfile.create(vendorData);
+
+        // Auto-create LaundryService entry for laundry vendors
+        if (vendorData.serviceType === 'LAUNDRY') {
+          const { LaundryService } = require('../../database/models');
+          await LaundryService.create({
+            vendorId: user._id,
+            name: vendorData.businessName,
+            description: `Laundry service by ${vendorData.businessName}`,
+            providerName: user.name,
+            providerPhone: user.phone || '',
+            providerAddress: vendorData.businessAddress || 'Not provided',
+            services: [],
+            onsitePickup: vendorData.onsitePickup,
+            onStoreService: vendorData.onStoreService,
+            onsitePickupCharge: vendorData.onsitePickupCharge,
+          });
+        }
+      })() : Promise.resolve()
     ]).catch(err => {
       // We log but don't fail the verification if these non-critical background tasks fail
       // In a production app, we might use a robust queue like BullMQ here

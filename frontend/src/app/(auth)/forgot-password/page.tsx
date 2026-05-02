@@ -121,7 +121,7 @@ export default function ForgotPasswordPage() {
 
               <Button 
                 type="submit" 
-                className="w-full h-12 text-black bg-lime-400 hover:bg-lime-300 font-bold rounded-xl transition-all shadow-[0_0_20px_-5px_rgba(163,230,53,0.5)] active:scale-[0.98]" 
+                className="w-full h-12 text-black bg-lime-400 hover:bg-lime-300 font-bold rounded-xl transition-all shadow-[0_0_20px_-5px_rgba(255,0,127,0.5)] active:scale-[0.98]" 
                 disabled={loading}
               >
                 {loading ? 'Sending...' : 'Send Reset OTP'}

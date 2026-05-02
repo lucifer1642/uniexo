@@ -49,6 +49,9 @@ router.patch(
 );
 router.delete('/:id', authenticate, isApprovedVendor, VehicleController.delete);
 router.get('/vendor/my-vehicles', authenticate, isAdminOrVendor, VehicleController.listByVendor);
+router.get('/vendor/fleet', authenticate, isAdminOrVendor, VehicleController.getFleet);
+router.post('/:id/dispatch', authenticate, isApprovedVendor, VehicleController.dispatch);
+router.post('/:id/return', authenticate, isApprovedVendor, VehicleController.returnVehicle);
 
 // Admin routes
 router.patch('/:id/approval', authenticate, isAdmin, VehicleController.approve);

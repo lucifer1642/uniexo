@@ -30,7 +30,7 @@ export class AuthController {
           secure: env.NODE_ENV === 'production',
           sameSite: 'strict',
           maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-          path: '/api/v1/auth',
+          path: '/',
         });
 
         ResponseFormatter.created(res, 'Account created successfully', {
@@ -57,7 +57,7 @@ export class AuthController {
         secure: env.NODE_ENV === 'production',
         sameSite: 'strict',
         maxAge: 7 * 24 * 60 * 60 * 1000,
-        path: '/api/v1/auth',
+        path: '/',
       });
 
       ResponseFormatter.ok(res, 'Login successful', {
@@ -84,7 +84,7 @@ export class AuthController {
         secure: env.NODE_ENV === 'production',
         sameSite: 'strict',
         maxAge: 7 * 24 * 60 * 60 * 1000,
-        path: '/api/v1/auth',
+        path: '/',
       });
 
       ResponseFormatter.ok(res, 'Tokens refreshed', {
@@ -101,7 +101,7 @@ export class AuthController {
       const token = req.headers.authorization?.split(' ')[1] || '';
       await authService.logout(authReq.user!.userId, token);
 
-      res.clearCookie('refreshToken', { path: '/api/v1/auth' });
+      res.clearCookie('refreshToken', { path: '/' });
       ResponseFormatter.ok(res, 'Logged out successfully');
     } catch (error) {
       next(error);

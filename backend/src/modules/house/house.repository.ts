@@ -22,7 +22,10 @@ export class HouseRepository {
   }
 
   async findAll(filter: Record<string, any>, query: PaginationQuery) {
-    return paginate(House, filter, query, { path: 'vendorId', select: 'name email phone' });
+    return paginate(House, filter, query, {
+      populate: { path: 'vendorId', select: 'name email phone' },
+      rankSortFallback: 'title',
+    });
   }
 
   async findByVendor(vendorId: string, query: PaginationQuery) {

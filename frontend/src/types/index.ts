@@ -38,6 +38,7 @@ export interface User {
   universityId?: string;
   location?: string;
   idCardPhotoUrl?: string;
+  kycStatus?: 'pending' | 'approved' | 'rejected' | 'none';
   createdAt: string;
   updatedAt: string;
 }
@@ -49,10 +50,15 @@ export interface VendorProfile {
   businessAddress: string;
   businessPhone: string;
   businessType?: string;
+  serviceType?: string;
   description?: string;
   documents: string[];
   approvalStatus: VendorApprovalStatus;
   rejectionReason?: string;
+  rank: number;
+  onsitePickup: boolean;
+  onStoreService: boolean;
+  onsitePickupCharge: number;
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
@@ -118,11 +124,19 @@ export interface House {
 
 export interface LaundryService {
   _id: string;
+  vendorId?: string;
   name: string;
   description: string;
-  pricePerKg: number;
-  turnaroundDays: number;
-  isAvailable: boolean;
+  providerName: string;
+  providerPhone: string;
+  providerAddress: string;
+  services: { name: string; price: number; unit: string }[];
+  images: string[];
+  rank: number;
+  onsitePickup: boolean;
+  onStoreService: boolean;
+  onsitePickupCharge: number;
+  isActive: boolean;
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;

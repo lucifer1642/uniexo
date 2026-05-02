@@ -20,6 +20,12 @@ router.post('/orders', authenticate, isAuthenticated, validate(createLaundryOrde
 router.get('/orders/my', authenticate, isAuthenticated, LaundryController.getUserOrders);
 router.get('/orders/:id', authenticate, isAuthenticated, LaundryController.getOrderById);
 
+// Vendor — manage own laundry service
+router.get('/vendor/my-service', authenticate, isAuthenticated, LaundryController.getMyService);
+router.patch('/vendor/my-service', authenticate, isAuthenticated, LaundryController.updateMyService);
+router.get('/vendor/orders', authenticate, isAuthenticated, LaundryController.getVendorOrders);
+router.patch('/vendor/orders/:id/status', authenticate, isAuthenticated, LaundryController.updateVendorOrderStatus);
+
 // Admin
 router.post('/services', authenticate, isAdmin, validate(createLaundryServiceSchema), LaundryController.createService);
 router.patch('/services/:id', authenticate, isAdmin, LaundryController.updateService);

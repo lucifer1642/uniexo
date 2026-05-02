@@ -109,4 +109,53 @@ export class LaundryController {
       next(error);
     }
   }
+
+  // Vendor: Get own laundry service
+  static async getMyService(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { userId } = (req as AuthRequest).user!;
+      const service = await laundryService.getVendorService(userId);
+      ResponseFormatter.ok(res, 'Vendor laundry service fetched', service);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Vendor: Update own laundry service toggles
+  static async updateMyService(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { userId } = (req as AuthRequest).user!;
+      const service = await laundryService.updateVendorService(userId, req.body);
+      ResponseFormatter.ok(res, 'Laundry service updated', service);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Vendor: Get all orders for their laundry service
+  static async getVendorOrders(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { userId } = (req as AuthRequest).user!;
+      const data = await laundryService.getVendorOrders(
+        userId,
+        { page: Number(req.query.page) || 1, limit: Number(req.query.limit) || 20 },
+        req.query.status as string,
+      );
+      ResponseFormatter.ok(res, 'Vendor laundry orders fetched', data);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Vendor: Update order status (pipeline)
+  static async updateVendorOrderStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { userId } = (req as AuthRequest).user!;
+      const order = await laundryService.updateVendorOrderStatus(userId, req.params.id as string, req.body.status);
+      ResponseFormatter.ok(res, 'Order status updated', order);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
+

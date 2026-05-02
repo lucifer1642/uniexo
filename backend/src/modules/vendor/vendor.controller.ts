@@ -89,4 +89,81 @@ export class VendorController {
       next(error);
     }
   }
+
+  // ─── ANALYTICS CONTROLLERS ───────────────────────────────────────────
+
+  static async getAnalyticsOverview(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { userId } = (req as AuthRequest).user!;
+      const data = await vendorService.getAnalyticsOverview(userId);
+      ResponseFormatter.ok(res, 'Analytics overview fetched', data);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getSalesBreakdown(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { userId } = (req as AuthRequest).user!;
+      const period = (req.query.period as 'week' | 'month' | 'year') || 'month';
+      const data = await vendorService.getSalesBreakdown(userId, period);
+      ResponseFormatter.ok(res, 'Sales breakdown fetched', data);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getLedgerBook(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { userId } = (req as AuthRequest).user!;
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 20;
+      const data = await vendorService.getLedgerBook(userId, page, limit);
+      ResponseFormatter.ok(res, 'Ledger book fetched', data);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getDueAmounts(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { userId } = (req as AuthRequest).user!;
+      const data = await vendorService.getDueAmounts(userId);
+      ResponseFormatter.ok(res, 'Due amounts fetched', data);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getBookingTrends(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { userId } = (req as AuthRequest).user!;
+      const days = Number(req.query.days) || 30;
+      const data = await vendorService.getBookingTrends(userId, days);
+      ResponseFormatter.ok(res, 'Booking trends fetched', data);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getRevenueTimeSeries(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { userId } = (req as AuthRequest).user!;
+      const days = Number(req.query.days) || 30;
+      const data = await vendorService.getRevenueTimeSeries(userId, days);
+      ResponseFormatter.ok(res, 'Revenue time series fetched', data);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getRoomOccupancy(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { userId } = (req as AuthRequest).user!;
+      const data = await vendorService.getRoomOccupancy(userId);
+      ResponseFormatter.ok(res, 'Room occupancy fetched', data);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

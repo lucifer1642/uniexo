@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
 import { ProtectedRoute } from '@/components/protected-route';
@@ -10,20 +10,24 @@ import { Badge } from '@/components/ui/badge';
 import {
   CalendarCheck, ShoppingBag, Wallet, Car, Home, Package,
   TrendingUp, Clock, CheckCircle, XCircle, LayoutDashboard,
-  ListOrdered, Store, CreditCard, Shirt, Handshake, ShieldAlert
+  ListOrdered, Store, CreditCard, Shirt, Handshake, ShieldAlert, WashingMachine
 } from 'lucide-react';
 import { useMyOffers, useUpdateOfferStatus } from '@/hooks/use-offers';
 import {
   useUserBookings, useVendorBookings, useWallet,
   useVendorVehicles, useVendorHouses, useUserLaundryOrders,
-  useUserMarketplaceItems, useVendorProfile, useVendorDashboardStats,
+  useUserMarketplaceItems, useVendorProfile, useVendorDashboardStats, useVendorAnalyticsOverview,
 } from '@/hooks/use-dashboard';
 import { AddVehicleDialog } from '@/components/add-vehicle-dialog';
 import { AddHouseDialog } from '@/components/add-house-dialog';
 import { useUpdateBookingStatus } from '@/hooks/use-booking';
 import { useDeleteVehicle } from '@/hooks/use-vehicles';
+import { useVendorLaundryService, useUpdateVendorLaundryService } from '@/hooks/use-laundry-services';
+import { VendorAnalyticsDashboard, OverviewSection, RevenueSection, LedgerSection, FleetSection, RoomsSection, LaundrySection } from './vendor-analytics';
 
 // ─── Sidebar navigation ─────────────────────────────────────────────
+import { BarChart3, FileText } from 'lucide-react';
+
 const userSections = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'bookings', label: 'My Bookings', icon: CalendarCheck },
@@ -33,12 +37,17 @@ const userSections = [
 ];
 
 const vendorSections = [
-  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-  { id: 'vehicles', label: 'My Vehicles', icon: Car, serviceType: 'CAR' },
-  { id: 'houses', label: 'My Houses', icon: Home, serviceType: 'HOUSE' },
+  { id: 'overview', label: 'Analytics Overview', icon: LayoutDashboard },
+  { id: 'revenue', label: 'Revenue & Sales', icon: BarChart3 },
+  { id: 'ledger', label: 'Ledger Book', icon: FileText },
+  { id: 'vehicles', label: 'Manage Vehicles', icon: Car, serviceType: 'vehicle' },
+  { id: 'fleet', label: 'Live Fleet Board', icon: Car, serviceType: 'vehicle' },
+  { id: 'houses', label: 'Manage Houses', icon: Home, serviceType: 'house' },
+  { id: 'rooms', label: 'Room Occupancy Grid', icon: Home, serviceType: 'house' },
+  { id: 'laundry-settings', label: 'My Laundry Service', icon: WashingMachine, serviceType: 'laundry' },
+  { id: 'laundry-pipeline', label: 'Laundry Pipeline', icon: Shirt, serviceType: 'laundry' },
   { id: 'bookings', label: 'Booking Requests', icon: CalendarCheck },
-  { id: 'offers', label: 'Offers Received', icon: Handshake, serviceType: 'ITEM' },
-  { id: 'my-orders', label: 'My Orders (User)', icon: ListOrdered },
+  { id: 'offers', label: 'Offers Received', icon: Handshake, serviceType: 'marketplace' },
 ];
 
 // ─── Status badge helper ────────────────────────────────────────────
@@ -356,21 +365,31 @@ function VendorDashboard() {
 
   const isProfileComplete = Boolean(vendorProfile?.businessAddress && vendorProfile?.businessPhone);
 
+  const { data: overview, isLoading: loadingOverview } = useVendorAnalyticsOverview();
+
+  const [isPending, startTransition] = useTransition();
+
+  const handleTabChange = (id: string) => {
+    startTransition(() => {
+      setSection(id);
+    });
+  };
+
   const filteredSections = vendorSections.filter(s => !s.serviceType || s.serviceType === vendorProfile?.serviceType);
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6">
+    <div className="flex flex-col lg:flex-row gap-6 bg-[#F2EFE7] text-slate-900 p-4 rounded-xl min-h-screen">
       {/* Sidebar */}
-      <aside className="lg:w-56 shrink-0">
-        <nav className="flex lg:flex-col gap-1 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0">
+      <aside className="lg:w-64 shrink-0">
+        <nav className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0">
           {filteredSections.map((s) => (
             <button
               key={s.id}
-              onClick={() => setSection(s.id)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+              onClick={() => handleTabChange(s.id)}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${
                 section === s.id
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                  ? 'bg-[#8B004A] text-[#F2EFE7] shadow-lg shadow-[#8B004A]/30 scale-105'
+                  : 'text-slate-600 hover:bg-[#8B004A]/10 hover:text-[#8B004A]'
               }`}
             >
               <s.icon className="w-4 h-4" />
@@ -393,94 +412,12 @@ function VendorDashboard() {
 
       {/* Content */}
       <div className="flex-1 space-y-6">
-        {section === 'overview' && (
-          <>
-            <h2 className="text-2xl font-bold tracking-tight">Vendor Overview</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {(!vendorProfile?.serviceType || vendorProfile.serviceType === 'CAR') && (
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">My Vehicles</CardTitle>
-                    <Car className="h-4 w-4 text-blue-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{loadingStats ? '...' : totalVehicles}</div>
-                    <p className="text-xs text-muted-foreground mt-1">Active listings</p>
-                  </CardContent>
-                </Card>
-              )}
-              {(!vendorProfile?.serviceType || vendorProfile.serviceType === 'HOUSE') && (
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">My Houses</CardTitle>
-                    <Home className="h-4 w-4 text-purple-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{loadingStats ? '...' : totalHouses}</div>
-                    <p className="text-xs text-muted-foreground mt-1">Properties listed</p>
-                  </CardContent>
-                </Card>
-              )}
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Booking Requests</CardTitle>
-                  <CalendarCheck className="h-4 w-4 text-amber-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {loadingStats ? '...' : pendingBookings}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Pending approval</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Recent bookings */}
-            {bookings.length > 0 && (
-              <Card>
-                <CardHeader><CardTitle className="text-lg">Recent Booking Requests</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {bookings.slice(0, 5).map((b: any) => (
-                      <div key={b._id} className="flex items-center justify-between py-2 border-b last:border-0">
-                        <div>
-                          <p className="font-medium text-sm">{b.userId?.name || 'Customer'}</p>
-                          <p className="text-xs text-muted-foreground">{b.serviceType === 'vehicle' ? '🚗' : '🏠'} {new Date(b.startDate).toLocaleDateString()} – {new Date(b.endDate).toLocaleDateString()}</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="font-medium text-sm">₹{b.totalAmount}</span>
-                          <StatusBadge status={b.status} />
-                          {b.status === 'pending' && (
-                            <div className="flex gap-2 ml-2">
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="h-7 text-xs bg-green-50 text-green-700 hover:bg-green-100 border-green-200 z-10"
-                                onClick={(e) => { e.stopPropagation(); updateBookingStatus.mutate({ bookingId: b._id, status: 'confirmed' }); }}
-                                disabled={updateBookingStatus.isPending}
-                              >
-                                Accept
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="h-7 text-xs bg-red-50 text-red-700 hover:bg-red-100 border-red-200 z-10"
-                                onClick={(e) => { e.stopPropagation(); updateBookingStatus.mutate({ bookingId: b._id, status: 'cancelled' }); }}
-                                disabled={updateBookingStatus.isPending}
-                              >
-                                Reject
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </>
-        )}
+        {section === 'overview' && overview && <OverviewSection overview={overview} />}
+        {section === 'revenue' && <RevenueSection />}
+        {section === 'ledger' && <LedgerSection />}
+        {section === 'fleet' && <FleetSection />}
+        {section === 'rooms' && <RoomsSection />}
+        {section === 'laundry-pipeline' && <LaundrySection />}
 
         {section === 'vehicles' && (
           <>
@@ -726,6 +663,9 @@ function VendorDashboard() {
             )}
           </>
         )}
+        {section === 'laundry-settings' && (
+          <LaundryServiceSettings />
+        )}
         {section === 'my-orders' && (
           <div className="space-y-6">
             <h2 className="text-2xl font-bold tracking-tight">My Purchases & Bookings</h2>
@@ -797,6 +737,140 @@ function WalletSection() {
       <Card className="p-6 text-center text-muted-foreground">
         <CreditCard className="w-10 h-10 mx-auto mb-3 opacity-50" />
         <p className="text-sm">Transaction history will appear here as you make bookings and receive payments.</p>
+      </Card>
+    </>
+  );
+}
+
+// ─── LAUNDRY SERVICE SETTINGS (VENDOR) ──────────────────────────────
+function LaundryServiceSettings() {
+  const { data: service, isLoading } = useVendorLaundryService();
+  const updateService = useUpdateVendorLaundryService();
+  const [onsiteCharge, setOnsiteCharge] = useState('');
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Card key={i} className="p-6 animate-pulse">
+            <div className="h-4 bg-muted rounded w-48" />
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (!service) {
+    return (
+      <Card className="p-12 text-center">
+        <WashingMachine className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+        <h3 className="text-lg font-medium">No Laundry Service Found</h3>
+        <p className="text-muted-foreground text-sm mt-1">Your laundry service will appear here once approved by admin.</p>
+      </Card>
+    );
+  }
+
+  const handleToggle = async (field: 'onsitePickup' | 'onStoreService', value: boolean) => {
+    // Prevent disabling both
+    if (field === 'onsitePickup' && !value && !service.onStoreService) return;
+    if (field === 'onStoreService' && !value && !service.onsitePickup) return;
+
+    try {
+      await updateService.mutateAsync({ [field]: value });
+    } catch (err: any) {
+      console.error(err);
+    }
+  };
+
+  const handleSaveCharge = async () => {
+    try {
+      await updateService.mutateAsync({ onsitePickupCharge: Number(onsiteCharge) || 0 });
+    } catch (err: any) {
+      console.error(err);
+    }
+  };
+
+  return (
+    <>
+      <h2 className="text-2xl font-bold tracking-tight">My Laundry Service</h2>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Service Mode Settings</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Control how customers can use your laundry service. Changes take effect immediately.
+          </p>
+
+          {/* On Store Toggle */}
+          <div className="flex items-center justify-between p-4 rounded-xl border">
+            <div>
+              <p className="font-medium">🏪 On Store Service</p>
+              <p className="text-xs text-muted-foreground">Customers drop clothes at your store</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleToggle('onStoreService', !service.onStoreService)}
+              disabled={updateService.isPending}
+              className={`w-12 h-7 rounded-full transition-colors flex items-center ${
+                service.onStoreService ? 'bg-primary justify-end' : 'bg-muted justify-start'
+              }`}
+            >
+              <div className="w-5 h-5 rounded-full bg-white shadow mx-1 transition-all" />
+            </button>
+          </div>
+
+          {/* Onsite Pickup Toggle */}
+          <div className="flex items-center justify-between p-4 rounded-xl border">
+            <div>
+              <p className="font-medium">🚚 Onsite Pickup</p>
+              <p className="text-xs text-muted-foreground">You pick up clothes from customer location</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleToggle('onsitePickup', !service.onsitePickup)}
+              disabled={updateService.isPending}
+              className={`w-12 h-7 rounded-full transition-colors flex items-center ${
+                service.onsitePickup ? 'bg-primary justify-end' : 'bg-muted justify-start'
+              }`}
+            >
+              <div className="w-5 h-5 rounded-full bg-white shadow mx-1 transition-all" />
+            </button>
+          </div>
+
+          {/* Pickup Charge */}
+          {service.onsitePickup && (
+            <div className="p-4 rounded-xl border space-y-3">
+              <p className="font-medium text-sm">Onsite Pickup Charge</p>
+              <p className="text-xs text-muted-foreground">Current: ₹{service.onsitePickupCharge || 0}</p>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                  placeholder="Enter new charge"
+                  value={onsiteCharge}
+                  onChange={(e) => setOnsiteCharge(e.target.value)}
+                />
+                <Button
+                  size="sm"
+                  onClick={handleSaveCharge}
+                  disabled={updateService.isPending || !onsiteCharge}
+                >
+                  Update
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200/50 dark:border-blue-800/30">
+        <CardContent className="pt-6 text-sm text-blue-700 dark:text-blue-400">
+          <p className="font-medium mb-1">💡 Tip</p>
+          <p>Toggling these settings instantly changes what customers see. If you enable onsite pickup, customers will see a pickup option with your charge added to their total.</p>
+        </CardContent>
       </Card>
     </>
   );

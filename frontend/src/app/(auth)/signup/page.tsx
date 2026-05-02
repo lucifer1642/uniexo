@@ -11,6 +11,7 @@ import { Car, Building, CheckCircle2, Eye, EyeOff, LocateFixed, Sparkles } from 
 import { api } from '@/lib/api';
 import { AuthRedirectWrapper } from '@/components/auth-redirect-wrapper';
 import { toast } from 'sonner';
+import { LegalModal } from '@/components/legal-modal';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -32,6 +33,15 @@ export default function SignupPage() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [onsitePickup, setOnsitePickup] = useState(false);
+  const [onStoreService, setOnStoreService] = useState(true);
+  const [onsitePickupCharge, setOnsitePickupCharge] = useState('');
+
+  const [legalModal, setLegalModal] = useState<{ open: boolean, title: string, content: React.ReactNode }>({
+    open: false,
+    title: '',
+    content: null
+  });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -113,6 +123,11 @@ export default function SignupPage() {
       } else if (role === 'vendor') {
         payload.businessName = formData.businessName;
         payload.serviceType = formData.serviceType;
+        if (formData.serviceType === 'LAUNDRY') {
+          payload.onsitePickup = onsitePickup;
+          payload.onStoreService = onStoreService;
+          payload.onsitePickupCharge = Number(onsitePickupCharge) || 0;
+        }
       }
 
       await api.post('/auth/signup', payload);
@@ -360,6 +375,65 @@ export default function SignupPage() {
                 </div>
               )}
 
+              {/* Laundry Toggles — shown only when vendor selects LAUNDRY */}
+              {role === 'vendor' && formData.serviceType === 'LAUNDRY' && (
+                <div className="sm:col-span-2 space-y-4 p-4 rounded-2xl border border-lime-500/20 bg-lime-500/[0.03]">
+                  <p className="text-xs font-bold text-lime-400 uppercase tracking-wider">Laundry Service Options</p>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    {/* Onsite Pickup Toggle */}
+                    <button
+                      type="button"
+                      onClick={() => setOnsitePickup(!onsitePickup)}
+                      className={`flex-1 flex items-center justify-between p-3 rounded-xl border transition-all ${
+                        onsitePickup
+                          ? 'border-lime-500/50 bg-lime-500/10 text-lime-400'
+                          : 'border-white/10 bg-white/[0.02] text-zinc-500'
+                      }`}
+                    >
+                      <span className="text-sm font-medium">Onsite Pickup</span>
+                      <div className={`w-10 h-6 rounded-full transition-colors flex items-center ${
+                        onsitePickup ? 'bg-lime-500 justify-end' : 'bg-zinc-700 justify-start'
+                      }`}>
+                        <div className="w-4 h-4 rounded-full bg-white mx-1 transition-all" />
+                      </div>
+                    </button>
+
+                    {/* On Store Service Toggle */}
+                    <button
+                      type="button"
+                      onClick={() => setOnStoreService(!onStoreService)}
+                      className={`flex-1 flex items-center justify-between p-3 rounded-xl border transition-all ${
+                        onStoreService
+                          ? 'border-lime-500/50 bg-lime-500/10 text-lime-400'
+                          : 'border-white/10 bg-white/[0.02] text-zinc-500'
+                      }`}
+                    >
+                      <span className="text-sm font-medium">On Store Service</span>
+                      <div className={`w-10 h-6 rounded-full transition-colors flex items-center ${
+                        onStoreService ? 'bg-lime-500 justify-end' : 'bg-zinc-700 justify-start'
+                      }`}>
+                        <div className="w-4 h-4 rounded-full bg-white mx-1 transition-all" />
+                      </div>
+                    </button>
+                  </div>
+
+                  {onsitePickup && (
+                    <div className="space-y-2">
+                      <Label htmlFor="onsitePickupCharge" className="text-zinc-400 text-sm font-medium ml-1">Onsite Pickup Charge (₹)</Label>
+                      <Input
+                        id="onsitePickupCharge"
+                        type="number"
+                        min="0"
+                        className="h-12 bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 focus:border-lime-500/50 focus:ring-lime-500/20 rounded-xl"
+                        placeholder="e.g. 50"
+                        value={onsitePickupCharge}
+                        onChange={(e) => setOnsitePickupCharge(e.target.value)}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="password" title="Password" className="text-zinc-400 text-sm font-medium ml-1">Password</Label>
                 <div className="relative">
@@ -420,8 +494,60 @@ export default function SignupPage() {
                 {loading ? 'Processing...' : 'Create Account'}
               </Button>
             </form>
+
+            <div className="mt-8 pt-6 border-t border-white/5 text-center">
+               <p className="text-[10px] text-zinc-500 font-medium">
+                  By creating an account, you agree to our{' '}
+                  <button 
+                    type="button"
+                    onClick={() => setLegalModal({
+                      open: true,
+                      title: 'Terms of Service',
+                      content: (
+                        <div className="space-y-4">
+                          <p>By using UniExo, you agree to our community guidelines and rental policies.</p>
+                          <h4 className="font-bold text-white">Rentals</h4>
+                          <p>Users must provide valid ID for KYC verification before renting assets.</p>
+                          <h4 className="font-bold text-white">Payments</h4>
+                          <p>All transactions are processed through secure gateways. Platform fees may apply.</p>
+                        </div>
+                      )
+                    })}
+                    className="text-lime-400 font-bold hover:underline"
+                  >
+                    Terms
+                  </button>
+                  {' '}and{' '}
+                  <button 
+                    type="button"
+                    onClick={() => setLegalModal({
+                      open: true,
+                      title: 'Privacy Policy',
+                      content: (
+                        <div className="space-y-4">
+                          <p>At UniExo, your privacy is our priority. We collect minimal data to ensure a smooth rental experience.</p>
+                          <h4 className="font-bold text-white">Data Collection</h4>
+                          <p>We collect your email, name, and contact details for verification and booking purposes.</p>
+                          <h4 className="font-bold text-white">Security</h4>
+                          <p>All data is encrypted and stored securely on our protected servers.</p>
+                        </div>
+                      )
+                    })}
+                    className="text-lime-400 font-bold hover:underline"
+                  >
+                    Privacy Policy
+                  </button>
+               </p>
+            </div>
           </div>
         </motion.div>
+
+        <LegalModal 
+          isOpen={legalModal.open} 
+          onClose={() => setLegalModal({ ...legalModal, open: false })} 
+          title={legalModal.title}
+          content={legalModal.content}
+        />
       </div>
     </AuthRedirectWrapper>
   );

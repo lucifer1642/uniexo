@@ -108,4 +108,43 @@ export class VehicleController {
       next(error);
     }
   }
+
+  // ─── FLEET / DISPATCH ───────────────────────────────────────────────
+  static async getFleet(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { userId } = (req as AuthRequest).user!;
+      const fleet = await vehicleService.getFleetStatus(userId);
+      ResponseFormatter.ok(res, 'Fleet status fetched', fleet);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async dispatch(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { userId } = (req as AuthRequest).user!;
+      const vehicle = await vehicleService.dispatchVehicle(
+        req.params.id as string,
+        userId,
+        req.body,
+      );
+      ResponseFormatter.ok(res, 'Vehicle dispatched', vehicle);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async returnVehicle(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { userId } = (req as AuthRequest).user!;
+      const vehicle = await vehicleService.returnVehicle(
+        req.params.id as string,
+        userId,
+        req.body,
+      );
+      ResponseFormatter.ok(res, 'Vehicle returned and available', vehicle);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

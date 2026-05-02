@@ -170,4 +170,100 @@ export class VehicleService {
 
     return this.vehicleRepo.updateApproval(vehicleId, approvalStatus, rejectionReason);
   }
+
+  // ─── FLEET / DISPATCH ─────────────────────────────────────────────────────
+  async getFleetStatus(vendorId: string) {
+    const VehicleModel = require('../../database/models').Vehicle;
+    const BookingModel = require('mongoose').model('Booking');
+
+    const vehicles = await VehicleModel.find({ vendorId, isDeleted: false })
+      .populate('currentBookingId')
+      .lean();
+
+    return Promise.all(vehicles.map(async (v: any) => {
+      let currentBooking = null;
+      if (v.currentBookingId) {
+        currentBooking = await BookingModel.findById(v.currentBookingId)
+          .populate('userId', 'name email phone')
+          .lean();
+      }
+      const minutesLeft = v.expectedReturnAt
+        ? Math.max(0, Math.round((new Date(v.expectedReturnAt).getTime() - Date.now()) / 60000))
+        : null;
+      return {
+        ...v,
+        currentBooking,
+        minutesUntilReturn: minutesLeft,
+        isOverdue: v.expectedReturnAt && new Date(v.expectedReturnAt) < new Date() && v.currentStatus === 'dispatched',
+      };
+    }));
+  }
+
+  async dispatchVehicle(
+    vehicleId: string,
+    vendorId: string,
+    data: {
+      dispatchedAt?: string;
+      expectedReturnAt?: string;
+      odometerOut?: number;
+      dispatchNotes?: string;
+      currentBookingId?: string;
+    },
+  ) {
+    const vehicle = await this.vehicleRepo.findById(vehicleId);
+    if (!vehicle) throw new NotFoundError('Vehicle not found');
+
+    const vId = typeof vehicle.vendorId === 'object' && (vehicle.vendorId as any)._id
+      ? (vehicle.vendorId as any)._id.toString()
+      : vehicle.vendorId.toString();
+    if (vId !== vendorId) throw new ForbiddenError('Not your vehicle');
+
+    const VehicleModel = require('../../database/models').Vehicle;
+    return VehicleModel.findByIdAndUpdate(
+      vehicleId,
+      {
+        $set: {
+          currentStatus: 'dispatched',
+          isAvailable: false,
+          dispatchedAt: data.dispatchedAt ? new Date(data.dispatchedAt) : new Date(),
+          expectedReturnAt: data.expectedReturnAt ? new Date(data.expectedReturnAt) : undefined,
+          odometerOut: data.odometerOut,
+          dispatchNotes: data.dispatchNotes,
+          currentBookingId: data.currentBookingId,
+        },
+      },
+      { new: true },
+    );
+  }
+
+  async returnVehicle(
+    vehicleId: string,
+    vendorId: string,
+    data: { odometerIn?: number; notes?: string },
+  ) {
+    const vehicle = await this.vehicleRepo.findById(vehicleId);
+    if (!vehicle) throw new NotFoundError('Vehicle not found');
+
+    const vId = typeof vehicle.vendorId === 'object' && (vehicle.vendorId as any)._id
+      ? (vehicle.vendorId as any)._id.toString()
+      : vehicle.vendorId.toString();
+    if (vId !== vendorId) throw new ForbiddenError('Not your vehicle');
+
+    const VehicleModel = require('../../database/models').Vehicle;
+    return VehicleModel.findByIdAndUpdate(
+      vehicleId,
+      {
+        $set: {
+          currentStatus: 'available',
+          isAvailable: true,
+          odometerIn: data.odometerIn,
+          dispatchNotes: data.notes,
+          dispatchedAt: null,
+          expectedReturnAt: null,
+          currentBookingId: null,
+        },
+      },
+      { new: true },
+    );
+  }
 }

@@ -16,7 +16,16 @@ router.patch('/profile', isAuthenticated, validate(updateVendorProfileSchema), V
 router.post('/documents', isAuthenticated, upload.array('documents', 5), VendorController.uploadDocuments);
 router.get('/dashboard/stats', isAuthenticated, VendorController.getDashboardStats);
 
-// Admin routes
+// ─── Analytics Routes ───────────────────────────────────────────────────
+router.get('/analytics/overview', isAuthenticated, VendorController.getAnalyticsOverview);
+router.get('/analytics/sales', isAuthenticated, VendorController.getSalesBreakdown);
+router.get('/analytics/ledger', isAuthenticated, VendorController.getLedgerBook);
+router.get('/analytics/dues', isAuthenticated, VendorController.getDueAmounts);
+router.get('/analytics/trends', isAuthenticated, VendorController.getBookingTrends);
+router.get('/analytics/revenue-series', isAuthenticated, VendorController.getRevenueTimeSeries);
+router.get('/analytics/room-occupancy', isAuthenticated, VendorController.getRoomOccupancy);
+
+// ─── Admin Routes ────────────────────────────────────────────────────────
 router.get('/', isAdmin, VendorController.listVendors);
 router.patch('/:vendorId/approval', isAdmin, validate(vendorApprovalSchema), VendorController.approve);
 

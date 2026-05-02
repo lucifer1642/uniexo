@@ -11,6 +11,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { api } from '@/lib/api';
 import { AuthRedirectWrapper } from '@/components/auth-redirect-wrapper';
 import { toast } from 'sonner';
+import { LegalModal } from '@/components/legal-modal';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,6 +22,12 @@ export default function LoginPage() {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
+  });
+
+  const [legalModal, setLegalModal] = useState<{ open: boolean, title: string, content: React.ReactNode }>({
+    open: false,
+    title: '',
+    content: null
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -158,7 +165,7 @@ export default function LoginPage() {
 
               <Button 
                 type="submit" 
-                className="w-full h-12 text-black bg-lime-400 hover:bg-lime-300 font-bold rounded-xl transition-all shadow-[0_0_20px_-5px_rgba(163,230,53,0.5)] active:scale-[0.98]" 
+                className="w-full h-12 text-black bg-lime-400 hover:bg-lime-300 font-bold rounded-xl transition-all shadow-[0_0_20px_-5px_rgba(255,0,127,0.5)] active:scale-[0.98]" 
                 disabled={loading}
               >
                 {loading ? (
@@ -173,8 +180,57 @@ export default function LoginPage() {
                 ) : 'Sign In'}
               </Button>
             </form>
+            
+            <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-center gap-6">
+               <button 
+                type="button"
+                onClick={() => setLegalModal({
+                  open: true,
+                  title: 'Privacy Policy',
+                  content: (
+                    <div className="space-y-4">
+                      <p>At UniExo, your privacy is our priority. We collect minimal data to ensure a smooth rental experience.</p>
+                      <h4 className="font-bold text-white">Data Collection</h4>
+                      <p>We collect your email, name, and contact details for verification and booking purposes.</p>
+                      <h4 className="font-bold text-white">Security</h4>
+                      <p>All data is encrypted and stored securely on our protected servers.</p>
+                    </div>
+                  )
+                })}
+                className="text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-lime-400 transition-colors"
+               >
+                 Privacy
+               </button>
+               <div className="w-1 h-1 bg-zinc-800 rounded-full" />
+               <button 
+                type="button"
+                onClick={() => setLegalModal({
+                  open: true,
+                  title: 'Terms of Service',
+                  content: (
+                    <div className="space-y-4">
+                      <p>By using UniExo, you agree to our community guidelines and rental policies.</p>
+                      <h4 className="font-bold text-white">Rentals</h4>
+                      <p>Users must provide valid ID for KYC verification before renting assets.</p>
+                      <h4 className="font-bold text-white">Payments</h4>
+                      <p>All transactions are processed through secure gateways. Platform fees may apply.</p>
+                    </div>
+                  )
+                })}
+                className="text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-lime-400 transition-colors"
+               >
+                 Terms
+               </button>
+            </div>
           </div>
         </motion.div>
+
+        <LegalModal 
+          isOpen={legalModal.open} 
+          onClose={() => setLegalModal({ ...legalModal, open: false })} 
+          title={legalModal.title}
+          content={legalModal.content}
+        />
       </div>
     </AuthRedirectWrapper>
   );

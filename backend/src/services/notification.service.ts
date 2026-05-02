@@ -66,7 +66,24 @@ export class NotificationService {
       message += ` Reason: ${reason}`;
     }
 
-    return this.create(userId, title, message, status === 'approved' ? NotificationType.SUCCESS : NotificationType.DANGER, { status, reason });
+    // 1. Create DB notification
+    const notification = await Notification.create({
+      userId,
+      title,
+      message,
+      type: status === 'approved' ? NotificationType.SUCCESS : NotificationType.DANGER,
+      metadata: { status, reason },
+    });
+
+    // 2. Send Specialized Email
+    const user = await User.findById(userId).select('email name');
+    if (user && user.email) {
+      EmailService.sendKycStatusEmail(user.email, user.name, status as 'approved' | 'rejected', reason).catch(err => {
+        logger.error(`Error sending specialized KYC email to ${user.email}:`, err);
+      });
+    }
+
+    return notification;
   }
 
   static async sendPaymentReminder(userId: string, amount: number, dueDate: Date) {

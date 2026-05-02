@@ -189,4 +189,42 @@ export class AdminRepository {
       { new: true },
     );
   }
+
+  // ==================== Rank Optimization ====================
+
+  async getVendorsByCategory(category: 'ROOM' | 'CAR' | 'LAUNDRY') {
+    const vendors = await VendorProfile.find({
+      serviceType: category,
+      isDeleted: false,
+    })
+      .populate('userId', 'name email phone')
+      .sort({ rank: -1, businessName: 1 })
+      .lean();
+    return vendors;
+  }
+
+  async updateVendorRank(vendorProfileId: string, rank: number) {
+    const profile = await VendorProfile.findByIdAndUpdate(
+      vendorProfileId,
+      { rank },
+      { new: true },
+    ).populate('userId', 'name email phone');
+
+    if (!profile) return null;
+
+    const vendorUserId = profile.userId && typeof profile.userId === 'object'
+      ? (profile.userId as any)._id
+      : profile.userId;
+
+    // Propagate rank to all related listings
+    if (profile.serviceType === 'ROOM') {
+      await House.updateMany({ vendorId: vendorUserId }, { rank });
+    } else if (profile.serviceType === 'CAR') {
+      await Vehicle.updateMany({ vendorId: vendorUserId }, { rank });
+    } else if (profile.serviceType === 'LAUNDRY') {
+      await LaundryService.updateMany({ vendorId: vendorUserId }, { rank });
+    }
+
+    return profile;
+  }
 }

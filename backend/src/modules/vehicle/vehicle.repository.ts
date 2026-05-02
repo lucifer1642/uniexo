@@ -21,7 +21,10 @@ export class VehicleRepository {
   }
 
   async findAll(filter: Record<string, unknown>, query: PaginationQuery) {
-    return paginate(Vehicle, { ...filter, isDeleted: false }, query, { path: 'vendorId', select: 'name email phone' });
+    return paginate(Vehicle, { ...filter, isDeleted: false }, query, {
+      populate: { path: 'vendorId', select: 'name email phone' },
+      rankSortFallback: 'name',
+    });
   }
 
   async findByVendor(vendorId: string, query: PaginationQuery) {

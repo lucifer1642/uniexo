@@ -13,6 +13,7 @@ export interface User {
     universityId?: string;
     location?: string;
     idCardPhotoUrl?: string;
+    kycStatus?: 'pending' | 'approved' | 'rejected' | 'none';
 }
 
 interface AuthState {

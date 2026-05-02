@@ -111,4 +111,23 @@ export class AdminService {
 
     return kycRequest;
   }
+
+  // ==================== Rank Optimization ====================
+
+  async getVendorsByCategory(category: string) {
+    const validCategories = ['ROOM', 'CAR', 'LAUNDRY'];
+    if (!validCategories.includes(category)) {
+      throw new BadRequestError('Invalid category. Must be ROOM, CAR, or LAUNDRY');
+    }
+    return this.adminRepo.getVendorsByCategory(category as 'ROOM' | 'CAR' | 'LAUNDRY');
+  }
+
+  async updateVendorRank(vendorProfileId: string, rank: number) {
+    if (rank < 0) {
+      throw new BadRequestError('Rank must be a non-negative number');
+    }
+    const profile = await this.adminRepo.updateVendorRank(vendorProfileId, rank);
+    if (!profile) throw new NotFoundError('Vendor profile not found');
+    return profile;
+  }
 }

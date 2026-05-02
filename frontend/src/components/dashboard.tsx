@@ -6,187 +6,200 @@ import {
   Home, 
   ShoppingBag, 
   WashingMachine, 
-  Wallet as WalletIcon, 
-  TrendingUp, 
-  Clock, 
   ArrowRight,
-  ShieldCheck,
-  Zap,
-  Bell,
-  Search
+  Search,
+  User,
+  ChevronRight,
+  LayoutGrid,
+  Star
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
+import { useUIStore } from '@/store/ui.store';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
 export function Dashboard() {
   const { user } = useAuthStore();
-
-  const stats = [
-    { label: 'Wallet Balance', value: '₹0.00', icon: WalletIcon, color: 'lime' },
-    { label: 'Active Bookings', value: '0', icon: Clock, color: 'blue' },
-    { label: 'Saved Items', value: '0', icon: Zap, color: 'orange' },
-    { label: 'KYC Status', value: 'Pending', icon: ShieldCheck, color: 'purple' },
-  ];
+  const { openProfileSidebar, isProfileSidebarOpen } = useUIStore();
 
   const quickActions = [
-    { label: 'Rent a Vehicle', icon: Car, href: '/vehicles', description: 'Cars, Bikes & Scooters' },
-    { label: 'Find a Room', icon: Home, href: '/houses', description: 'PGs, Hostels & Flats' },
-    { label: 'Marketplace', icon: ShoppingBag, href: '/marketplace', description: 'Buy & Sell Used Items' },
-    { label: 'Laundry Service', icon: WashingMachine, href: '/laundry', description: 'Wash, Fold & Dry' },
+    { 
+      label: 'Rent a Vehicle', 
+      icon: Car, 
+      href: '/vehicles', 
+      description: 'Cars, Bikes & Scooters',
+      gradient: 'from-blue-500/20 to-cyan-500/20',
+      iconColor: 'text-blue-400',
+      tag: 'FAST'
+    },
+    { 
+      label: 'Find a Room', 
+      icon: Home, 
+      href: '/houses', 
+      description: 'PGs, Hostels & Flats',
+      gradient: 'from-lime-500/20 to-emerald-500/20',
+      iconColor: 'text-lime-400',
+      tag: 'SECURE'
+    },
+    { 
+      label: 'Marketplace', 
+      icon: ShoppingBag, 
+      href: '/marketplace', 
+      description: 'Buy & Sell Used Items',
+      gradient: 'from-orange-500/20 to-yellow-500/20',
+      iconColor: 'text-orange-400',
+      tag: 'NEW'
+    },
+    { 
+      label: 'Laundry Service', 
+      icon: WashingMachine, 
+      href: '/laundry', 
+      description: 'Wash, Fold & Dry',
+      gradient: 'from-purple-500/20 to-pink-500/20',
+      iconColor: 'text-purple-400',
+      tag: 'FRESH'
+    },
   ];
 
   return (
-    <div className="min-h-screen bg-black text-white selection:bg-lime-500/30 selection:text-lime-200 overflow-hidden relative">
+    <div className="min-h-screen bg-black text-white selection:bg-primary/30 selection:text-white relative font-sans overflow-x-hidden">
       {/* Background Animated Blobs */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         <motion.div
           animate={{
-            scale: [1, 1.2, 1],
-            x: [0, 100, 0],
-            y: [0, 50, 0],
+            scale: [1, 1.1, 1],
+            x: [0, 50, 0],
+            y: [0, 25, 0],
           }}
           transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-lime-500/10 rounded-full blur-[120px]"
+          className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-lime-500/5 rounded-full blur-[100px]"
         />
         <motion.div
           animate={{
-            scale: [1.2, 1, 1.2],
-            x: [0, -100, 0],
-            y: [0, -50, 0],
+            scale: [1.1, 1, 1.1],
+            x: [0, -50, 0],
+            y: [0, -25, 0],
           }}
           transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-green-600/10 rounded-full blur-[120px]"
+          className="absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] bg-blue-600/5 rounded-full blur-[100px]"
         />
       </div>
 
-      <div className="relative z-10 container mx-auto px-4 py-12 lg:px-8 max-w-7xl">
-        {/* Header Section */}
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-          >
-            <h1 className="text-4xl md:text-5xl font-black tracking-tighter">
-              Welcome back, <span className="text-lime-400">{user?.name?.split(' ')[0]}</span>
-            </h1>
-            <p className="text-zinc-400 mt-1 font-medium">Here's what's happening today in your network.</p>
-          </motion.div>
-
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex items-center gap-3 bg-white/[0.03] border border-white/10 p-2 rounded-2xl backdrop-blur-xl"
-          >
-            <div className="relative group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 group-focus-within:text-lime-400 transition-colors" />
-              <input 
-                type="text" 
-                placeholder="Search services..." 
-                className="bg-transparent border-none focus:ring-0 text-sm pl-10 pr-4 py-2 w-48 md:w-64 placeholder:text-zinc-600"
-              />
-            </div>
-            <button className="p-2 rounded-xl hover:bg-white/5 text-zinc-400 transition-colors relative">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-lime-500 rounded-full border-2 border-black"></span>
-            </button>
-          </motion.div>
-        </header>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          {stats.map((stat, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.1 }}
-              whileHover={{ y: -5 }}
-              className="backdrop-blur-2xl bg-white/[0.03] border border-white/10 p-6 rounded-3xl group transition-all"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-2xl bg-white/[0.05] text-lime-400 group-hover:bg-lime-400 group-hover:text-black transition-all duration-300`}>
-                  <stat.icon className="w-6 h-6" />
+      <div className="relative z-10 flex w-full">
+        {/* Main Content Area */}
+        <main className={`flex-1 transition-all duration-500 ease-in-out`}>
+          <div className="container mx-auto px-6 py-12 lg:px-12 max-w-6xl">
+            {/* Header Section */}
+            <header className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-16">
+              <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                   <div className="h-1 w-8 bg-lime-400 rounded-full" />
+                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-lime-400/70">DASHBOARD OVERVIEW</span>
                 </div>
-                <TrendingUp className="w-4 h-4 text-zinc-600" />
+                <h1 className="text-5xl md:text-6xl font-black tracking-tighter leading-none">
+                  Hello, <span className="text-transparent bg-clip-text bg-gradient-to-r from-lime-300 to-lime-500">{user?.name?.split(' ')[0]}</span>
+                </h1>
+                <p className="text-zinc-500 mt-4 font-medium text-lg max-w-md">Access premium services and manage your campus lifestyle with one tap.</p>
+              </motion.div>
+
+              <div className="flex items-center gap-4">
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="hidden md:flex items-center gap-3 bg-white/[0.02] border border-white/5 p-2 px-4 rounded-2xl backdrop-blur-3xl shadow-2xl"
+                >
+                  <Search className="w-4 h-4 text-zinc-500" />
+                  <input 
+                    type="text" 
+                    placeholder="Search anything..." 
+                    className="bg-transparent border-none focus:ring-0 text-sm w-48 placeholder:text-zinc-600"
+                  />
+                </motion.div>
+                
+                <Button 
+                  onClick={openProfileSidebar}
+                  variant="outline"
+                  className={`h-14 w-14 rounded-2xl border-white/10 bg-white/[0.02] backdrop-blur-xl transition-all ${isProfileSidebarOpen ? 'border-lime-400/50 text-lime-400' : 'hover:border-lime-400/30'}`}
+                >
+                  <User className="w-6 h-6" />
+                </Button>
               </div>
-              <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest">{stat.label}</p>
-              <h3 className="text-3xl font-black mt-1 group-hover:text-lime-400 transition-colors">{stat.value}</h3>
-            </motion.div>
-          ))}
-        </div>
+            </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Quick Actions */}
-          <div className="lg:col-span-2">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-black tracking-tight">Quick <span className="text-lime-400">Services</span></h2>
-              <Link href="/explore" className="text-sm font-bold text-zinc-500 hover:text-lime-400 transition-colors flex items-center gap-1">
-                View All <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {quickActions.map((action, idx) => (
-                <Link key={idx} href={action.href}>
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.2 + idx * 0.05 }}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="backdrop-blur-2xl bg-white/[0.03] border border-white/10 p-6 rounded-3xl flex items-center gap-5 hover:border-lime-500/30 transition-all group"
-                  >
-                    <div className="p-4 rounded-2xl bg-white/[0.05] text-lime-400 group-hover:scale-110 transition-transform">
-                      <action.icon className="w-8 h-8" />
-                    </div>
-                    <div>
-                      <h4 className="text-lg font-bold group-hover:text-lime-400 transition-colors">{action.label}</h4>
-                      <p className="text-sm text-zinc-500">{action.description}</p>
-                    </div>
-                  </motion.div>
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          {/* Recent Activity / Announcements */}
-          <div className="lg:col-span-1">
-            <h2 className="text-2xl font-black tracking-tight mb-6">Recent <span className="text-lime-400">Activity</span></h2>
-            <div className="backdrop-blur-2xl bg-white/[0.03] border border-white/10 rounded-3xl p-6 h-[400px] flex flex-col items-center justify-center text-center">
-              <div className="w-16 h-16 rounded-full bg-white/[0.05] flex items-center justify-center mb-4 text-zinc-600">
-                <Clock className="w-8 h-8" />
+            {/* Quick Services Section */}
+            <section className="mb-20">
+              <div className="flex items-center justify-between mb-10">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-2xl bg-lime-400/10 text-lime-400">
+                    <LayoutGrid className="w-6 h-6" />
+                  </div>
+                  <h2 className="text-3xl font-black tracking-tight">Quick <span className="text-lime-400">Services</span></h2>
+                </div>
+                <Button asChild variant="ghost" className="text-zinc-500 hover:text-white transition-colors group">
+                  <Link href="/vehicles">
+                    EXPLORE ALL <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                </Button>
               </div>
-              <p className="text-zinc-400 font-medium">No recent transactions or bookings found.</p>
-              <p className="text-zinc-600 text-sm mt-1">Start exploring UniExo to see your activity here!</p>
-              <Button asChild className="mt-6 bg-lime-400 hover:bg-lime-300 text-black font-bold rounded-xl px-8 shadow-[0_0_20px_-5px_rgba(163,230,53,0.3)]">
-                <Link href="/vehicles">Explore Now</Link>
-              </Button>
-            </div>
-          </div>
-        </div>
 
-        {/* Promotional Banner */}
-        <motion.div 
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="mt-12 p-8 md:p-12 rounded-[2.5rem] bg-gradient-to-br from-lime-500 to-green-700 relative overflow-hidden group"
-        >
-          <div className="absolute top-0 right-0 p-12 opacity-10 group-hover:scale-125 transition-transform duration-700">
-            <Zap className="w-64 h-64 text-white" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {quickActions.map((action, idx) => (
+                  <Link key={idx} href={action.href} className="group">
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.1 }}
+                      className={`relative overflow-hidden p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/5 hover:border-white/10 transition-all duration-500 h-full flex flex-col justify-between`}
+                    >
+                      {/* Hover Gradient Overlay */}
+                      <div className={`absolute inset-0 bg-gradient-to-br ${action.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+                      
+                      <div className="relative z-10">
+                        <div className="flex justify-between items-start mb-8">
+                          <div className={`p-5 rounded-3xl bg-white/[0.03] ${action.iconColor} group-hover:scale-110 transition-transform duration-500 shadow-2xl`}>
+                            <action.icon className="w-10 h-10" />
+                          </div>
+                          <span className="text-[10px] font-black px-3 py-1 bg-white/[0.05] rounded-full tracking-widest text-zinc-500 group-hover:text-white transition-colors">
+                            {action.tag}
+                          </span>
+                        </div>
+                        <h4 className="text-2xl font-black mb-2 group-hover:translate-x-1 transition-transform duration-500">{action.label}</h4>
+                        <p className="text-zinc-500 group-hover:text-zinc-300 transition-colors">{action.description}</p>
+                      </div>
+
+                      <div className="relative z-10 mt-12 flex items-center gap-2 text-sm font-bold text-lime-400 opacity-0 group-hover:opacity-100 transition-all duration-500 -translate-x-4 group-hover:translate-x-0">
+                        GO TO SERVICE <ChevronRight className="w-4 h-4" />
+                      </div>
+                      
+                      {/* Decorative Element */}
+                      <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-white/[0.01] rounded-full blur-2xl group-hover:bg-white/[0.05] transition-all duration-500" />
+                    </motion.div>
+                  </Link>
+                ))}
+              </div>
+            </section>
+
+            {/* Featured Section */}
+            <section>
+               <div className="p-10 rounded-[3rem] bg-gradient-to-br from-zinc-900 to-black border border-white/5 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 p-12 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity duration-700">
+                    <Star className="w-64 h-64 text-white" />
+                  </div>
+                  <div className="relative z-10">
+                    <span className="text-lime-400 text-xs font-black tracking-widest uppercase mb-4 block">LIMITED OFFER</span>
+                    <h3 className="text-4xl font-black mb-4">Upgrade your campus experience.</h3>
+                    <p className="text-zinc-500 max-w-md mb-8">Get exclusive access to premium PGs and luxury vehicle rentals with priority booking.</p>
+                    <Button asChild className="bg-white text-black hover:bg-lime-400 hover:text-black font-black px-10 h-14 rounded-2xl transition-all">
+                      <Link href="/houses">LEARN MORE</Link>
+                    </Button>
+                  </div>
+               </div>
+            </section>
           </div>
-          <div className="relative z-10 max-w-2xl">
-            <h2 className="text-4xl md:text-5xl font-black text-black tracking-tighter leading-none mb-4">
-              Become a <span className="text-white">Vendor</span> Today
-            </h2>
-            <p className="text-green-100 text-lg font-medium mb-8">
-              List your assets and start earning. Car rentals, property listings, or marketplace items — we've got you covered.
-            </p>
-            <Button size="lg" className="bg-black text-white hover:bg-zinc-900 font-bold rounded-2xl px-10 h-14 text-lg">
-              Get Started
-            </Button>
-          </div>
-        </motion.div>
+        </main>
       </div>
     </div>
   );

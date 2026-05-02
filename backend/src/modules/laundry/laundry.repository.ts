@@ -21,7 +21,9 @@ export class LaundryRepository {
   }
 
   async findAllServices(filter: Record<string, any>, query: PaginationQuery) {
-    return paginate(LaundryService, filter, query);
+    return paginate(LaundryService, filter, query, {
+      rankSortFallback: 'name',
+    });
   }
 
   async createOrder(data: Partial<IOrder>): Promise<IOrder> {

@@ -117,3 +117,80 @@ export const useVendorDashboardStats = () => {
         },
     });
 };
+
+// ─── NEW ANALYTICS HOOKS ──────────────────────────────────────────────
+
+export const useVendorAnalyticsOverview = () => {
+    return useQuery({
+        queryKey: ['vendorAnalyticsOverview'],
+        queryFn: async () => {
+            const { data } = await api.get('/vendors/analytics/overview');
+            return data.data;
+        },
+        refetchInterval: 30000,
+        staleTime: 60000,
+    });
+};
+
+export const useVendorSalesBreakdown = (period: 'week' | 'month' | 'year' = 'month') => {
+    return useQuery({
+        queryKey: ['vendorSalesBreakdown', period],
+        queryFn: async () => {
+            const { data } = await api.get('/vendors/analytics/sales', { params: { period } });
+            return data.data;
+        },
+    });
+};
+
+export const useVendorLedger = (page = 1, limit = 20) => {
+    return useQuery({
+        queryKey: ['vendorLedger', page, limit],
+        queryFn: async () => {
+            const { data } = await api.get('/vendors/analytics/ledger', { params: { page, limit } });
+            return data.data;
+        },
+        staleTime: 60000,
+    });
+};
+
+export const useVendorDues = () => {
+    return useQuery({
+        queryKey: ['vendorDues'],
+        queryFn: async () => {
+            const { data } = await api.get('/vendors/analytics/dues');
+            return data.data;
+        },
+        refetchInterval: 60000,
+    });
+};
+
+export const useVendorBookingTrends = (days = 30) => {
+    return useQuery({
+        queryKey: ['vendorBookingTrends', days],
+        queryFn: async () => {
+            const { data } = await api.get('/vendors/analytics/trends', { params: { days } });
+            return data.data;
+        },
+    });
+};
+
+export const useVendorRevenueTimeSeries = (days = 30) => {
+    return useQuery({
+        queryKey: ['vendorRevenueTimeSeries', days],
+        queryFn: async () => {
+            const { data } = await api.get('/vendors/analytics/revenue-series', { params: { days } });
+            return data.data;
+        },
+    });
+};
+
+export const useVendorRoomOccupancy = () => {
+    return useQuery({
+        queryKey: ['vendorRoomOccupancy'],
+        queryFn: async () => {
+            const { data } = await api.get('/vendors/analytics/room-occupancy');
+            return data.data;
+        },
+        refetchInterval: 60000,
+    });
+};

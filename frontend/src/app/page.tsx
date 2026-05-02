@@ -32,7 +32,7 @@ const wordReveal = {
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.1, duration: 0.5, ease: "easeOut" }
+    transition: { delay: i * 0.1, duration: 0.5, ease: "easeOut" as any }
   })
 };
 
@@ -164,10 +164,10 @@ function Landing() {
               <motion.div variants={fadeUp} className="mb-8">
                 <div className="flex flex-wrap gap-4">
                   {[
-                    { icon: Car, label: 'Vehicle', color: 'blue' },
-                    { icon: HomeIcon, label: 'Room', color: 'green' },
-                    { icon: ShoppingBag, label: 'Item', color: 'orange' },
-                    { icon: WashingMachine, label: 'Laundry', color: 'purple' }
+                    { icon: Car, label: 'Vehicle', color: 'primary' },
+                    { icon: HomeIcon, label: 'Room', color: 'primary' },
+                    { icon: ShoppingBag, label: 'Item', color: 'primary' },
+                    { icon: WashingMachine, label: 'Laundry', color: 'primary' }
                   ].map((item, idx) => (
                     <motion.div 
                       key={idx}

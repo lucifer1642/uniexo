@@ -1,83 +1,128 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
-import { ListingCard } from '@/components/listing-card';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Car, Bike, MapPin } from 'lucide-react';
-
+import { Car, Bike, MapPin, Star, ShieldCheck, Heart, Fuel, Users, Gauge, ArrowRight, LayoutGrid, List, Zap } from 'lucide-react';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { useAuthStore } from '@/store/auth.store';
+import Link from 'next/link';
 import { AddVehicleDialog } from '@/components/add-vehicle-dialog';
+import { Badge } from '@/components/ui/badge';
 
-function VendorGroup({ vendorName, location, vehicles }: { vendorName: string, location: string, vehicles: any[] }) {
-  const cars = vehicles.filter(v => v.rawType === 'car' || v.rawType?.toLowerCase() === 'car');
-  const bikes = vehicles.filter(v => v.rawType !== 'car' && v.rawType?.toLowerCase() !== 'car');
-
-  const renderCard = (vehicle: any) => (
-    <Link key={vehicle.id} href={vehicle.href} className="group flex flex-col gap-3 cursor-pointer">
-      <div className="relative aspect-[16/9] overflow-hidden rounded-xl bg-muted flex items-center justify-center">
-        {vehicle.image ? (
-          <img 
-            src={vehicle.image} 
-            alt={vehicle.title} 
-            className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300" 
-          />
-        ) : (
-          <div className="flex flex-col items-center justify-center text-muted-foreground">
-            <Car className="w-12 h-12 opacity-20 mb-2" />
-          </div>
-        )}
-      </div>
-      <div className="flex flex-col">
-        <div className="flex justify-between items-start">
-          <h3 className="font-semibold text-base line-clamp-1">{vehicle.rawLocation}</h3>
-          <div className="flex items-center gap-1 text-sm">
-            <span>★</span>
-            <span>{vehicle.rating}</span>
-          </div>
-        </div>
-        <div className="text-muted-foreground text-sm line-clamp-1 capitalize">{vehicle.title} · {vehicle.rawType}</div>
-        <div className="mt-1 flex items-center gap-1.5 text-sm">
-          <span className="font-semibold text-base text-foreground">₹{vehicle.pricePerDay}</span>
-          <span className="text-muted-foreground">/day</span>
-          <span className="text-muted-foreground">·</span>
-          <span className="font-semibold text-base text-foreground">₹{vehicle.pricePerHour}</span>
-          <span className="text-muted-foreground">/hr</span>
-        </div>
-      </div>
-    </Link>
-  );
-
+function VehicleCard({ vehicle }: { vehicle: any }) {
   return (
-    <div className="space-y-4 mb-10 w-full pt-4 border-t">
-      <h2 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-        <MapPin className="w-5 h-5 text-muted-foreground" />
-        {vendorName}
-      </h2>
-      
-      <div className="flex flex-col gap-8">
-        {cars.length > 0 && (
-          <div>
-            <div className="text-lg font-medium mb-4 text-muted-foreground flex items-center gap-2">
-              <Car className="w-5 h-5" /> Cars
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      whileHover={{ y: -8 }}
+      className="group relative flex flex-col bg-[#1a050f] border border-white/5 rounded-[2rem] overflow-hidden transition-all duration-500 hover:border-primary/30 shadow-2xl"
+    >
+      <Link href={vehicle.href} className="block">
+        <div className="relative aspect-[16/10] overflow-hidden">
+          {vehicle.image ? (
+            <img 
+              src={vehicle.image} 
+              alt={vehicle.title} 
+              className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700" 
+            />
+          ) : (
+            <div className="w-full h-full bg-zinc-900 flex flex-col items-center justify-center text-zinc-700">
+              <Car className="w-16 h-16 opacity-10" />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 gap-y-8">
-              {cars.map(renderCard)}
-            </div>
+          )}
+          
+          {/* Overlay Gradients */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
+          <div className="absolute top-4 right-4 flex flex-col gap-2">
+             <button className="p-2.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-white hover:text-red-400 transition-colors shadow-xl">
+                <Heart className="w-4 h-4" />
+             </button>
           </div>
-        )}
 
-        {bikes.length > 0 && (
-          <div>
-            <div className="text-lg font-medium mb-4 text-muted-foreground flex items-center gap-2">
-              <Bike className="w-5 h-5" /> Bikes
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 gap-y-8">
-              {bikes.map(renderCard)}
+          <div className="absolute bottom-4 left-4 flex gap-2">
+            <Badge className="bg-blue-500 text-white font-black text-[10px] uppercase tracking-tighter px-3 border-none">
+              INSTANT BOOK
+            </Badge>
+            {vehicle.rawType?.toLowerCase() === 'car' ? (
+              <Badge className="bg-zinc-800 text-white font-black text-[10px] uppercase tracking-tighter px-3 border border-white/10">
+                PREMIUM
+              </Badge>
+            ) : (
+              <Badge className="bg-orange-500 text-white font-black text-[10px] uppercase tracking-tighter px-3 border-none">
+                POPULAR
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        <div className="p-6">
+          <div className="flex justify-between items-start mb-2">
+            <h3 className="font-black text-xl leading-tight group-hover:text-blue-400 transition-colors line-clamp-1">{vehicle.title}</h3>
+            <div className="flex items-center gap-1 text-xs font-black text-blue-400">
+              <Star className="w-3 h-3 fill-current" />
+              <span>4.8</span>
             </div>
           </div>
-        )}
+          
+          <div className="flex items-center gap-1.5 text-zinc-500 text-sm font-medium mb-4">
+            <MapPin className="w-3.5 h-3.5" />
+            <span className="line-clamp-1">{vehicle.rawLocation}</span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 mb-6">
+             <div className="flex flex-col items-center p-2 rounded-2xl bg-white/[0.02] border border-white/5">
+                <Fuel className="w-4 h-4 text-zinc-400 mb-1" />
+                <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">PETROL</span>
+             </div>
+             <div className="flex flex-col items-center p-2 rounded-2xl bg-white/[0.02] border border-white/5">
+                <Users className="w-4 h-4 text-zinc-400 mb-1" />
+                <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">5 SEATS</span>
+             </div>
+             <div className="flex flex-col items-center p-2 rounded-2xl bg-white/[0.02] border border-white/5">
+                <Gauge className="w-4 h-4 text-zinc-400 mb-1" />
+                <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">AUTO</span>
+             </div>
+          </div>
+
+          <div className="pt-4 border-t border-white/5 flex items-center justify-between">
+            <div className="flex flex-col">
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-black">₹{vehicle.pricePerDay}</span>
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">/ DAY</span>
+              </div>
+              <div className="flex items-baseline gap-1 mt-0.5 opacity-50">
+                <span className="text-sm font-bold">₹{vehicle.pricePerHour}</span>
+                <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">/ HOUR</span>
+              </div>
+            </div>
+            <div className="w-10 h-10 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-blue-500 group-hover:text-white transition-all duration-500 shadow-2xl">
+               <ArrowRight className="w-5 h-5" />
+            </div>
+          </div>
+        </div>
+      </Link>
+    </motion.div>
+  );
+}
+
+function VendorGroup({ vendorName, vehicles }: { vendorName: string, vehicles: any[] }) {
+  return (
+    <div className="space-y-8 mb-20 relative">
+      <div className="flex items-center gap-4 mb-10">
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+        <div className="flex flex-col items-center">
+           <span className="text-[10px] font-black tracking-[0.3em] text-zinc-500 uppercase mb-1 text-center">CERTIFIED PARTNER</span>
+           <h2 className="text-2xl font-black tracking-tighter text-white text-center">{vendorName}</h2>
+        </div>
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      </div>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        {vehicles.map(vehicle => (
+          <VehicleCard key={vehicle.id} vehicle={vehicle} />
+        ))}
       </div>
     </div>
   );
@@ -85,10 +130,8 @@ function VendorGroup({ vendorName, location, vehicles }: { vendorName: string, l
 
 export default function VehiclesPage() {
   const [typeFilter, setTypeFilter] = useState<'all' | 'car' | 'bike'>('all');
-  
   const { data: vehicles, isLoading } = useVehicles();
   const { user } = useAuthStore();
-
   const isVendor = user?.role === 'vendor';
 
   const mappedVehicles = (vehicles || []).map(v => ({
@@ -98,10 +141,6 @@ export default function VehiclesPage() {
     pricePerDay: v.pricePerDay || 0,
     pricePerHour: v.pricePerHour || Math.round((v.pricePerDay || 0) / 24) || 0,
     image: v.images?.[0] || '',
-    attributes: [
-      { icon: Car, label: 'Type', value: v.type },
-      { icon: Car, label: 'Seats', value: `${v.seatingCapacity || 4} Person` },
-    ],
     vendorName: v.vendorId?.name || 'Unknown Vendor',
     rating: 4.8,
     href: `/vehicles/${v._id}`,
@@ -110,87 +149,127 @@ export default function VehiclesPage() {
   }));
 
   const filteredVehicles = mappedVehicles.filter(v => {
-    if (typeFilter === 'car') {
-      return v.rawType === 'car';
-    } else if (typeFilter === 'bike') {
-      return ['bike', 'scooter'].includes(v.rawType);
-    }
+    const type = v.rawType?.toLowerCase();
+    if (typeFilter === 'car') return type === 'car';
+    if (typeFilter === 'bike') return ['bike', 'scooter'].includes(type);
     return true;
   });
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-end mb-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight mb-2">Vehicles for Rent</h1>
-          <p className="text-muted-foreground">Find the perfect ride for your next journey.</p>
-        </div>
-        {isVendor && <AddVehicleDialog />}
-      </div>
-
-      <div className="flex justify-between items-center mb-8 border-b pb-4">
-        <div className="text-sm font-medium text-muted-foreground">
-          Showing {filteredVehicles.length} vehicles
-        </div>
-        
-        <div className="flex gap-2">
-          <Button 
-            size="sm"
-            variant={typeFilter === 'car' ? 'default' : 'outline'} 
-            className={typeFilter === 'car' ? 'bg-primary text-primary-foreground' : ''}
-            onClick={() => setTypeFilter(typeFilter === 'car' ? 'all' : 'car')}
-          >
-            <Car className="w-4 h-4 mr-2" /> Cars
-          </Button>
-          <Button 
-            size="sm"
-            variant={typeFilter === 'bike' ? 'default' : 'outline'} 
-            className={typeFilter === 'bike' ? 'bg-primary text-primary-foreground' : ''}
-            onClick={() => setTypeFilter(typeFilter === 'bike' ? 'all' : 'bike')}
-          >
-            <Bike className="w-4 h-4 mr-2" /> Bikes
-          </Button>
+    <div className="min-h-screen bg-black text-white selection:bg-primary/30 pb-20">
+      {/* Hero Header */}
+      <div className="relative pt-20 pb-16 overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-blue-500/5 blur-[120px] rounded-full pointer-events-none" />
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="flex flex-col md:flex-row justify-between items-end gap-8">
+            <div className="max-w-2xl">
+               <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+               >
+                 <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 mb-4 font-black tracking-widest px-4 py-1">
+                    ELITE RENTALS
+                 </Badge>
+                 <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-[0.9] mb-6">
+                    Your ride, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-blue-500 font-black">Redefined.</span>
+                 </h1>
+                 <p className="text-zinc-500 text-lg font-medium">From daily commutes to weekend escapes, rent verified cars and bikes with ease.</p>
+               </motion.div>
+            </div>
+            {isVendor && <AddVehicleDialog />}
+          </div>
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="flex justify-center items-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="container mx-auto px-6">
+        {/* Filter Bar */}
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-6 mb-16 p-2 bg-white/[0.02] border border-white/5 rounded-3xl backdrop-blur-3xl shadow-2xl">
+          <div className="flex gap-2">
+             <button 
+                onClick={() => setTypeFilter('all')}
+                className={`px-8 py-3 rounded-2xl text-xs font-black tracking-widest transition-all ${typeFilter === 'all' ? 'bg-blue-500 text-white shadow-[0_0_20px_-5px_rgba(59,130,246,0.5)]' : 'text-zinc-500 hover:text-white'}`}
+             >
+                ALL FLEET
+             </button>
+             <button 
+                onClick={() => setTypeFilter('car')}
+                className={`px-8 py-3 rounded-2xl text-xs font-black tracking-widest transition-all ${typeFilter === 'car' ? 'bg-blue-500 text-white shadow-[0_0_20px_-5px_rgba(59,130,246,0.5)]' : 'text-zinc-500 hover:text-white'}`}
+             >
+                CARS ONLY
+             </button>
+             <button 
+                onClick={() => setTypeFilter('bike')}
+                className={`px-8 py-3 rounded-2xl text-xs font-black tracking-widest transition-all ${typeFilter === 'bike' ? 'bg-blue-500 text-white shadow-[0_0_20px_-5px_rgba(59,130,246,0.5)]' : 'text-zinc-500 hover:text-white'}`}
+             >
+                BIKES ONLY
+             </button>
+          </div>
+          
+          <div className="hidden md:flex items-center gap-6 pr-6">
+             <div className="text-xs font-black text-zinc-500 tracking-widest uppercase">
+                {filteredVehicles.length} FLEET ASSETS
+             </div>
+             <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" className="text-blue-400"><LayoutGrid className="w-4 h-4" /></Button>
+                <Button variant="ghost" size="icon" className="text-zinc-600"><List className="w-4 h-4" /></Button>
+             </div>
+          </div>
         </div>
-      ) : (
-        <>
-          <div className="space-y-12">
-            {Object.entries(
-              filteredVehicles.reduce((acc, vehicle) => {
-                const vendorName = vehicle.vendorName || 'Independent Hosts';
-                if (!acc[vendorName]) {
-                  acc[vendorName] = {
-                    location: vehicle.rawLocation || 'Multiple Locations',
-                    vehicles: []
-                  };
-                }
-                acc[vendorName].vehicles.push(vehicle);
-                return acc;
-              }, {} as Record<string, { location: string, vehicles: typeof filteredVehicles }>)
-            )
-            .sort((a, b) => a[0].localeCompare(b[0])) // Basic alphabetic sort first, can be enhanced with priority later
-            .map(([vendorName, data]) => (
-              <VendorGroup 
-                key={vendorName} 
-                vendorName={vendorName} 
-                location={data.location} 
-                vehicles={data.vehicles} 
-              />
+
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 py-20">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="aspect-[16/11] rounded-[2rem] bg-white/[0.02] border border-white/5 animate-pulse" />
             ))}
           </div>
+        ) : (
+          <div className="space-y-12">
+            <AnimatePresence mode="wait">
+               <motion.div
+                 key={typeFilter}
+                 initial={{ opacity: 0 }}
+                 animate={{ opacity: 1 }}
+                 exit={{ opacity: 0 }}
+                 transition={{ duration: 0.3 }}
+               >
+                {Object.entries(
+                  filteredVehicles.reduce((acc, vehicle) => {
+                    const vendorName = vehicle.vendorName || 'Independent Hosts';
+                    if (!acc[vendorName]) {
+                      acc[vendorName] = { vehicles: [] };
+                    }
+                    acc[vendorName].vehicles.push(vehicle);
+                    return acc;
+                  }, {} as Record<string, { vehicles: typeof filteredVehicles }>)
+                )
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .map(([vendorName, data]) => (
+                  <VendorGroup 
+                    key={vendorName} 
+                    vendorName={vendorName} 
+                    vehicles={data.vehicles} 
+                  />
+                ))}
 
-          {filteredVehicles.length === 0 && (
-            <div className="text-center py-20 text-muted-foreground">
-              No vehicles found. Try adjusting your filters.
-            </div>
-          )}
-        </>
-      )}
+                {filteredVehicles.length === 0 && (
+                  <div className="text-center py-40 border border-dashed border-white/10 rounded-[3rem]">
+                    <Car className="w-16 h-16 text-zinc-800 mx-auto mb-6" />
+                    <h3 className="text-2xl font-black mb-2">Fleet not found</h3>
+                    <p className="text-zinc-500">We couldn't find any vehicles matching your preference.</p>
+                    <Button 
+                      onClick={() => setTypeFilter('all')}
+                      variant="outline" 
+                      className="mt-8 border-blue-500/30 text-blue-400 hover:bg-blue-500/5 rounded-2xl px-10 h-14 font-black"
+                    >
+                      RESET FILTERS
+                    </Button>
+                  </div>
+                )}
+               </motion.div>
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

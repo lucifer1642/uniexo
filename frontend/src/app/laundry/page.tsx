@@ -1,22 +1,107 @@
 'use client';
 
 import { useState } from 'react';
-import { ListingCard } from '@/components/listing-card';
-import { SearchBar } from '@/components/search-bar';
-import { Card } from '@/components/ui/card';
-
+import { motion, AnimatePresence } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { Search, WashingMachine, Star, MapPin, ShieldCheck, Heart, Clock, Truck, ArrowRight, LayoutGrid, List, Zap, Sparkles } from 'lucide-react';
 import { useLaundryServices } from '@/hooks/use-laundry-services';
 import { useAuthStore } from '@/store/auth.store';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Package } from 'lucide-react';
 import { AddLaundryServiceDialog } from '@/components/add-laundry-service-dialog';
+import { Badge } from '@/components/ui/badge';
+
+function LaundryCard({ service }: { service: any }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      whileHover={{ y: -8 }}
+      className="group relative flex flex-col bg-[#1a050f] border border-white/5 rounded-[2.5rem] overflow-hidden transition-all duration-500 hover:border-primary/30 shadow-2xl"
+    >
+      <Link href={service.href} className="block">
+        <div className="relative aspect-video overflow-hidden">
+          {service.image ? (
+            <img 
+              src={service.image} 
+              alt={service.title} 
+              className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700" 
+            />
+          ) : (
+            <div className="w-full h-full bg-zinc-900 flex flex-col items-center justify-center text-zinc-700">
+              <WashingMachine className="w-16 h-16 opacity-10" />
+            </div>
+          )}
+          
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
+          
+          <div className="absolute top-4 right-4">
+             <div className="px-3 py-1 rounded-full bg-purple-500/20 backdrop-blur-md border border-purple-500/30 text-purple-400 text-[10px] font-black tracking-widest uppercase">
+                EXPRESS
+             </div>
+          </div>
+
+          <div className="absolute bottom-4 left-4 flex gap-2">
+            {service.onsitePickup && (
+              <Badge className="bg-emerald-500 text-white font-black text-[10px] uppercase tracking-tighter px-3 border-none">
+                DOORSTEP PICKUP
+              </Badge>
+            )}
+            {service.onStoreService && (
+              <Badge className="bg-zinc-800 text-white font-black text-[10px] uppercase tracking-tighter px-3 border border-white/10">
+                IN-STORE
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        <div className="p-8">
+          <div className="flex justify-between items-start mb-2">
+            <h3 className="font-black text-2xl leading-tight group-hover:text-purple-400 transition-colors line-clamp-1">{service.title}</h3>
+            <div className="flex items-center gap-1 text-xs font-black text-purple-400">
+              <Star className="w-3 h-3 fill-current" />
+              <span>4.7</span>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-1.5 text-zinc-500 text-sm font-medium mb-6">
+            <MapPin className="w-3.5 h-3.5" />
+            <span className="line-clamp-1">{service.vendorName}</span>
+          </div>
+
+          <div className="flex gap-4 mb-8">
+             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.02] border border-white/5">
+                <Clock className="w-3.5 h-3.5 text-purple-400" />
+                <span className="text-[10px] font-bold text-zinc-400">24HR RETURN</span>
+             </div>
+             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.02] border border-white/5">
+                <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                <span className="text-[10px] font-bold text-zinc-400">HYGIENIC</span>
+             </div>
+          </div>
+
+          <div className="pt-6 border-t border-white/5 flex items-center justify-between">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">STARTING AT</span>
+              <div className="flex items-baseline gap-1">
+                <span className="text-3xl font-black text-white group-hover:text-purple-400 transition-colors">₹{service.price}</span>
+                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">/ {service.unit}</span>
+              </div>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-purple-500 group-hover:text-white transition-all duration-500 shadow-2xl">
+               <ArrowRight className="w-6 h-6" />
+            </div>
+          </div>
+        </div>
+      </Link>
+    </motion.div>
+  );
+}
 
 export default function LaundryPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const { data: services, isLoading } = useLaundryServices();
   const { user } = useAuthStore();
-
   const isAdmin = user?.role === 'admin';
 
   const mappedServices = (services || []).map(service => ({
@@ -24,12 +109,14 @@ export default function LaundryPage() {
     title: service.name,
     type: 'laundry' as const,
     price: service.services?.[0]?.price || 0,
-    unit: service.services?.[0]?.unit || 'load',
-    image: service.images?.[0] || 'https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?auto=format&fit=crop&q=80',
+    unit: service.services?.[0]?.unit || 'pc',
+    image: service.images?.[0] || '',
     category: 'Laundry',
-    vendorName: service.providerName || 'Unknown Provider',
+    vendorName: service.providerName || 'Independent Provider',
     rating: 0,
     href: `/laundry/${service._id}`,
+    onsitePickup: service.onsitePickup,
+    onStoreService: service.onStoreService,
   }));
 
   const filteredServices = mappedServices.filter(v => 
@@ -37,52 +124,100 @@ export default function LaundryPage() {
   );
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-end mb-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight mb-2">Laundry Services</h1>
-          <p className="text-muted-foreground">Expert cleaning, delivered to your door.</p>
+    <div className="min-h-screen bg-black text-white selection:bg-primary/30 pb-20">
+      {/* Hero Header */}
+      <div className="relative pt-20 pb-16 overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-purple-500/5 blur-[120px] rounded-full pointer-events-none" />
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="flex flex-col md:flex-row justify-between items-end gap-8">
+            <div className="max-w-2xl">
+               <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+               >
+                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] font-black tracking-[0.2em] mb-4 uppercase">
+                    <Sparkles className="w-3 h-3" />
+                    PREMIUM FABRIC CARE
+                 </div>
+                 <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-[0.9] mb-6">
+                    Freshness, <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-pink-500 font-black">Delivered.</span>
+                 </h1>
+                 <p className="text-zinc-500 text-lg font-medium">Professional wash, dry clean, and ironing services at your doorstep. Fast, hygienic, and affordable.</p>
+               </motion.div>
+            </div>
+            {isAdmin && <AddLaundryServiceDialog />}
+          </div>
         </div>
-        {isAdmin && <AddLaundryServiceDialog />}
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8">
-        <div className="flex-1">
-          <div className="mb-6">
-            <SearchBar 
-              className="max-w-md w-full" 
-              placeholder="Search laundry services..." 
-              buttonText="Search"
-              onSearch={setSearchTerm} 
-            />
-          </div>
-
-          <div className="flex justify-between items-center mb-6 text-sm text-muted-foreground">
-            <span>Showing {filteredServices.length} services</span>
-          </div>
-
-          {isLoading ? (
-            <div className="flex justify-center items-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredServices.map((service) => (
-                  <ListingCard key={service.id} {...service} />
-                ))}
+      <div className="container mx-auto px-6">
+        {/* Search Bar */}
+        <div className="flex flex-col md:flex-row items-center gap-6 mb-16">
+           <div className="relative flex-1 group w-full">
+              <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500 group-focus-within:text-purple-400 transition-colors" />
+              <input 
+                type="text" 
+                placeholder="Search for providers or services..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full h-16 pl-16 pr-8 bg-white/[0.02] border border-white/5 rounded-3xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500/30 transition-all text-lg placeholder:text-zinc-600"
+              />
+           </div>
+           
+           <div className="hidden lg:flex items-center gap-6 pl-4 border-l border-white/5">
+              <div className="text-center">
+                 <div className="text-2xl font-black text-purple-400 tracking-tighter">{filteredServices.length}</div>
+                 <div className="text-[8px] font-black text-zinc-500 tracking-[0.2em] uppercase">PROVIDERS</div>
               </div>
-
-              {filteredServices.length === 0 && (
-                <div className="text-center py-20 border rounded-2xl border-dashed">
-                  <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                  <h3 className="text-lg font-medium">No services found</h3>
-                  <p className="text-muted-foreground">Try adjusting your search term.</p>
-                </div>
-              )}
-            </>
-          )}
+              <div className="flex gap-2">
+                 <Button variant="ghost" size="icon" className="h-12 w-12 rounded-2xl bg-white/5 text-purple-400 hover:bg-purple-500 hover:text-white transition-all">
+                    <LayoutGrid className="w-5 h-5" />
+                 </Button>
+                 <Button variant="ghost" size="icon" className="h-12 w-12 rounded-2xl bg-white/[0.02] text-zinc-600">
+                    <List className="w-5 h-5" />
+                 </Button>
+              </div>
+           </div>
         </div>
+
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 py-20">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="aspect-[4/3] rounded-[2.5rem] bg-white/[0.02] border border-white/5 animate-pulse" />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-12">
+            <AnimatePresence mode="wait">
+               <motion.div
+                 key="laundry-grid"
+                 initial={{ opacity: 0 }}
+                 animate={{ opacity: 1 }}
+                 transition={{ duration: 0.5 }}
+                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10"
+               >
+                 {filteredServices.map((service) => (
+                   <LaundryCard key={service.id} service={service} />
+                 ))}
+
+                 {filteredServices.length === 0 && (
+                   <div className="col-span-full text-center py-40 border border-dashed border-white/10 rounded-[3rem]">
+                     <WashingMachine className="w-16 h-16 text-zinc-800 mx-auto mb-6" />
+                     <h3 className="text-2xl font-black mb-2">No services found</h3>
+                     <p className="text-zinc-500">We couldn't find any laundry providers matching your search.</p>
+                     <Button 
+                       onClick={() => setSearchTerm('')}
+                       variant="outline" 
+                       className="mt-8 border-purple-500/30 text-purple-400 hover:bg-purple-500/5 rounded-2xl px-10 h-14 font-black"
+                     >
+                       RESET SEARCH
+                     </Button>
+                   </div>
+                 )}
+               </motion.div>
+            </AnimatePresence>
+          </div>
+        )}
       </div>
     </div>
   );

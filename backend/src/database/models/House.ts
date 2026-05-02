@@ -37,6 +37,7 @@ export interface IHouse extends Document {
   tenantsStaying?: number; // Approximate count of currently reserved beds
   approvalStatus: ListingApprovalStatus;
   rejectionReason?: string;
+  rank: number;
   isAvailable: boolean;
   isDeleted: boolean;
   createdAt: Date;
@@ -86,6 +87,7 @@ const houseSchema = new Schema<IHouse>(
       default: ListingApprovalStatus.PENDING,
     },
     rejectionReason: { type: String },
+    rank: { type: Number, default: 0 },
     isAvailable: { type: Boolean, default: true },
     isDeleted: { type: Boolean, default: false },
   },

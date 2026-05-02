@@ -45,41 +45,69 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+
+  /* Override original Neon Green (lime) with Neon Burgundy (Magenta) */
+  --color-lime-200: #ff99cc;
+  --color-lime-300: #ff66b2;
+  --color-lime-400: #ff007f;
+  --color-lime-500: #d10056;
+  
+  /* Override Emerald (used alongside lime) with Neon Burgundy equivalents */
+  --color-emerald-400: #ff007f;
+  --color-emerald-500: #d10056;
+
+  /* Override Green (success states) with Neon Pink/Burgundy */
+  --color-green-400: #ff3399;
+  --color-green-500: #e6007a;
+  --color-green-600: #b3005f;
+
+  /* Override Blue (info states) with Soft Burgundy/Cream */
+  --color-blue-400: #d2b4de;
+  --color-blue-500: #8b004a;
+  --color-blue-600: #5b2c6f;
+
+  /* Override dark backgrounds (black and zinc-950) with Ultra-Dark Burgundy */
+  --color-black: #1a050f;
+  --color-zinc-950: #1a050f;
+  --color-zinc-900: #2d0b1d;
+  
+  /* Override pure white occasionally to Cream */
+  /* --color-white: #f2efe7; */ /* Might break too many things, keeping white as is for now */
 }
 
 :root {
   --radius: 0.625rem;
-  --background: #ffffff;
-  --foreground: #1e293b;
+  --background: #f2efe7;
+  --foreground: #1e1e1e;
   --card: #ffffff;
-  --card-foreground: #1e293b;
+  --card-foreground: #1e1e1e;
   --popover: #ffffff;
-  --popover-foreground: #1e293b;
-  --primary: #004de6;
+  --popover-foreground: #1e1e1e;
+  --primary: #8b004a;
   --primary-foreground: #ffffff;
-  --secondary: #eef2ff;
-  --secondary-foreground: #004de6;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --accent: #1faa00;
+  --secondary: #e6d3db;
+  --secondary-foreground: #8b004a;
+  --muted: #e6e4dc;
+  --muted-foreground: #6b6a67;
+  --accent: #a93226;
   --accent-foreground: #ffffff;
   --destructive: #ef4444;
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #004de6;
-  --chart-1: #004de6;
-  --chart-2: #1faa00;
-  --chart-3: #f59e0b;
-  --chart-4: #ec4899;
-  --chart-5: #8b5cf6;
-  --sidebar: #ffffff;
-  --sidebar-foreground: #1e293b;
-  --sidebar-primary: #004de6;
+  --border: #d4cfc1;
+  --input: #d4cfc1;
+  --ring: #8b004a;
+  --chart-1: #8b004a;
+  --chart-2: #5b2c6f;
+  --chart-3: #a93226;
+  --chart-4: #d2b4de;
+  --chart-5: #1e1e1e;
+  --sidebar: #f2efe7;
+  --sidebar-foreground: #1e1e1e;
+  --sidebar-primary: #8b004a;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f1f5f9;
-  --sidebar-accent-foreground: #1e293b;
-  --sidebar-border: #e2e8f0;
-  --sidebar-ring: #004de6;
+  --sidebar-accent: #e6d3db;
+  --sidebar-accent-foreground: #8b004a;
+  --sidebar-border: #d4cfc1;
+  --sidebar-ring: #8b004a;
 }
 
 @layer base {
@@ -109,12 +137,12 @@
   }
 
   .mesh-gradient {
-    background-color: hsla(0, 0%, 100%, 1);
+    background-color: #f2efe7;
     background-image: 
-      radial-gradient(at 0% 0%, hsla(220, 100%, 95%, 1) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, hsla(140, 100%, 95%, 1) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, hsla(220, 100%, 95%, 1) 0px, transparent 50%),
-      radial-gradient(at 0% 100%, hsla(140, 100%, 95%, 1) 0px, transparent 50%);
+      radial-gradient(at 0% 0%, hsla(328, 100%, 95%, 1) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(48, 29%, 95%, 1) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, hsla(328, 100%, 90%, 1) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, hsla(48, 29%, 90%, 1) 0px, transparent 50%);
   }
 
   .parallax {

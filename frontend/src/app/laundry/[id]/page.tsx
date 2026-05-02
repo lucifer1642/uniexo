@@ -38,6 +38,7 @@ export default function LaundryDetailPage() {
   const [pickupDate, setPickupDate] = useState('');
   const [notes, setNotes] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [pickupType, setPickupType] = useState<'onsite' | 'store'>('store');
 
   if (isLoading) {
     return (
@@ -75,6 +76,9 @@ export default function LaundryDetailPage() {
     return total + (s.price * (quantities[s.name] || 0));
   }, 0);
 
+  const onsiteCharge = pickupType === 'onsite' ? (service.onsitePickupCharge || 0) : 0;
+  const grandTotal = totalAmount + onsiteCharge;
+
   const selectedItemsCount = Object.values(quantities).reduce((a, b) => a + b, 0);
 
   const handleBookAndPay = async () => {
@@ -106,6 +110,7 @@ export default function LaundryDetailPage() {
         laundryServiceId: id,
         items,
         deliveryAddress,
+        pickupType,
         pickupDate: pickupDate ? new Date(pickupDate).toISOString() : undefined,
         notes
       });
@@ -263,9 +268,57 @@ export default function LaundryDetailPage() {
               </div>
 
               <div className="space-y-3 mb-6 pt-4 border-t">
+                {/* Pickup Type Selection */}
+                {(service.onsitePickup || service.onStoreService) && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold">Pickup Type</Label>
+                    <div className="flex gap-2">
+                      {service.onStoreService && (
+                        <button
+                          type="button"
+                          onClick={() => setPickupType('store')}
+                          className={`flex-1 py-2.5 px-3 rounded-lg border text-sm font-medium transition-all ${
+                            pickupType === 'store'
+                              ? 'border-primary bg-primary/10 text-primary ring-2 ring-primary/20'
+                              : 'border-border hover:bg-accent'
+                          }`}
+                        >
+                          🏪 Drop at Store
+                        </button>
+                      )}
+                      {service.onsitePickup && (
+                        <button
+                          type="button"
+                          onClick={() => setPickupType('onsite')}
+                          className={`flex-1 py-2.5 px-3 rounded-lg border text-sm font-medium transition-all ${
+                            pickupType === 'onsite'
+                              ? 'border-primary bg-primary/10 text-primary ring-2 ring-primary/20'
+                              : 'border-border hover:bg-accent'
+                          }`}
+                        >
+                          🚚 Onsite Pickup
+                          {service.onsitePickupCharge > 0 && (
+                            <span className="text-xs opacity-70 ml-1">(+₹{service.onsitePickupCharge})</span>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-between text-sm text-muted-foreground">
+                  <span>Items Subtotal</span>
+                  <span>₹{totalAmount.toFixed(2)}</span>
+                </div>
+                {onsiteCharge > 0 && (
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>Onsite Pickup Charge</span>
+                    <span>+₹{onsiteCharge.toFixed(2)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between font-bold text-lg">
                   <span>Total Due</span>
-                  <span>₹{totalAmount.toFixed(2)}</span>
+                  <span>₹{grandTotal.toFixed(2)}</span>
                 </div>
               </div>
 
@@ -273,7 +326,7 @@ export default function LaundryDetailPage() {
                 size="lg" 
                 className="w-full text-base font-semibold" 
                 onClick={handleBookAndPay}
-                disabled={isProcessing || totalAmount <= 0}
+                disabled={isProcessing || grandTotal <= 0}
               >
                 {isProcessing ? 'Processing Payment...' : 'Place Order & Pay'}
               </Button>

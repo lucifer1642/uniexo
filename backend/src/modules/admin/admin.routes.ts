@@ -19,4 +19,9 @@ router.post('/settings', AdminController.updateSetting);
 router.post('/commission', AdminController.setCommission);
 router.get('/transactions', AdminController.getTransactions);
 router.post('/backfill-vendors', AdminController.backfillVendorProfiles);
+
+// Rank Optimization
+router.get('/rank/:category', AdminController.getVendorsByCategory);
+router.patch('/rank/:vendorProfileId', AdminController.updateVendorRank);
+
 export default router;

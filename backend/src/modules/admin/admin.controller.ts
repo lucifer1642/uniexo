@@ -129,4 +129,27 @@ export class AdminController {
       next(error);
     }
   }
+
+  // ==================== Rank Optimization ====================
+
+  static async getVendorsByCategory(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const category = req.params.category as string;
+      const vendors = await adminService.getVendorsByCategory(category.toUpperCase());
+      ResponseFormatter.ok(res, 'Vendors fetched', vendors);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async updateVendorRank(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { vendorProfileId } = req.params;
+      const { rank } = req.body;
+      const result = await adminService.updateVendorRank(vendorProfileId, Number(rank));
+      ResponseFormatter.ok(res, 'Vendor rank updated', result);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

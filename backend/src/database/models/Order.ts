@@ -17,6 +17,8 @@ export interface IOrder extends Document {
   status: OrderStatus;
   paymentId?: Types.ObjectId;
   deliveryAddress: string;
+  pickupType: 'onsite' | 'store';
+  onsitePickupCharge: number;
   pickupDate?: Date;
   deliveryDate?: Date;
   notes?: string;
@@ -47,6 +49,8 @@ const orderSchema = new Schema<IOrder>(
     },
     paymentId: { type: Schema.Types.ObjectId, ref: 'Payment' },
     deliveryAddress: { type: String, required: true },
+    pickupType: { type: String, enum: ['onsite', 'store'], default: 'store' },
+    onsitePickupCharge: { type: Number, default: 0, min: 0 },
     pickupDate: { type: Date },
     deliveryDate: { type: Date },
     notes: { type: String },

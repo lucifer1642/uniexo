@@ -24,7 +24,16 @@ export interface IVehicle extends Document {
   }[];
   approvalStatus: ListingApprovalStatus;
   rejectionReason?: string;
+  rank: number;
   isAvailable: boolean;
+  // Dispatch / Fleet Management
+  currentStatus: 'available' | 'dispatched' | 'maintenance';
+  dispatchedAt?: Date;
+  expectedReturnAt?: Date;
+  currentBookingId?: Types.ObjectId;
+  odometerOut?: number;
+  odometerIn?: number;
+  dispatchNotes?: string;
   isDeleted: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -59,7 +68,20 @@ const vehicleSchema = new Schema<IVehicle>(
       default: ListingApprovalStatus.PENDING,
     },
     rejectionReason: { type: String },
+    rank: { type: Number, default: 0 },
     isAvailable: { type: Boolean, default: true },
+    // Dispatch fields
+    currentStatus: {
+      type: String,
+      enum: ['available', 'dispatched', 'maintenance'],
+      default: 'available',
+    },
+    dispatchedAt: { type: Date },
+    expectedReturnAt: { type: Date },
+    currentBookingId: { type: Schema.Types.ObjectId, ref: 'Booking' },
+    odometerOut: { type: Number, min: 0 },
+    odometerIn: { type: Number, min: 0 },
+    dispatchNotes: { type: String },
     isDeleted: { type: Boolean, default: false },
   },
   { timestamps: true },

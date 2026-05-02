@@ -3,12 +3,13 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ProtectedRoute } from '@/components/protected-route';
-import { LayoutDashboard, Users, ShieldCheck, Settings, CalendarCheck, CreditCard, ArrowLeftRight, Flag } from 'lucide-react';
+import { LayoutDashboard, Users, ShieldCheck, Settings, CalendarCheck, CreditCard, ArrowLeftRight, Flag, Trophy } from 'lucide-react';
 
 const ADMIN_NAV = [
   { href: '/admin', label: 'Overview', icon: LayoutDashboard },
   { href: '/admin/vendors', label: 'Vendors', icon: ShieldCheck },
   { href: '/admin/users', label: 'Users', icon: Users },
+  { href: '/admin/rank-optimization', label: 'Rank Optimization', icon: Trophy },
   { href: '/admin/bookings', label: 'Bookings', icon: CalendarCheck },
   { href: '/admin/payments', label: 'Payments', icon: CreditCard },
   { href: '/admin/transactions', label: 'Transactions', icon: ArrowLeftRight },

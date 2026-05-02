@@ -12,7 +12,7 @@ import {
   BedDouble, Bath, Square, Check, MapPin, Shield, Star, User, 
   Heart, Share2, Video, Home, Phone, ChevronDown, Headset, Info, Droplet, Car, Flame, Monitor, Zap, Upload
 } from 'lucide-react';
-import api from '@/lib/api';
+import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { useHouse } from '@/hooks/use-houses';
 import { useCreateBooking } from '@/hooks/use-booking';

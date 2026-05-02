@@ -14,6 +14,10 @@ export interface IVendorProfile extends Document {
   approvalStatus: VendorApprovalStatus;
   rejectionReason?: string;
   priority: number;
+  rank: number;
+  onsitePickup: boolean;
+  onStoreService: boolean;
+  onsitePickupCharge: number;
   isDeleted: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -36,6 +40,10 @@ const vendorProfileSchema = new Schema<IVendorProfile>(
     },
     rejectionReason: { type: String },
     priority: { type: Number, default: 0 },
+    rank: { type: Number, default: 0 },
+    onsitePickup: { type: Boolean, default: false },
+    onStoreService: { type: Boolean, default: true },
+    onsitePickupCharge: { type: Number, default: 0, min: 0 },
     isDeleted: { type: Boolean, default: false },
   },
   { timestamps: true },

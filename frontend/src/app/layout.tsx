@@ -5,6 +5,7 @@ import { Providers } from "@/components/providers";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Toaster } from "sonner";
+import { GlobalProfileSidebar } from "@/components/global-profile-sidebar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,10 +30,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col flex-1`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
         <Providers>
           <Navbar />
+          <GlobalProfileSidebar />
           <main className="flex-1 flex flex-col">
             {children}
           </main>
@@ -43,7 +45,7 @@ export default function RootLayout({
           closeButton 
           toastOptions={{
             classNames: {
-              success: 'border-green-500 bg-black text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.4)]',
+              success: 'border-primary bg-black text-primary shadow-[0_0_15px_rgba(139,0,74,0.4)]',
               error: 'border-red-500 bg-black text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.4)]',
               toast: 'border bg-black/90 backdrop-blur-md rounded-lg font-medium tracking-wide',
               closeButton: 'bg-zinc-800 hover:bg-zinc-700 text-white border-none'

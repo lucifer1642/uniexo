@@ -195,3 +195,34 @@ export function useSetCommission() {
         },
     });
 }
+
+// ==================== Rank Optimization ====================
+
+export function useVendorsByCategory(category: string) {
+    return useQuery<VendorProfile[]>({
+        queryKey: ['admin', 'rank', category],
+        queryFn: async () => {
+            const res = await api.get(`/admin/rank/${category}`);
+            return res.data.data;
+        },
+        enabled: !!category,
+    });
+}
+
+export function useUpdateVendorRank() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async ({ vendorProfileId, rank }: { vendorProfileId: string; rank: number }) => {
+            const res = await api.patch(`/admin/rank/${vendorProfileId}`, { rank });
+            return res.data;
+        },
+        onSuccess: () => {
+            // Invalidate ALL listing caches for immediate visibility sync
+            queryClient.invalidateQueries({ queryKey: ['admin', 'rank'] });
+            queryClient.invalidateQueries({ queryKey: ['houses'] });
+            queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+            queryClient.invalidateQueries({ queryKey: ['laundryServices'] });
+            queryClient.invalidateQueries({ queryKey: ['admin', 'vendors'] });
+        },
+    });
+}
