@@ -80,31 +80,27 @@ const startServer = async () => {
   try {
     await connectDatabase();
 
-    app.listen(env.PORT, () => {
-      logger.info(`🚀 Server running on port ${env.PORT} in ${env.NODE_ENV} mode`);
-    });
+    // Only listen if not running on Vercel
+    if (!process.env.VERCEL) {
+      app.listen(env.PORT, () => {
+        logger.info(`🚀 Server running on port ${env.PORT} in ${env.NODE_ENV} mode`);
+      });
+    } else {
+      logger.info('🚀 App initialized for Vercel Serverless environment');
+    }
   } catch (error) {
     logger.error('Failed to start server:', error);
-    process.exit(1);
+    if (!process.env.VERCEL) {
+      process.exit(1);
+    }
   }
 };
 
-// Graceful shutdown
-const gracefulShutdown = async (signal: string) => {
-  logger.info(`${signal} received. Shutting down gracefully...`);
-  process.exit(0);
-};
-
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-process.on('unhandledRejection', (reason) => {
-  logger.error('Unhandled Rejection:', reason);
-});
-process.on('uncaughtException', (error) => {
-  logger.error('Uncaught Exception:', error);
-  process.exit(1);
-});
-
-startServer();
+// For Vercel, we need to ensure the database is connected
+if (process.env.VERCEL) {
+  connectDatabase().catch(err => logger.error('Vercel DB Connection Error:', err));
+} else {
+  startServer();
+}
 
 export default app;
