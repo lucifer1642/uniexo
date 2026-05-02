@@ -1,8 +1,8 @@
 import axios from 'axios';
 import { useAuthStore } from '@/store/auth.store';
 
-// We use the backend URL configured in `.env.local` or default to localhost:5000
-const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+// In integrated mode, we use relative paths. Fallback to localhost:5000 for local dev if needed.
+const baseURL = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? '/api/v1' : 'http://localhost:5000/api/v1');
 
 export const api = axios.create({
     baseURL,

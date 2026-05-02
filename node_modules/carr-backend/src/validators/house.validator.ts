@@ -1,0 +1,92 @@
+import { z } from 'zod';
+
+export const createHouseSchema = z.object({
+  body: z.object({
+    title: z.string().min(2).max(200),
+    description: z.string().min(10).max(5000),
+    propertyType: z.string().min(1),
+    address: z.string().min(5),
+    city: z.string().min(1),
+    state: z.string().min(1),
+    pincode: z.string().min(4).max(10),
+    bedrooms: z.coerce.number().min(0),
+    bathrooms: z.coerce.number().min(0),
+    area: z.coerce.number().min(1),
+    pricePerMonth: z.coerce.number().min(0).optional(),
+    pricePerDay: z.coerce.number().min(0).optional(),
+    singleSharingPrice: z.coerce.number().min(0).optional(),
+    doubleSharingPrice: z.coerce.number().min(0).optional(),
+    tripleSharingPrice: z.coerce.number().min(0).optional(),
+    securityDeposit: z.coerce.number().min(0).optional(),
+    lockinPeriod: z.string().optional(),
+    noticePeriod: z.string().optional(),
+    electricityIncluded: z.coerce.boolean().optional(),
+    electricityCharge: z.coerce.number().min(0).optional(),
+    amenities: z.array(z.string()).optional(),
+    commonAmenities: z.array(z.string()).optional(),
+    roomAmenities: z.array(z.string()).optional(),
+    servicesAmenities: z.array(z.string()).optional(),
+    foodAmenities: z.array(z.string()).optional(),
+    rules: z.array(z.string()).optional(),
+    locationUrl: z.string().optional(),
+    faqs: z.array(z.object({
+      question: z.string(),
+      answer: z.string()
+    })).optional(),
+    tenantsStaying: z.coerce.number().optional(),
+  }),
+});
+
+export const updateHouseSchema = z.object({
+  params: z.object({ id: z.string().min(1) }),
+  body: z.object({
+    title: z.string().min(2).max(200).optional(),
+    description: z.string().min(10).max(5000).optional(),
+    propertyType: z.string().min(1).optional(),
+    address: z.string().min(5).optional(),
+    city: z.string().min(1).optional(),
+    state: z.string().min(1).optional(),
+    pincode: z.string().min(4).max(10).optional(),
+    bedrooms: z.coerce.number().min(0).optional(),
+    bathrooms: z.coerce.number().min(0).optional(),
+    area: z.coerce.number().min(1).optional(),
+    pricePerMonth: z.coerce.number().min(0).optional(),
+    pricePerDay: z.coerce.number().min(0).optional(),
+    singleSharingPrice: z.coerce.number().min(0).optional(),
+    doubleSharingPrice: z.coerce.number().min(0).optional(),
+    tripleSharingPrice: z.coerce.number().min(0).optional(),
+    securityDeposit: z.coerce.number().min(0).optional(),
+    lockinPeriod: z.string().optional(),
+    noticePeriod: z.string().optional(),
+    electricityIncluded: z.coerce.boolean().optional(),
+    electricityCharge: z.coerce.number().min(0).optional(),
+    amenities: z.array(z.string()).optional(),
+    commonAmenities: z.array(z.string()).optional(),
+    roomAmenities: z.array(z.string()).optional(),
+    servicesAmenities: z.array(z.string()).optional(),
+    foodAmenities: z.array(z.string()).optional(),
+    rules: z.array(z.string()).optional(),
+    locationUrl: z.string().optional(),
+    faqs: z.array(z.object({
+      question: z.string(),
+      answer: z.string()
+    })).optional(),
+    tenantsStaying: z.coerce.number().optional(),
+    isAvailable: z.boolean().optional(),
+  }),
+});
+
+export const houseQuerySchema = z.object({
+  query: z.object({
+    page: z.coerce.number().min(1).optional(),
+    limit: z.coerce.number().min(1).max(100).optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
+    propertyType: z.string().optional(),
+    minPrice: z.coerce.number().optional(),
+    maxPrice: z.coerce.number().optional(),
+    bedrooms: z.coerce.number().optional(),
+    sort: z.string().optional(),
+    order: z.enum(['asc', 'desc']).optional(),
+  }),
+});

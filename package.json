@@ -8,8 +8,11 @@
   ],
   "scripts": {
     "install:all": "npm install && npm install --workspace=frontend && npm install --workspace=backend",
-    "build:frontend": "npm run build --workspace=frontend",
-    "build:backend": "npm run build --workspace=backend",
-    "start:backend": "npm start --workspace=backend"
+    "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
+    "start": "concurrently \"npm run start --workspace=backend\" \"PORT=3001 npm run start --workspace=frontend\"",
+    "dev": "concurrently \"npm run dev --workspace=backend\" \"PORT=3001 npm run dev --workspace=frontend\""
+  },
+  "dependencies": {
+    "concurrently": "^9.1.2"
   }
 }
