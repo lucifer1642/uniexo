@@ -54,7 +54,9 @@ export class MarketplaceRepository {
   }
 
   async findAllItems(filter: Record<string, any>, query: PaginationQuery) {
-    const skip = (query.page - 1) * query.limit;
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const skip = (page - 1) * limit;
     let baseQuery = supabase
       .from('marketplace_items')
       .select('*, profiles:seller_id(name, email)', { count: 'exact' })
@@ -64,7 +66,7 @@ export class MarketplaceRepository {
     if (filter.isSold !== undefined) baseQuery = baseQuery.eq('is_sold', filter.isSold);
 
     const { data, error, count } = await baseQuery
-      .range(skip, skip + query.limit - 1)
+      .range(skip, skip + limit - 1)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -73,21 +75,23 @@ export class MarketplaceRepository {
       data,
       pagination: {
         total: count || 0,
-        page: query.page,
-        limit: query.limit,
-        pages: Math.ceil((count || 0) / query.limit),
+        page,
+        limit,
+        pages: Math.ceil((count || 0) / limit),
       },
     };
   }
 
   async findItemsByUser(userId: string, query: PaginationQuery) {
-    const skip = (query.page - 1) * query.limit;
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const skip = (page - 1) * limit;
     const { data, error, count } = await supabase
       .from('marketplace_items')
       .select('*', { count: 'exact' })
       .eq('seller_id', userId)
       .eq('is_deleted', false)
-      .range(skip, skip + query.limit - 1)
+      .range(skip, skip + limit - 1)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -96,9 +100,9 @@ export class MarketplaceRepository {
       data,
       pagination: {
         total: count || 0,
-        page: query.page,
-        limit: query.limit,
-        pages: Math.ceil((count || 0) / query.limit),
+        page,
+        limit,
+        pages: Math.ceil((count || 0) / limit),
       },
     };
   }
@@ -155,8 +159,9 @@ export class MarketplaceRepository {
   }
 
   async getConversation(userId1: string, userId2: string, itemId?: string, query?: PaginationQuery) {
-    const skip = (query?.page ? (query.page - 1) * query.limit : 0);
+    const page = query?.page || 1;
     const limit = query?.limit || 50;
+    const skip = (page - 1) * limit;
 
     let baseQuery = supabase
       .from('messages')
@@ -173,7 +178,7 @@ export class MarketplaceRepository {
       data,
       pagination: {
         total: count || 0,
-        page: query?.page || 1,
+        page,
         limit,
         pages: Math.ceil((count || 0) / limit),
       },
@@ -259,12 +264,14 @@ export class MarketplaceRepository {
   }
 
   async findOffersByBuyer(buyerId: string, query: PaginationQuery) {
-    const skip = (query.page - 1) * query.limit;
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const skip = (page - 1) * limit;
     const { data, error, count } = await supabase
       .from('offers')
       .select('*, marketplace_items(title, price, images, category), profiles:receiver_id(name, email, phone)', { count: 'exact' })
       .eq('sender_id', buyerId)
-      .range(skip, skip + query.limit - 1)
+      .range(skip, skip + limit - 1)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -273,20 +280,22 @@ export class MarketplaceRepository {
       data,
       pagination: {
         total: count || 0,
-        page: query.page,
-        limit: query.limit,
-        pages: Math.ceil((count || 0) / query.limit),
+        page,
+        limit,
+        pages: Math.ceil((count || 0) / limit),
       },
     };
   }
 
   async findOffersBySeller(sellerId: string, query: PaginationQuery) {
-    const skip = (query.page - 1) * query.limit;
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const skip = (page - 1) * limit;
     const { data, error, count } = await supabase
       .from('offers')
       .select('*, marketplace_items(title, price, images, category), profiles:sender_id(name, email, phone)', { count: 'exact' })
       .eq('receiver_id', sellerId)
-      .range(skip, skip + query.limit - 1)
+      .range(skip, skip + limit - 1)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -295,20 +304,22 @@ export class MarketplaceRepository {
       data,
       pagination: {
         total: count || 0,
-        page: query.page,
-        limit: query.limit,
-        pages: Math.ceil((count || 0) / query.limit),
+        page,
+        limit,
+        pages: Math.ceil((count || 0) / limit),
       },
     };
   }
 
   async findOffersForItem(itemId: string, query: PaginationQuery) {
-    const skip = (query.page - 1) * query.limit;
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const skip = (page - 1) * limit;
     const { data, error, count } = await supabase
       .from('offers')
       .select('*, profiles:sender_id(name, email, phone)', { count: 'exact' })
       .eq('item_id', itemId)
-      .range(skip, skip + query.limit - 1)
+      .range(skip, skip + limit - 1)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -317,9 +328,9 @@ export class MarketplaceRepository {
       data,
       pagination: {
         total: count || 0,
-        page: query.page,
-        limit: query.limit,
-        pages: Math.ceil((count || 0) / query.limit),
+        page,
+        limit,
+        pages: Math.ceil((count || 0) / limit),
       },
     };
   }

@@ -99,7 +99,7 @@ export class AuthController {
     try {
       const authReq = req as AuthRequest;
       const token = req.headers.authorization?.split(' ')[1] || '';
-      await authService.logout(authReq.user!.userId, token);
+      await authService.logout(authReq.user?.userId || '', token);
 
       res.clearCookie('refreshToken', { path: '/' });
       ResponseFormatter.ok(res, 'Logged out successfully');

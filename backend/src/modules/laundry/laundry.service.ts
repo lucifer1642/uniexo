@@ -71,7 +71,7 @@ export class LaundryServiceModule {
 
     // Calculate totals
     const orderItems = data.items.map((item) => {
-      const serviceDetail = laundryService.services.find((s) => s.name === item.serviceName);
+      const serviceDetail = (laundryService.services as any[]).find((s: any) => s.name === item.serviceName);
       if (!serviceDetail) throw new BadRequestError(`Service "${item.serviceName}" not found`);
       return {
         serviceName: item.serviceName,

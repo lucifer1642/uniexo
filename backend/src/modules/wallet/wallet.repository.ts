@@ -33,12 +33,14 @@ export class WalletRepository {
   }
 
   async getTransactions(walletId: string, query: PaginationQuery) {
-    const skip = (query.page - 1) * query.limit;
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const skip = (page - 1) * limit;
     const { data, error, count } = await supabase
       .from('transactions')
       .select('*', { count: 'exact' })
       .eq('wallet_id', walletId)
-      .range(skip, skip + query.limit - 1)
+      .range(skip, skip + limit - 1)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -47,16 +49,16 @@ export class WalletRepository {
       data,
       pagination: {
         total: count || 0,
-        page: query.page,
-        limit: query.limit,
-        pages: Math.ceil((count || 0) / query.limit),
+        page,
+        limit,
+        pages: Math.ceil((count || 0) / limit),
       },
     };
   }
 
   async getUserTransactions(userId: string, query: PaginationQuery) {
     const wallet = await this.findByUserId(userId);
-    if (!wallet) return { data: [], pagination: { total: 0, page: 1, limit: query.limit, pages: 0 } };
+    if (!wallet) return { data: [], pagination: { total: 0, page: 1, limit: query.limit || 10, pages: 0 } };
     return this.getTransactions(wallet.id, query);
   }
 }

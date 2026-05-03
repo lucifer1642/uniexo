@@ -55,7 +55,9 @@ export class BookingRepository {
   }
 
   async findByUser(userId: string, query: PaginationQuery, filter: Record<string, any> = {}) {
-    const skip = (query.page - 1) * query.limit;
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const skip = (page - 1) * limit;
     let baseQuery = supabase
       .from('bookings')
       .select('*, vendor:vendor_id(name, email)', { count: 'exact' })
@@ -64,7 +66,7 @@ export class BookingRepository {
     if (filter.status) baseQuery = baseQuery.eq('status', filter.status);
 
     const { data, error, count } = await baseQuery
-      .range(skip, skip + query.limit - 1)
+      .range(skip, skip + limit - 1)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -73,15 +75,17 @@ export class BookingRepository {
       data,
       pagination: {
         total: count || 0,
-        page: query.page,
-        limit: query.limit,
-        pages: Math.ceil((count || 0) / query.limit),
+        page,
+        limit,
+        pages: Math.ceil((count || 0) / limit),
       },
     };
   }
 
   async findByVendor(vendorId: string, query: PaginationQuery, filter: Record<string, any> = {}) {
-    const skip = (query.page - 1) * query.limit;
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const skip = (page - 1) * limit;
     let baseQuery = supabase
       .from('bookings')
       .select('*, profiles:user_id(name, email, phone)', { count: 'exact' })
@@ -90,7 +94,7 @@ export class BookingRepository {
     if (filter.status) baseQuery = baseQuery.eq('status', filter.status);
 
     const { data, error, count } = await baseQuery
-      .range(skip, skip + query.limit - 1)
+      .range(skip, skip + limit - 1)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -99,15 +103,17 @@ export class BookingRepository {
       data,
       pagination: {
         total: count || 0,
-        page: query.page,
-        limit: query.limit,
-        pages: Math.ceil((count || 0) / query.limit),
+        page,
+        limit,
+        pages: Math.ceil((count || 0) / limit),
       },
     };
   }
 
   async findAll(filter: Record<string, any>, query: PaginationQuery) {
-    const skip = (query.page - 1) * query.limit;
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const skip = (page - 1) * limit;
     let baseQuery = supabase
       .from('bookings')
       .select('*, profiles:user_id(name, email), vendor:vendor_id(name, email)', { count: 'exact' });
@@ -115,7 +121,7 @@ export class BookingRepository {
     if (filter.status) baseQuery = baseQuery.eq('status', filter.status);
 
     const { data, error, count } = await baseQuery
-      .range(skip, skip + query.limit - 1)
+      .range(skip, skip + limit - 1)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -124,9 +130,9 @@ export class BookingRepository {
       data,
       pagination: {
         total: count || 0,
-        page: query.page,
-        limit: query.limit,
-        pages: Math.ceil((count || 0) / query.limit),
+        page,
+        limit,
+        pages: Math.ceil((count || 0) / limit),
       },
     };
   }

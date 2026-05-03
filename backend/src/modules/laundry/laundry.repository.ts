@@ -58,7 +58,9 @@ export class LaundryRepository {
   }
 
   async findAllServices(filter: Record<string, any>, query: PaginationQuery) {
-    const skip = (query.page - 1) * query.limit;
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const skip = (page - 1) * limit;
     let baseQuery = supabase
       .from('laundry_services')
       .select('*', { count: 'exact' })
@@ -67,7 +69,7 @@ export class LaundryRepository {
     if (filter.isActive !== undefined) baseQuery = baseQuery.eq('is_active', filter.isActive);
 
     const { data, error, count } = await baseQuery
-      .range(skip, skip + query.limit - 1)
+      .range(skip, skip + limit - 1)
       .order('rank', { ascending: false })
       .order('name', { ascending: true });
 
@@ -77,9 +79,9 @@ export class LaundryRepository {
       data,
       pagination: {
         total: count || 0,
-        page: query.page,
-        limit: query.limit,
-        pages: Math.ceil((count || 0) / query.limit),
+        page,
+        limit,
+        pages: Math.ceil((count || 0) / limit),
       },
     };
   }
@@ -130,12 +132,14 @@ export class LaundryRepository {
   }
 
   async findOrdersByUser(userId: string, query: PaginationQuery) {
-    const skip = (query.page - 1) * query.limit;
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const skip = (page - 1) * limit;
     const { data, error, count } = await supabase
       .from('orders')
       .select('*, laundry_services(name, provider_name)', { count: 'exact' })
       .eq('user_id', userId)
-      .range(skip, skip + query.limit - 1)
+      .range(skip, skip + limit - 1)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -144,15 +148,17 @@ export class LaundryRepository {
       data,
       pagination: {
         total: count || 0,
-        page: query.page,
-        limit: query.limit,
-        pages: Math.ceil((count || 0) / query.limit),
+        page,
+        limit,
+        pages: Math.ceil((count || 0) / limit),
       },
     };
   }
 
   async findAllOrders(filter: Record<string, any>, query: PaginationQuery) {
-    const skip = (query.page - 1) * query.limit;
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const skip = (page - 1) * limit;
     let baseQuery = supabase
       .from('orders')
       .select('*, profiles:user_id(name, email), laundry_services(name, provider_name)', { count: 'exact' });
@@ -160,7 +166,7 @@ export class LaundryRepository {
     if (filter.status) baseQuery = baseQuery.eq('status', filter.status);
 
     const { data, error, count } = await baseQuery
-      .range(skip, skip + query.limit - 1)
+      .range(skip, skip + limit - 1)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -169,9 +175,9 @@ export class LaundryRepository {
       data,
       pagination: {
         total: count || 0,
-        page: query.page,
-        limit: query.limit,
-        pages: Math.ceil((count || 0) / query.limit),
+        page,
+        limit,
+        pages: Math.ceil((count || 0) / limit),
       },
     };
   }

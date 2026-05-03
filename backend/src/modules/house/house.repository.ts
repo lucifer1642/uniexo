@@ -103,7 +103,9 @@ export class HouseRepository {
   }
 
   async findAll(filter: Record<string, any>, query: PaginationQuery) {
-    const skip = (query.page - 1) * query.limit;
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const skip = (page - 1) * limit;
     let baseQuery = supabase
       .from('houses')
       .select('*, profiles:vendor_id(name, email, phone)', { count: 'exact' })
@@ -117,7 +119,7 @@ export class HouseRepository {
     }
 
     const { data, error, count } = await baseQuery
-      .range(skip, skip + query.limit - 1)
+      .range(skip, skip + limit - 1)
       .order('rank', { ascending: false })
       .order('title', { ascending: true });
 
@@ -127,21 +129,23 @@ export class HouseRepository {
       data,
       pagination: {
         total: count || 0,
-        page: query.page,
-        limit: query.limit,
-        pages: Math.ceil((count || 0) / query.limit),
+        page,
+        limit,
+        pages: Math.ceil((count || 0) / limit),
       },
     };
   }
 
   async findByVendor(vendorId: string, query: PaginationQuery) {
-    const skip = (query.page - 1) * query.limit;
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const skip = (page - 1) * limit;
     const { data, error, count } = await supabase
       .from('houses')
       .select('*', { count: 'exact' })
       .eq('vendor_id', vendorId)
       .eq('is_deleted', false)
-      .range(skip, skip + query.limit - 1)
+      .range(skip, skip + limit - 1)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -150,9 +154,9 @@ export class HouseRepository {
       data,
       pagination: {
         total: count || 0,
-        page: query.page,
-        limit: query.limit,
-        pages: Math.ceil((count || 0) / query.limit),
+        page,
+        limit,
+        pages: Math.ceil((count || 0) / limit),
       },
     };
   }

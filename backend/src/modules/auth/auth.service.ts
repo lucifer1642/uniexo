@@ -21,6 +21,10 @@ export class AuthService {
     phone: string;
     password: string;
     role?: string;
+    businessName?: string;
+    serviceType?: string;
+    universityId?: string;
+    location?: string;
   }): Promise<void> {
     const existing = await this.authRepo.findByEmail(data.email);
     if (existing) {
@@ -35,6 +39,10 @@ export class AuthService {
           name: data.name,
           role: data.role || UserRole.USER,
           phone: data.phone,
+          businessName: data.businessName,
+          serviceType: data.serviceType,
+          universityId: data.universityId,
+          location: data.location,
         },
       },
     });
@@ -122,7 +130,7 @@ export class AuthService {
     };
   }
 
-  async logout(): Promise<void> {
+  async logout(_userId?: string, _token?: string): Promise<void> {
     await supabase.auth.signOut();
   }
 

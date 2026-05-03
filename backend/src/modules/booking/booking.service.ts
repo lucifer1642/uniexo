@@ -102,7 +102,7 @@ export class BookingService {
     }
 
     // Check for conflicting bookings
-    const conflicts = await this.bookingRepo.findConflicting(data.serviceId, startDate, endDate);
+    const conflicts = await this.bookingRepo.findConflicting(data.serviceId, startDate.toISOString(), endDate.toISOString());
     if (conflicts.length > 0) {
       throw new BadRequestError('Selected dates are not available');
     }
@@ -207,8 +207,8 @@ export class BookingService {
     if (status === BookingStatus.CONFIRMED && currentStatus === BookingStatus.PENDING) {
       const conflicts = await this.bookingRepo.findConflicting(
         booking.serviceId.toString(),
-        booking.startDate,
-        booking.endDate,
+        booking.startDate.toISOString(),
+        booking.endDate.toISOString(),
         bookingId
       );
       if (conflicts.length > 0) {

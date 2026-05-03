@@ -81,7 +81,9 @@ export class VendorRepository {
   }
 
   async findAll(filter: Record<string, any>, query: PaginationQuery) {
-    const skip = (query.page - 1) * query.limit;
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+    const skip = (page - 1) * limit;
     let baseQuery = supabase
       .from('vendor_profiles')
       .select('*, profiles(name, email, phone)', { count: 'exact' });
@@ -91,7 +93,7 @@ export class VendorRepository {
     }
 
     const { data, error, count } = await baseQuery
-      .range(skip, skip + query.limit - 1)
+      .range(skip, skip + limit - 1)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -100,9 +102,9 @@ export class VendorRepository {
       data,
       pagination: {
         total: count || 0,
-        page: query.page,
-        limit: query.limit,
-        pages: Math.ceil((count || 0) / query.limit),
+        page,
+        limit,
+        pages: Math.ceil((count || 0) / limit),
       },
     };
   }
