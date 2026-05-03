@@ -20,7 +20,7 @@ export function useNotifications() {
       const response = await api.get('/users/notifications');
       return response.data.data;
     },
-    refetchInterval: 30000, // Poll every 30 seconds
+    refetchInterval: 60000, // Poll every 60s (10k users × 30s = too many requests)
   });
 
   const markAsRead = useMutation({
