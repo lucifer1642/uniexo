@@ -131,6 +131,59 @@ export class LaundryRepository {
     return data;
   }
 
+  async patchOrder(id: string, patch: Record<string, unknown>): Promise<any | null> {
+    const { data, error } = await supabase
+      .from('orders')
+      .update(patch)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) return null;
+    return data;
+  }
+
+  async findServicesByVendorUserId(vendorUserId: string): Promise<any | null> {
+    const { data, error } = await supabase
+      .from('laundry_services')
+      .select('*')
+      .eq('vendor_id', vendorUserId)
+      .eq('is_deleted', false)
+      .limit(1)
+      .maybeSingle();
+
+    if (error) return null;
+    return data;
+  }
+
+  async findOrdersForService(serviceId: string, filter?: { status?: string }) {
+    let q = supabase.from('orders').select('*').eq('laundry_service_id', serviceId);
+    if (filter?.status) q = q.eq('status', filter.status);
+    const { data, error } = await q;
+    if (error) return [];
+    return data ?? [];
+  }
+
+  async findOrdersPaged(
+    laundryServiceId: string,
+    page: number,
+    limit: number,
+    status?: string,
+  ): Promise<{ rows: any[]; total: number }> {
+    const skip = (page - 1) * limit;
+    let base = supabase
+      .from('orders')
+      .select('*, profiles:user_id(name, email, phone)', { count: 'exact' })
+      .eq('laundry_service_id', laundryServiceId)
+      .order('created_at', { ascending: false });
+
+    if (status) base = base.eq('status', status);
+
+    const { data, error, count } = await base.range(skip, skip + limit - 1);
+    if (error) return { rows: [], total: 0 };
+    return { rows: data ?? [], total: count || 0 };
+  }
+
   async findOrdersByUser(userId: string, query: PaginationQuery) {
     const page = query.page || 1;
     const limit = query.limit || 10;

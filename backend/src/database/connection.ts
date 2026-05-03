@@ -9,8 +9,14 @@ export async function connectDatabase(): Promise<void> {
     return;
   }
 
+  const uri = env.MONGODB_URI;
+  if (!uri) {
+    logger.warn('MONGODB_URI not set; skipping MongoDB connection');
+    return;
+  }
+
   try {
-    await mongoose.connect(env.MONGODB_URI, {
+    await mongoose.connect(uri, {
       autoIndex: env.NODE_ENV !== 'production',
     });
     logger.info('✅ MongoDB connected');

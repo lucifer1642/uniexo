@@ -1,9 +1,12 @@
 import crypto from 'crypto';
-import mongoose from 'mongoose';
 import { PaymentRepository } from './payment.repository';
+import { BookingRepository } from '../booking/booking.repository';
+import { LaundryRepository } from '../laundry/laundry.repository';
+import { WalletRepository } from '../wallet/wallet.repository';
+import { UserRepository } from '../user/user.repository';
+import { VendorRepository } from '../vendor/vendor.repository';
 import { razorpayInstance } from '../../config/razorpay';
 import { env } from '../../config/env';
-import { Booking, Order, Wallet, Transaction, User, VendorProfile } from '../../database/models';
 import { EmailService } from '../../services/email.service';
 import { PaymentStatus, BookingStatus, OrderStatus, TransactionType, ServiceType } from '../../types/enums';
 import { NotFoundError, BadRequestError } from '../../utils/errors';
@@ -13,9 +16,19 @@ import { PaginationQuery } from '../../types';
 
 export class PaymentService {
   private paymentRepo: PaymentRepository;
+  private bookingRepo: BookingRepository;
+  private laundryRepo: LaundryRepository;
+  private walletRepo: WalletRepository;
+  private userRepo: UserRepository;
+  private vendorRepo: VendorRepository;
 
   constructor() {
     this.paymentRepo = new PaymentRepository();
+    this.bookingRepo = new BookingRepository();
+    this.laundryRepo = new LaundryRepository();
+    this.walletRepo = new WalletRepository();
+    this.userRepo = new UserRepository();
+    this.vendorRepo = new VendorRepository();
   }
 
   async createOrder(
@@ -28,7 +41,6 @@ export class PaymentService {
   ) {
     const receipt = generateReceiptId();
 
-    // Create Razorpay order (amount in paise)
     const razorpayOrder = await razorpayInstance.orders.create({
       amount: Math.round(data.amount * 100),
       currency: 'INR',
@@ -40,15 +52,15 @@ export class PaymentService {
       },
     });
 
-    // Store payment attempt
     const payment = await this.paymentRepo.create({
-      userId: userId as any,
+      userId,
       serviceType: data.serviceType,
-      referenceId: data.referenceId as any,
+      referenceId: data.referenceId,
       amount: data.amount,
       razorpayOrderId: razorpayOrder.id,
       receipt,
       status: PaymentStatus.CREATED,
+      currency: 'INR',
     });
 
     return {
@@ -60,30 +72,43 @@ export class PaymentService {
     };
   }
 
-  async verifyPayment(data: {
-    razorpay_order_id: string;
-    razorpay_payment_id: string;
-    razorpay_signature: string;
-  }) {
-    // Verify Razorpay signature
-    const body = `${data.razorpay_order_id}|${data.razorpay_payment_id}`;
-    const expectedSignature = crypto
-      .createHmac('sha256', env.RAZORPAY_KEY_SECRET)
-      .update(body)
-      .digest('hex');
+  async verifyPayment(
+    data: {
+      razorpay_order_id: string;
+      razorpay_payment_id: string;
+      razorpay_signature: string;
+    },
+    options?: { skipSignatureVerification?: boolean },
+  ) {
+    if (!options?.skipSignatureVerification) {
+      const body = `${data.razorpay_order_id}|${data.razorpay_payment_id}`;
+      const expectedSignature = crypto
+        .createHmac('sha256', env.RAZORPAY_KEY_SECRET)
+        .update(body)
+        .digest('hex');
 
-    if (expectedSignature !== data.razorpay_signature) {
-      throw new BadRequestError('Invalid payment signature');
+      if (!data.razorpay_signature || expectedSignature !== data.razorpay_signature) {
+        throw new BadRequestError('Invalid payment signature');
+      }
     }
 
-    const payment = await this.paymentRepo.findByRazorpayOrderId(data.razorpay_order_id);
-    if (!payment) {
+    const paymentRow = await this.paymentRepo.findByRazorpayOrderId(data.razorpay_order_id);
+    if (!paymentRow) {
       throw new NotFoundError('Payment not found');
     }
 
-    // Use MongoDB transaction for atomic updates
-    const session = await mongoose.startSession();
-    session.startTransaction();
+    if (paymentRow.status === PaymentStatus.CAPTURED) {
+      return paymentRow;
+    }
+
+    const paymentId = String(paymentRow.id);
+
+    await this.paymentRepo.update(paymentId, {
+      razorpayPaymentId: data.razorpay_payment_id,
+      razorpaySignature: options?.skipSignatureVerification ? '(webhook)' : data.razorpay_signature,
+      status: PaymentStatus.CAPTURED,
+    });
+
     let emailContext:
       | {
           userId: string;
@@ -96,88 +121,68 @@ export class PaymentService {
         }
       | null = null;
 
+    const serviceType = paymentRow.serviceType as ServiceType;
+    const referenceId = String(paymentRow.referenceId);
+
     try {
-      // Update payment status
-      payment.razorpayPaymentId = data.razorpay_payment_id;
-      payment.razorpaySignature = data.razorpay_signature;
-      payment.status = PaymentStatus.CAPTURED;
-      await payment.save({ session });
+      if (serviceType === ServiceType.VEHICLE || serviceType === ServiceType.HOUSE) {
+        const booking = await this.bookingRepo.findById(referenceId);
+        await this.bookingRepo.update(referenceId, {
+          status: BookingStatus.CONFIRMED,
+          payment_id: paymentId,
+        } as any);
 
-      // Update booking/order status
-      if (payment.serviceType === ServiceType.VEHICLE || payment.serviceType === ServiceType.HOUSE) {
-        await Booking.findByIdAndUpdate(
-          payment.referenceId,
-          { status: BookingStatus.CONFIRMED, paymentId: payment._id },
-          { session },
-        );
-
-        // Get booking to find vendor
-        const booking = await Booking.findById(payment.referenceId).session(session);
         if (booking) {
-          const vendorAmount = payment.amount - booking.commissionAmount;
+          const vendorId = String((booking as any).vendor_id);
+          const totalAmount = Number(paymentRow.amount);
+          const commission = Number((booking as any).commission_amount || 0);
+          const vendorAmount = Math.max(totalAmount - commission, 0);
 
-          // Credit vendor wallet
-          const wallet = await Wallet.findOneAndUpdate(
-            { userId: booking.vendorId },
-            { $inc: { balance: vendorAmount } },
-            { session, new: true, upsert: true },
-          );
+          const credited = await this.walletRepo.incrementBalance(vendorId, vendorAmount);
+          if (!credited) {
+            logger.error(`Failed crediting vendor wallet ${vendorId} for booking ${referenceId}`);
+          } else {
+            await this.walletRepo.addTransaction({
+              walletId: credited.walletId,
+              userId: vendorId,
+              type: TransactionType.CREDIT,
+              amount: vendorAmount,
+              description: `Payment for ${serviceType} booking`,
+              referenceId: referenceId,
+              serviceType,
+              balanceAfter: credited.balance,
+            });
+          }
 
-          // Record transaction
-          await Transaction.create(
-            [
-              {
-                walletId: wallet._id,
-                userId: booking.vendorId,
-                type: TransactionType.CREDIT,
-                amount: vendorAmount,
-                description: `Payment for ${payment.serviceType} booking`,
-                referenceId: booking._id,
-                serviceType: payment.serviceType,
-                balanceAfter: wallet.balance,
-              },
-            ],
-            { session },
-          );
+          logger.info(`Commission of ${commission} retained for booking ${referenceId}`);
 
-          // Record commission transaction (admin wallet)
-          // Commission is retained by the platform
-          logger.info(
-            `Commission of ${booking.commissionAmount} retained for booking ${booking._id}`,
-          );
-
-          // Defer notification email until after transaction commit.
           emailContext = {
-            userId: booking.userId.toString(),
-            vendorId: booking.vendorId.toString(),
-            serviceType: payment.serviceType,
-            bookingId: booking._id.toString(),
-            amount: payment.amount,
-            startDate: booking.startDate.toISOString().split('T')[0],
-            endDate: booking.endDate.toISOString().split('T')[0],
+            userId: String((booking as any).user_id),
+            vendorId,
+            serviceType,
+            bookingId: referenceId,
+            amount: totalAmount,
+            startDate: new Date((booking as any).start_date).toISOString().split('T')[0],
+            endDate: new Date((booking as any).end_date).toISOString().split('T')[0],
           };
         }
-      } else if (payment.serviceType === ServiceType.LAUNDRY) {
-        await Order.findByIdAndUpdate(
-          payment.referenceId,
-          { status: OrderStatus.PROCESSING, paymentId: payment._id },
-          { session },
-        );
+      } else if (serviceType === ServiceType.LAUNDRY) {
+        await this.laundryRepo.patchOrder(referenceId, {
+          status: OrderStatus.PROCESSING,
+          payment_id: paymentId,
+        } as any);
       }
-
-      await session.commitTransaction();
-      logger.info(`Payment ${payment._id} verified and processed successfully`);
 
       if (emailContext) {
         try {
           const [userPopulated, vendorProfile] = await Promise.all([
-            User.findById(emailContext.userId).select('name email'),
-            VendorProfile.findOne({ userId: emailContext.vendorId }).populate('userId', 'name email'),
+            this.userRepo.findById(emailContext.userId),
+            this.vendorRepo.findByUserId(emailContext.vendorId),
           ]);
 
-          const vendorUser = vendorProfile?.userId as any;
+          const vendorUser = vendorProfile ? await this.userRepo.findById(emailContext.vendorId) : null;
 
-          if (userPopulated && vendorUser && vendorUser.email) {
+          if (userPopulated?.email && vendorUser?.email) {
             await EmailService.sendBookingConfirmation(userPopulated.email, vendorUser.email, {
               serviceName:
                 emailContext.serviceType === ServiceType.VEHICLE ? 'Vehicle Rental' : 'House Rental',
@@ -186,7 +191,7 @@ export class PaymentService {
               amount: emailContext.amount,
               startDate: emailContext.startDate,
               endDate: emailContext.endDate,
-              vendorPhone: vendorProfile?.businessPhone,
+              vendorPhone: vendorProfile?.business_phone,
             });
           }
         } catch (emailErr) {
@@ -194,18 +199,16 @@ export class PaymentService {
         }
       }
 
-      return payment;
+      const updated = await this.paymentRepo.findByRazorpayOrderId(data.razorpay_order_id);
+      logger.info(`Payment ${paymentId} verified and processed successfully`);
+      return updated;
     } catch (error) {
-      await session.abortTransaction();
-      logger.error('Payment verification transaction failed:', error);
+      logger.error('Payment verification updates failed:', error);
       throw error;
-    } finally {
-      session.endSession();
     }
   }
 
   async handleWebhook(rawBody: string, signature: string) {
-    // Validate webhook signature
     const expectedSignature = crypto
       .createHmac('sha256', env.RAZORPAY_WEBHOOK_SECRET)
       .update(rawBody)
@@ -223,12 +226,14 @@ export class PaymentService {
         const paymentEntity = event.payload.payment.entity;
         const payment = await this.paymentRepo.findByRazorpayOrderId(paymentEntity.order_id);
         if (payment && payment.status !== PaymentStatus.CAPTURED) {
-          // Process same as verifyPayment
-          await this.verifyPayment({
-            razorpay_order_id: paymentEntity.order_id,
-            razorpay_payment_id: paymentEntity.id,
-            razorpay_signature: '', // Webhook already validated
-          });
+          await this.verifyPayment(
+            {
+              razorpay_order_id: paymentEntity.order_id,
+              razorpay_payment_id: paymentEntity.id,
+              razorpay_signature: '',
+            },
+            { skipSignatureVerification: true },
+          );
         }
         break;
       }
@@ -236,7 +241,7 @@ export class PaymentService {
         const failedPayment = event.payload.payment.entity;
         const payment = await this.paymentRepo.findByRazorpayOrderId(failedPayment.order_id);
         if (payment) {
-          await this.paymentRepo.update(payment._id.toString(), {
+          await this.paymentRepo.update(String(payment.id), {
             status: PaymentStatus.FAILED,
           });
         }

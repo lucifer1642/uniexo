@@ -1,8 +1,19 @@
 import { LaundryRepository } from './laundry.repository';
-import { AdminSettings } from '../../database/models';
+import { supabase } from '../../config/supabase';
 import { NotFoundError, BadRequestError } from '../../utils/errors';
 import { PaginationQuery } from '../../types';
 import { env } from '../../config/env';
+
+async function getCommissionPercent(): Promise<number> {
+  const { data } = await supabase
+    .from('admin_settings')
+    .select('value')
+    .eq('key', 'commission_percent')
+    .maybeSingle();
+  const raw = data?.value as unknown;
+  if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
+  return env.DEFAULT_COMMISSION_PERCENT;
+}
 
 export class LaundryServiceModule {
   private laundryRepo: LaundryRepository;
@@ -11,7 +22,6 @@ export class LaundryServiceModule {
     this.laundryRepo = new LaundryRepository();
   }
 
-  // Admin-only: Add laundry provider
   async createService(data: {
     name: string;
     description: string;
@@ -19,6 +29,7 @@ export class LaundryServiceModule {
     providerPhone: string;
     providerAddress: string;
     services: { name: string; price: number; unit: string }[];
+    vendorId?: string;
   }) {
     return this.laundryRepo.createService(data);
   }
@@ -43,7 +54,6 @@ export class LaundryServiceModule {
     await this.laundryRepo.deleteService(id);
   }
 
-  // User: Place order 
   async placeOrder(
     userId: string,
     data: {
@@ -57,19 +67,21 @@ export class LaundryServiceModule {
   ) {
     const laundryService = await this.laundryRepo.findServiceById(data.laundryServiceId);
     if (!laundryService) throw new NotFoundError('Laundry service not found');
-    if (!laundryService.isActive) throw new BadRequestError('Laundry service is not active');
+    const isActive = laundryService.is_active ?? laundryService.isActive ?? true;
+    if (!isActive) throw new BadRequestError('Laundry service is not active');
 
     const pickupType = data.pickupType || 'store';
 
-    // Validate pickup type against vendor settings
-    if (pickupType === 'onsite' && !laundryService.onsitePickup) {
+    const onsite = laundryService.onsite_pickup ?? laundryService.onsitePickup;
+    const store = laundryService.on_store_service ?? laundryService.onStoreService;
+
+    if (pickupType === 'onsite' && !onsite) {
       throw new BadRequestError('This vendor does not offer onsite pickup');
     }
-    if (pickupType === 'store' && !laundryService.onStoreService) {
+    if (pickupType === 'store' && !store) {
       throw new BadRequestError('This vendor does not offer in-store service');
     }
 
-    // Calculate totals
     const orderItems = data.items.map((item) => {
       const serviceDetail = (laundryService.services as any[]).find((s: any) => s.name === item.serviceName);
       if (!serviceDetail) throw new BadRequestError(`Service "${item.serviceName}" not found`);
@@ -83,25 +95,22 @@ export class LaundryServiceModule {
 
     const itemsTotal = orderItems.reduce((sum, item) => sum + item.total, 0);
 
-    // Add onsite pickup charge if applicable
-    const onsitePickupCharge = pickupType === 'onsite' ? (laundryService.onsitePickupCharge || 0) : 0;
+    const onsiteChargeRaw = laundryService.onsite_pickup_charge ?? laundryService.onsitePickupCharge ?? 0;
+    const onsitePickupCharge = pickupType === 'onsite' ? onsiteChargeRaw : 0;
     const totalAmount = itemsTotal + onsitePickupCharge;
 
-    // Get commission
-    const commissionSetting = await AdminSettings.findOne({ key: 'commission_percent' });
-    const commissionPercent = commissionSetting
-      ? (commissionSetting.value as number)
-      : env.DEFAULT_COMMISSION_PERCENT;
+    const commissionPercent = await getCommissionPercent();
     const commissionAmount = (totalAmount * commissionPercent) / 100;
 
     const order = await this.laundryRepo.createOrder({
-      userId: userId as any,
-      laundryServiceId: data.laundryServiceId as any,
+      userId,
+      laundryServiceId: data.laundryServiceId,
       items: orderItems,
       totalAmount,
       commissionAmount,
       commissionPercent,
-      deliveryAddress: data.deliveryAddress,
+      pickupAddress: data.deliveryAddress,
+      pickupPhone: '',
       pickupType,
       onsitePickupCharge,
       pickupDate: data.pickupDate ? new Date(data.pickupDate) : undefined,
@@ -133,96 +142,83 @@ export class LaundryServiceModule {
     return this.laundryRepo.findAllOrders(filter, query);
   }
 
-  // Vendor: get own service
   async getVendorService(vendorUserId: string) {
-    const { LaundryService: LaundryModel } = require('../../database/models');
-    const service = await LaundryModel.findOne({ vendorId: vendorUserId, isDeleted: false });
-    return service;
+    const service = await this.laundryRepo.findServicesByVendorUserId(vendorUserId);
+    return service || null;
   }
 
-  // Vendor: update own service toggles
-  async updateVendorService(vendorUserId: string, data: {
-    onsitePickup?: boolean;
-    onStoreService?: boolean;
-    onsitePickupCharge?: number;
-  }) {
-    const { LaundryService: LaundryModel } = require('../../database/models');
-    const service = await LaundryModel.findOne({ vendorId: vendorUserId, isDeleted: false });
+  async updateVendorService(
+    vendorUserId: string,
+    data: {
+      onsitePickup?: boolean;
+      onStoreService?: boolean;
+      onsitePickupCharge?: number;
+    },
+  ) {
+    const service = await this.laundryRepo.findServicesByVendorUserId(vendorUserId);
     if (!service) throw new NotFoundError('No laundry service found for this vendor');
 
-    if (typeof data.onsitePickup === 'boolean') service.onsitePickup = data.onsitePickup;
-    if (typeof data.onStoreService === 'boolean') service.onStoreService = data.onStoreService;
-    if (typeof data.onsitePickupCharge === 'number') service.onsitePickupCharge = data.onsitePickupCharge;
+    const patch: Record<string, unknown> = {};
+    if (typeof data.onsitePickup === 'boolean') patch.onsite_pickup = data.onsitePickup;
+    if (typeof data.onStoreService === 'boolean') patch.on_store_service = data.onStoreService;
+    if (typeof data.onsitePickupCharge === 'number') patch.onsite_pickup_charge = data.onsitePickupCharge;
 
-    // Ensure at least one service mode is active
-    if (!service.onsitePickup && !service.onStoreService) {
+    const onsitePickup = patch.onsite_pickup ?? service.onsite_pickup ?? service.onsitePickup;
+    const onStoreService = patch.on_store_service ?? service.on_store_service ?? service.onStoreService;
+
+    if (!onsitePickup && !onStoreService) {
       throw new BadRequestError('At least one service mode (onsite or store) must be enabled');
     }
 
-    await service.save();
-    return service;
+    return this.laundryRepo.updateService(service.id, patch);
   }
 
-  // Vendor: get all orders for their laundry service
   async getVendorOrders(vendorUserId: string, query: PaginationQuery, status?: string) {
-    const { LaundryService: LaundryModel } = require('../../database/models');
-    const { Order } = require('../../database/models');
-
-    const service = await LaundryModel.findOne({ vendorId: vendorUserId, isDeleted: false });
+    const service = await this.laundryRepo.findServicesByVendorUserId(vendorUserId);
     if (!service) throw new NotFoundError('No laundry service found for this vendor');
-
-    const filter: Record<string, unknown> = { laundryServiceId: service._id };
-    if (status) filter.status = status;
 
     const page = query.page || 1;
     const limit = query.limit || 20;
-    const skip = (page - 1) * limit;
 
-    const [orders, total] = await Promise.all([
-      Order.find(filter)
-        .populate('userId', 'name email phone')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      Order.countDocuments(filter),
-    ]);
+    const { rows: orders, total } = await this.laundryRepo.findOrdersPaged(service.id, page, limit, status);
 
-    // Stats per status
-    const allOrders = await Order.find({ laundryServiceId: service._id }).lean() as any[];
+    const allOrders = await this.laundryRepo.findOrdersForService(service.id);
     const statusCounts: Record<string, number> = {};
     for (const o of allOrders) {
-      statusCounts[o.status] = (statusCounts[o.status] || 0) + 1;
+      const st = (o as { status: string }).status;
+      statusCounts[st] = (statusCounts[st] || 0) + 1;
     }
-    const totalRevenue = allOrders
-      .filter((o: any) => o.status !== 'cancelled')
-      .reduce((s: number, o: any) => s + (o.totalAmount - (o.commissionAmount || 0)), 0);
+    const totalRevenue =
+      allOrders
+        ?.filter((o: any) => o.status !== 'cancelled')
+        .reduce(
+          (s: number, o: any) => s + (Number(o.total_amount ?? o.totalAmount ?? 0) - Number(o.commission_amount ?? o.commissionAmount ?? 0)),
+          0,
+        ) ?? 0;
 
     return {
       orders,
       pagination: { page, limit, total, pages: Math.ceil(total / limit) },
       statusCounts,
       totalRevenue,
-      serviceName: service.name,
+      serviceName: service.name ?? service.provider_name,
     };
   }
 
-  // Vendor: update order status (pipeline progression)
   async updateVendorOrderStatus(vendorUserId: string, orderId: string, status: string) {
-    const { LaundryService: LaundryModel } = require('../../database/models');
-    const { Order } = require('../../database/models');
-
-    const service = await LaundryModel.findOne({ vendorId: vendorUserId, isDeleted: false });
+    const service = await this.laundryRepo.findServicesByVendorUserId(vendorUserId);
     if (!service) throw new NotFoundError('No laundry service found for this vendor');
 
-    const order = await Order.findOne({ _id: orderId, laundryServiceId: service._id });
-    if (!order) throw new NotFoundError('Order not found or does not belong to your service');
+    const order = await this.laundryRepo.findOrderById(orderId);
+    if (!order || String(order.laundry_service_id ?? order.laundryServiceId) !== String(service.id)) {
+      throw new NotFoundError('Order not found or does not belong to your service');
+    }
 
     const validStatuses = ['placed', 'processing', 'picked_up', 'in_progress', 'out_for_delivery', 'delivered', 'cancelled'];
     if (!validStatuses.includes(status)) throw new BadRequestError('Invalid status');
 
-    order.status = status as any;
-    await order.save();
-    return order;
+    const updated = await this.laundryRepo.updateOrderStatus(orderId, status);
+    if (!updated) throw new NotFoundError('Order not found');
+    return updated;
   }
 }

@@ -1,5 +1,4 @@
 import { Request } from 'express';
-import { Types } from 'mongoose';
 import { UserRole } from './enums';
 
 export interface JWTPayload {
@@ -69,7 +68,7 @@ export interface RazorpayPaymentVerification {
 }
 
 export interface PopulatedDoc<T> {
-  _id: Types.ObjectId;
+  _id: string;
   __v?: number;
   toObject(): T;
 }

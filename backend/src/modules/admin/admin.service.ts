@@ -1,9 +1,8 @@
 import { AdminRepository } from './admin.repository';
 import { NotFoundError, BadRequestError } from '../../utils/errors';
-import { User, MarketplaceItem, VendorProfile, KycRequest } from '../../database/models';
-import { UserRole } from '../../types/enums';
-import { KycStatus } from '../../database/models/KycRequest';
+import { UserRole, KycStatus } from '../../types/enums';
 import { NotificationService } from '../../services/notification.service';
+import { supabase } from '../../config/supabase';
 
 export class AdminService {
   private adminRepo: AdminRepository;
@@ -21,9 +20,9 @@ export class AdminService {
   }
 
   async suspendUser(userId: string, suspended: boolean) {
-    const user = await User.findById(userId);
-    if (!user) throw new NotFoundError('User not found');
-    if (user.role === 'admin') throw new BadRequestError('Cannot suspend admin');
+    const { data } = await supabase.from('profiles').select('id, role').eq('id', userId).single();
+    if (!data) throw new NotFoundError('User not found');
+    if ((data as { role: string }).role === UserRole.ADMIN) throw new BadRequestError('Cannot suspend admin');
     return this.adminRepo.suspendUser(userId, suspended);
   }
 
@@ -43,11 +42,7 @@ export class AdminService {
     if (percent < 0 || percent > 100) {
       throw new BadRequestError('Commission must be between 0 and 100');
     }
-    return this.adminRepo.upsertSetting(
-      'commission_percent',
-      percent,
-      'Platform commission percentage',
-    );
+    return this.adminRepo.upsertSetting('commission_percent', percent, 'Platform commission percentage');
   }
 
   async getTransactions(page = 1, limit = 20) {
@@ -55,29 +50,36 @@ export class AdminService {
   }
 
   async removeReportedItem(itemId: string) {
-    const item = await MarketplaceItem.findById(itemId);
-    if (!item) throw new NotFoundError('Item not found');
+    const { data } = await supabase.from('marketplace_items').select('id').eq('id', itemId).single();
+    if (!data) throw new NotFoundError('Item not found');
     return this.adminRepo.removeReportedItem(itemId);
   }
 
   async backfillVendorProfiles(): Promise<{ created: number; skipped: number }> {
-    const vendorUsers = await User.find({ role: UserRole.VENDOR, isDeleted: false });
+    const { data: vendorUsers } = await supabase
+      .from('profiles')
+      .select('id, name, phone')
+      .eq('role', UserRole.VENDOR)
+      .eq('is_deleted', false);
+
     let created = 0;
     let skipped = 0;
 
-    for (const user of vendorUsers) {
-      const existing = await VendorProfile.findOne({ userId: user._id });
-      if (!existing) {
-        await VendorProfile.create({
-          userId: user._id,
-          businessName: user.name,
-          businessAddress: 'Not provided',
-          businessPhone: user.phone || 'Not provided',
+    for (const user of vendorUsers ?? []) {
+      const uid = user.id as string;
+      const { data: existing } = await supabase.from('vendor_profiles').select('id').eq('user_id', uid).maybeSingle();
+      if (existing) {
+        skipped++;
+      } else {
+        await supabase.from('vendor_profiles').insert({
+          user_id: uid,
+          business_name: user.name ?? 'Vendor',
+          business_address: 'Not provided',
+          business_phone: user.phone ?? 'Not provided',
           description: 'Vendor profile auto-created by admin backfill',
+          approval_status: 'pending',
         });
         created++;
-      } else {
-        skipped++;
       }
     }
 
@@ -85,34 +87,49 @@ export class AdminService {
   }
 
   async listKycRequests() {
-    return KycRequest.find({ isDeleted: false })
-      .populate('userId', 'name email')
-      .sort({ createdAt: -1 });
+    const { data, error } = await supabase
+      .from('kyc_requests')
+      .select('*, profiles:user_id(name, email)')
+      .eq('is_deleted', false)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return (data ?? []).map((r: Record<string, unknown>) => ({ ...r, _id: r.id }));
   }
 
   async processKycRequest(kycId: string, action: 'approve' | 'reject', rejectionReason?: string) {
-    const kycRequest = await KycRequest.findById(kycId);
-    if (!kycRequest) throw new NotFoundError('KYC request not found');
+    const { data: req, error: rErr } = await supabase
+      .from('kyc_requests')
+      .select('*')
+      .eq('id', kycId)
+      .single();
 
-    const status = action === 'approve' ? KycStatus.APPROVED : KycStatus.REJECTED;
-    kycRequest.status = status;
-    if (rejectionReason) kycRequest.rejectionReason = rejectionReason;
-    await kycRequest.save();
+    if (rErr || !req) throw new NotFoundError('KYC request not found');
 
-    // Update user status
-    const user = await User.findById(kycRequest.userId);
-    if (user) {
-      user.kycStatus = action === 'approve' ? 'approved' : 'rejected';
-      await user.save();
-      
-      // Send notification
-      await NotificationService.sendKycUpdate(user._id.toString(), user.kycStatus, rejectionReason);
-    }
+    const statusDb = action === 'approve' ? KycStatus.APPROVED : KycStatus.REJECTED;
+    const profileKyc = action === 'approve' ? 'approved' : 'rejected';
 
-    return kycRequest;
+    await supabase
+      .from('kyc_requests')
+      .update({
+        status: statusDb,
+        rejection_reason: rejectionReason ?? null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', kycId);
+
+    const userId = String((req as { user_id: string }).user_id);
+
+    await supabase
+      .from('profiles')
+      .update({ kyc_status: profileKyc, updated_at: new Date().toISOString() })
+      .eq('id', userId);
+
+    await NotificationService.sendKycUpdate(userId, profileKyc, rejectionReason);
+
+    const { data: updated } = await supabase.from('kyc_requests').select('*').eq('id', kycId).single();
+    return updated ? { ...updated, _id: updated.id } : null;
   }
-
-  // ==================== Rank Optimization ====================
 
   async getVendorsByCategory(category: string) {
     const validCategories = ['ROOM', 'CAR', 'LAUNDRY'];

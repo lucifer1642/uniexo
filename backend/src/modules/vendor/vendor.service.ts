@@ -1,16 +1,27 @@
 import { VendorRepository } from './vendor.repository';
+import { LaundryRepository } from '../laundry/laundry.repository';
+import { HouseRepository } from '../house/house.repository';
+import { UserRepository } from '../user/user.repository';
+import { WalletRepository } from '../wallet/wallet.repository';
 import { CloudinaryService } from '../../services/cloudinary.service';
-import { User, Wallet, Vehicle, House, Booking, Order, LaundryService, Payment } from '../../database/models';
+import { supabase } from '../../config/supabase';
 import { UserRole, VendorApprovalStatus, BookingStatus, OrderStatus } from '../../types/enums';
 import { ConflictError, NotFoundError, BadRequestError } from '../../utils/errors';
 import { PaginationQuery } from '../../types';
-import mongoose from 'mongoose';
 
 export class VendorService {
   private vendorRepo: VendorRepository;
+  private laundryRepo: LaundryRepository;
+  private houseRepo: HouseRepository;
+  private userRepo: UserRepository;
+  private walletRepo: WalletRepository;
 
   constructor() {
     this.vendorRepo = new VendorRepository();
+    this.laundryRepo = new LaundryRepository();
+    this.houseRepo = new HouseRepository();
+    this.userRepo = new UserRepository();
+    this.walletRepo = new WalletRepository();
   }
 
   async register(
@@ -27,10 +38,15 @@ export class VendorService {
       throw new ConflictError('Vendor profile already exists');
     }
 
-    const profile = await this.vendorRepo.create({ ...data, userId: userId as any });
+    const profile = await this.vendorRepo.create({
+      businessName: data.businessName,
+      businessAddress: data.businessAddress,
+      businessPhone: data.businessPhone,
+      description: data.description,
+      userId,
+    });
 
-    // Update user role to vendor
-    await User.findByIdAndUpdate(userId, { role: UserRole.VENDOR });
+    await this.userRepo.updateRole(userId, UserRole.VENDOR);
 
     return profile;
   }
@@ -41,13 +57,16 @@ export class VendorService {
     return profile;
   }
 
-  async updateProfile(userId: string, data: Partial<{
-    businessName: string;
-    businessAddress: string;
-    businessPhone: string;
-    description: string;
-    serviceType: string;
-  }>) {
+  async updateProfile(
+    userId: string,
+    data: Partial<{
+      businessName: string;
+      businessAddress: string;
+      businessPhone: string;
+      description: string;
+      serviceType: string;
+    }>,
+  ) {
     const profile = await this.vendorRepo.updateProfile(userId, data);
     if (!profile) throw new NotFoundError('Vendor profile not found');
     return profile;
@@ -58,14 +77,14 @@ export class VendorService {
     if (!profile) throw new NotFoundError('Vendor profile not found');
 
     const urls = await CloudinaryService.uploadMultiple(files, 'vendor-docs');
-    return this.vendorRepo.updateDocuments(profile._id.toString(), urls);
+    return this.vendorRepo.updateDocuments(String(profile.id), urls);
   }
 
   async approveVendor(vendorProfileId: string, status: string, rejectionReason?: string) {
     const profile = await this.vendorRepo.findById(vendorProfileId);
     if (!profile) throw new NotFoundError('Vendor profile not found');
 
-    if (profile.approvalStatus === VendorApprovalStatus.APPROVED && status === 'approved') {
+    if (profile.approval_status === VendorApprovalStatus.APPROVED && status === 'approved') {
       throw new BadRequestError('Vendor is already approved');
     }
 
@@ -76,18 +95,10 @@ export class VendorService {
       throw new BadRequestError('Rejection reason is required');
     }
 
-    const updated = await this.vendorRepo.updateApproval(
-      vendorProfileId,
-      approvalStatus,
-      rejectionReason,
-    );
+    const updated = await this.vendorRepo.updateApproval(vendorProfileId, approvalStatus, rejectionReason);
 
-    // Create wallet for approved vendor
     if (approvalStatus === VendorApprovalStatus.APPROVED) {
-      const existingWallet = await Wallet.findOne({ userId: profile.userId });
-      if (!existingWallet) {
-        await Wallet.create({ userId: profile.userId });
-      }
+      await this.walletRepo.getOrCreate(String(profile.user_id));
     }
 
     return updated;
@@ -115,7 +126,6 @@ export class VendorService {
     };
   }
 
-  // ─── ANALYTICS: OVERVIEW KPI ─────────────────────────────────────────
   async getAnalyticsOverview(userId: string) {
     const kpis = await this.vendorRepo.getKPIs(userId);
     if (!kpis) throw new NotFoundError('Vendor analytics not found');
@@ -133,7 +143,6 @@ export class VendorService {
     };
   }
 
-  // ─── ANALYTICS: SALES BREAKDOWN ──────────────────────────────────────
   async getSalesBreakdown(userId: string, period: 'week' | 'month' | 'year' = 'month') {
     const now = new Date();
     let startDate: Date;
@@ -145,51 +154,81 @@ export class VendorService {
       startDate = new Date(now.getFullYear(), 0, 1);
     }
 
-    const bookings = await Booking.find({
-      vendorId: userId,
-      createdAt: { $gte: startDate },
-      status: { $in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED] },
-    });
+    const { data: bookingRows } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('vendor_id', userId)
+      .gte('created_at', startDate.toISOString())
+      .in('status', [BookingStatus.CONFIRMED, BookingStatus.COMPLETED]);
+
+    const bookings = bookingRows ?? [];
 
     const vehicleRevenue = bookings
-      .filter(b => b.serviceType === 'vehicle')
-      .reduce((s, b) => s + b.totalAmount, 0);
+      .filter((b: { service_type: string }) => b.service_type === 'vehicle')
+      .reduce((s: number, b: { total_amount: number }) => s + Number(b.total_amount ?? 0), 0);
     const houseRevenue = bookings
-      .filter(b => b.serviceType === 'house')
-      .reduce((s, b) => s + b.totalAmount, 0);
+      .filter((b: { service_type: string }) => b.service_type === 'house')
+      .reduce((s: number, b: { total_amount: number }) => s + Number(b.total_amount ?? 0), 0);
 
-    const laundryService = await LaundryService.findOne({ vendorId: userId });
+    const laundrySvc = await this.laundryRepo.findServicesByVendorUserId(userId);
     let laundryRevenue = 0;
-    if (laundryService) {
-      const orders = await Order.find({
-        laundryServiceId: laundryService._id,
-        createdAt: { $gte: startDate },
-        status: { $ne: OrderStatus.CANCELLED },
-      });
-      laundryRevenue = orders.reduce((s, o) => s + o.totalAmount, 0);
+    if (laundrySvc) {
+      const { data: laundryOrders } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('laundry_service_id', laundrySvc.id)
+        .gte('created_at', startDate.toISOString())
+        .neq('status', OrderStatus.CANCELLED);
+
+      laundryRevenue =
+        laundryOrders?.reduce((s: number, o: { total_amount?: number }) => s + Number(o.total_amount ?? 0), 0) ??
+        0;
     }
 
-    // Monthly breakdown (last 6 months)
     const monthlySeries: { month: string; vehicle: number; house: number; laundry: number; total: number }[] = [];
+
     for (let i = 5; i >= 0; i--) {
       const mStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const mEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
-      const mLabel = mStart.toLocaleString('default', { month: 'short', year: '2-digit' });
 
-      const mBookings = await Booking.find({
-        vendorId: userId,
-        createdAt: { $gte: mStart, $lte: mEnd },
-        status: { $in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED] },
-      });
+      const { data: mBookRows } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('vendor_id', userId)
+        .gte('created_at', mStart.toISOString())
+        .lte('created_at', mEnd.toISOString())
+        .in('status', [BookingStatus.CONFIRMED, BookingStatus.COMPLETED]);
 
-      const mVehicle = mBookings.filter(b => b.serviceType === 'vehicle').reduce((s, b) => s + b.totalAmount, 0);
-      const mHouse = mBookings.filter(b => b.serviceType === 'house').reduce((s, b) => s + b.totalAmount, 0);
+      const mBookings = mBookRows ?? [];
+
+      const mVehicle = mBookings
+        .filter((b: any) => b.service_type === 'vehicle')
+        .reduce((s: number, b: any) => s + Number(b.total_amount ?? 0), 0);
+      const mHouse = mBookings
+        .filter((b: any) => b.service_type === 'house')
+        .reduce((s: number, b: any) => s + Number(b.total_amount ?? 0), 0);
+
       let mLaundry = 0;
-      if (laundryService) {
-        const mOrders = await Order.find({ laundryServiceId: laundryService._id, createdAt: { $gte: mStart, $lte: mEnd }, status: { $ne: OrderStatus.CANCELLED } });
-        mLaundry = mOrders.reduce((s, o) => s + o.totalAmount, 0);
+      if (laundrySvc) {
+        const { data: mOrders } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('laundry_service_id', laundrySvc.id)
+          .gte('created_at', mStart.toISOString())
+          .lte('created_at', mEnd.toISOString())
+          .neq('status', OrderStatus.CANCELLED);
+
+        mLaundry = mOrders?.reduce((s, o: any) => s + Number(o.total_amount ?? 0), 0) ?? 0;
       }
-      monthlySeries.push({ month: mLabel, vehicle: mVehicle, house: mHouse, laundry: mLaundry, total: mVehicle + mHouse + mLaundry });
+
+      const mLabel = mStart.toLocaleString('default', { month: 'short', year: '2-digit' });
+      monthlySeries.push({
+        month: mLabel,
+        vehicle: mVehicle,
+        house: mHouse,
+        laundry: mLaundry,
+        total: mVehicle + mHouse + mLaundry,
+      });
     }
 
     return {
@@ -198,152 +237,150 @@ export class VendorService {
       houseRevenue,
       laundryRevenue,
       totalRevenue: vehicleRevenue + houseRevenue + laundryRevenue,
-      vehicleBookings: bookings.filter(b => b.serviceType === 'vehicle').length,
-      houseBookings: bookings.filter(b => b.serviceType === 'house').length,
+      vehicleBookings: bookings.filter((b: any) => b.service_type === 'vehicle').length,
+      houseBookings: bookings.filter((b: any) => b.service_type === 'house').length,
       monthlySeries,
     };
   }
 
-  // ─── ANALYTICS: LEDGER BOOK ───────────────────────────────────────────
   async getLedgerBook(userId: string, page = 1, limit = 20) {
     const skip = (page - 1) * limit;
 
-    const bookings = await Booking.find({ vendorId: userId, isDeleted: false })
-      .populate('userId', 'name email phone')
-      .populate('serviceId')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
+    const { data: bookings, count: total } = await supabase
+      .from('bookings')
+      .select('*, profiles:user_id(name, email, phone)', { count: 'exact' })
+      .eq('vendor_id', userId)
+      .order('created_at', { ascending: false })
+      .range(skip, skip + limit - 1);
 
-    const total = await Booking.countDocuments({ vendorId: userId, isDeleted: false });
+    const entries =
+      bookings?.map((b: any) => {
+        const customer = b.profiles || {};
+        const paid = b.status === BookingStatus.COMPLETED || b.status === BookingStatus.CONFIRMED;
+        const ta = Number(b.total_amount ?? 0);
+        const ca = Number(b.commission_amount ?? 0);
+        const net = ta - ca;
 
-    const entries = bookings.map((b: any) => {
-      const customer = b.userId;
-      const serviceLabel = b.serviceType === 'vehicle'
-        ? (b.serviceId?.name || 'Vehicle')
-        : b.serviceType === 'house'
-        ? (b.serviceId?.title || 'Property')
-        : 'Service';
+        const installmentDue =
+          Array.isArray(b.installments)
+            ? b.installments.filter((inst: any) => inst.status === 'pending').reduce((s: number, inst: any) => s + Number(inst.amount ?? 0), 0)
+            : 0;
 
-      const paid = b.status === BookingStatus.COMPLETED || b.status === BookingStatus.CONFIRMED;
-      const net = b.totalAmount - (b.commissionAmount || 0);
-      const due = b.status === BookingStatus.PENDING ? b.totalAmount : 0;
+        return {
+          id: b.id,
+          customerName: customer?.name ?? 'Unknown',
+          customerEmail: customer?.email ?? '',
+          customerPhone: customer?.phone ?? '',
+          serviceType: b.service_type,
+          serviceName: '(see listing)',
+          bookingDate: b.created_at,
+          startDate: b.start_date,
+          endDate: b.end_date,
+          totalAmount: ta,
+          commissionAmount: ca,
+          netEarned: paid ? net : 0,
+          paymentStatus: b.status,
+          dueAmount: b.status === BookingStatus.PENDING ? ta + installmentDue : installmentDue,
+          installmentDue,
+          colorCode:
+            b.status === BookingStatus.COMPLETED
+              ? 'green'
+              : b.status === BookingStatus.CONFIRMED
+                ? 'blue'
+                : b.status === BookingStatus.PENDING
+                  ? 'amber'
+                  : 'red',
+        };
+      }) ?? [];
 
-      // Installment dues
-      const installmentDue = (b.installments || [])
-        .filter((inst: any) => inst.status === 'pending')
-        .reduce((s: number, inst: any) => s + inst.amount, 0);
+    const { data: allRows } = await supabase.from('bookings').select('*').eq('vendor_id', userId);
 
-      return {
-        id: b._id,
-        customerName: customer?.name || 'Unknown',
-        customerEmail: customer?.email || '',
-        customerPhone: customer?.phone || '',
-        serviceType: b.serviceType,
-        serviceName: serviceLabel,
-        bookingDate: b.createdAt,
-        startDate: b.startDate,
-        endDate: b.endDate,
-        totalAmount: b.totalAmount,
-        commissionAmount: b.commissionAmount || 0,
-        netEarned: paid ? net : 0,
-        paymentStatus: b.status,
-        dueAmount: due + installmentDue,
-        installmentDue,
-        colorCode: b.status === BookingStatus.COMPLETED
-          ? 'green'
-          : b.status === BookingStatus.CONFIRMED
-          ? 'blue'
-          : b.status === BookingStatus.PENDING
-          ? 'amber'
-          : 'red',
-      };
-    });
-
-    // Totals
-    const allBookings = await Booking.find({ vendorId: userId, isDeleted: false }).lean() as any[];
+    const allBookings = allRows ?? [];
     const totalRevenue = allBookings
       .filter((b: any) => b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.COMPLETED)
-      .reduce((s: number, b: any) => s + b.totalAmount, 0);
+      .reduce((s: number, b: any) => s + Number(b.total_amount ?? 0), 0);
     const totalNetEarned = allBookings
       .filter((b: any) => b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.COMPLETED)
-      .reduce((s: number, b: any) => s + (b.totalAmount - (b.commissionAmount || 0)), 0);
-    const totalDue = allBookings
-      .filter((b: any) => b.status === BookingStatus.PENDING)
-      .reduce((s: number, b: any) => s + b.totalAmount, 0);
+      .reduce((s: number, b: any) => s + (Number(b.total_amount ?? 0) - Number(b.commission_amount ?? 0)), 0);
+    const totalDue = allBookings.filter((b: any) => b.status === BookingStatus.PENDING).reduce((s: number, b: any) => s + Number(b.total_amount ?? 0), 0);
+
     const totalCommission = allBookings
       .filter((b: any) => b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.COMPLETED)
-      .reduce((s: number, b: any) => s + (b.commissionAmount || 0), 0);
+      .reduce((s: number, b: any) => s + Number(b.commission_amount ?? 0), 0);
 
     return {
       entries,
-      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+      pagination: { page, limit, total: total ?? 0, pages: Math.ceil((total ?? 0) / limit) },
       totals: { totalRevenue, totalNetEarned, totalDue, totalCommission },
     };
   }
 
-  // ─── ANALYTICS: DUE AMOUNTS ──────────────────────────────────────────
   async getDueAmounts(userId: string) {
-    const pendingBookings = await Booking.find({
-      vendorId: userId,
-      status: BookingStatus.PENDING,
-      isDeleted: false,
-    })
-      .populate('userId', 'name email phone')
-      .lean();
+    const { data: pendingBookings } = await supabase
+      .from('bookings')
+      .select('*, profiles:user_id(name, email, phone)')
+      .eq('vendor_id', userId)
+      .eq('status', BookingStatus.PENDING);
 
-    // Overdue installments
-    const confirmedBookings = await Booking.find({
-      vendorId: userId,
-      status: BookingStatus.CONFIRMED,
-      isDeleted: false,
-      'installments.status': 'pending',
-    })
-      .populate('userId', 'name email phone')
-      .lean() as any[];
+    const { data: confirmedRows } = await supabase
+      .from('bookings')
+      .select('*, profiles:user_id(name, email, phone)')
+      .eq('vendor_id', userId)
+      .eq('status', BookingStatus.CONFIRMED);
 
-    const dues: any[] = [];
+    const dues: Record<string, unknown>[] = [];
 
-    for (const b of pendingBookings as any[]) {
+    for (const b of pendingBookings ?? []) {
+      const pb = b as Record<string, any>;
+      const customer = pb.profiles ?? {};
       dues.push({
-        bookingId: b._id,
-        customerName: b.userId?.name || 'Unknown',
-        customerEmail: b.userId?.email || '',
-        customerPhone: b.userId?.phone || '',
-        serviceType: b.serviceType,
-        dueAmount: b.totalAmount,
+        bookingId: pb.id,
+        customerName: customer.name ?? 'Unknown',
+        customerEmail: customer.email ?? '',
+        customerPhone: customer.phone ?? '',
+        serviceType: pb.service_type,
+        dueAmount: Number(pb.total_amount ?? 0),
         dueType: 'payment_pending',
-        dueDate: b.createdAt,
-        daysOverdue: Math.floor((Date.now() - new Date(b.createdAt).getTime()) / (1000 * 60 * 60 * 24)),
+        dueDate: pb.created_at,
+        daysOverdue: Math.floor((Date.now() - new Date(pb.created_at).getTime()) / (1000 * 60 * 60 * 24)),
       });
     }
 
-    for (const b of confirmedBookings) {
-      const overdueInstallments = (b.installments || []).filter(
-        (inst: any) => inst.status === 'pending' && new Date(inst.dueDate) < new Date()
-      );
+    for (const b of confirmedRows ?? []) {
+      const cb = b as Record<string, any>;
+      const customer = cb.profiles ?? {};
+      const overdueInstallments =
+        Array.isArray(cb.installments)
+          ? cb.installments.filter(
+              (inst: any) =>
+                inst.status === 'pending' &&
+                inst.dueDate &&
+                new Date(inst.dueDate) < new Date(),
+            )
+          : [];
+
       for (const inst of overdueInstallments) {
         dues.push({
-          bookingId: b._id,
-          customerName: b.userId?.name || 'Unknown',
-          customerEmail: b.userId?.email || '',
-          customerPhone: b.userId?.phone || '',
-          serviceType: b.serviceType,
+          bookingId: cb.id,
+          customerName: customer.name ?? 'Unknown',
+          customerEmail: customer.email ?? '',
+          customerPhone: customer.phone ?? '',
+          serviceType: cb.service_type,
           dueAmount: inst.amount,
           dueType: 'installment_overdue',
           dueDate: inst.dueDate,
           month: inst.month,
-          daysOverdue: Math.floor((Date.now() - new Date(inst.dueDate).getTime()) / (1000 * 60 * 60 * 24)),
+          daysOverdue: Math.floor(
+            (Date.now() - new Date(inst.dueDate).getTime()) / (1000 * 60 * 60 * 24),
+          ),
         });
       }
     }
 
-    const totalDue = dues.reduce((s, d) => s + d.dueAmount, 0);
+    const totalDue = dues.reduce((s, d) => s + Number(d.dueAmount ?? 0), 0);
     return { dues, totalDue, count: dues.length };
   }
 
-  // ─── ANALYTICS: BOOKING TRENDS (last N days) ─────────────────────────
   async getBookingTrends(userId: string, days = 30) {
     const result: { date: string; bookings: number; confirmed: number; cancelled: number }[] = [];
     const now = new Date();
@@ -352,22 +389,25 @@ export class VendorService {
       const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i, 0, 0, 0);
       const dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i, 23, 59, 59);
 
-      const dayBookings = await Booking.find({
-        vendorId: userId,
-        createdAt: { $gte: dayStart, $lte: dayEnd },
-      }).lean() as any[];
+      const { data } = await supabase
+        .from('bookings')
+        .select('status')
+        .eq('vendor_id', userId)
+        .gte('created_at', dayStart.toISOString())
+        .lte('created_at', dayEnd.toISOString());
+
+      const rows = data ?? [];
 
       result.push({
         date: dayStart.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
-        bookings: dayBookings.length,
-        confirmed: dayBookings.filter((b: any) => b.status === 'confirmed' || b.status === 'completed').length,
-        cancelled: dayBookings.filter((b: any) => b.status === 'cancelled').length,
+        bookings: rows.length,
+        confirmed: rows.filter((b: any) => b.status === 'confirmed' || b.status === 'completed').length,
+        cancelled: rows.filter((b: any) => b.status === 'cancelled').length,
       });
     }
     return result;
   }
 
-  // ─── ANALYTICS: REVENUE TIME SERIES ──────────────────────────────────
   async getRevenueTimeSeries(userId: string, days = 30) {
     const result: { date: string; revenue: number; net: number }[] = [];
     const now = new Date();
@@ -376,76 +416,99 @@ export class VendorService {
       const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i, 0, 0, 0);
       const dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i, 23, 59, 59);
 
-      const dayBookings = await Booking.find({
-        vendorId: userId,
-        createdAt: { $gte: dayStart, $lte: dayEnd },
-        status: { $in: [BookingStatus.CONFIRMED, BookingStatus.COMPLETED] },
-      }).lean() as any[];
+      const { data } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('vendor_id', userId)
+        .gte('created_at', dayStart.toISOString())
+        .lte('created_at', dayEnd.toISOString())
+        .in('status', [BookingStatus.CONFIRMED, BookingStatus.COMPLETED]);
 
-      const revenue = dayBookings.reduce((s: number, b: any) => s + b.totalAmount, 0);
-      const net = dayBookings.reduce((s: number, b: any) => s + (b.totalAmount - (b.commissionAmount || 0)), 0);
+      const dayBookings = data ?? [];
+
+      const revenue = dayBookings.reduce((s: number, b: any) => s + Number(b.total_amount ?? 0), 0);
+      const net = dayBookings.reduce(
+        (s: number, b: any) =>
+          s + (Number(b.total_amount ?? 0) - Number(b.commission_amount ?? 0)),
+        0,
+      );
+
       result.push({
         date: dayStart.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
         revenue,
         net,
       });
     }
+
     return result;
   }
 
-  // ─── ANALYTICS: ROOM OCCUPANCY ────────────────────────────────────────
   async getRoomOccupancy(userId: string) {
-    const houses = await House.find({ vendorId: userId, isDeleted: false }).lean() as any[];
+    const { data: houses } = await supabase
+      .from('houses')
+      .select('*')
+      .eq('vendor_id', userId)
+      .eq('is_deleted', false);
 
-    const result = await Promise.all(houses.map(async (h: any) => {
-      const activeBookings = await Booking.find({
-        serviceId: h._id,
-        status: { $in: [BookingStatus.CONFIRMED] },
-        isDeleted: false,
-      }).populate('userId', 'name email phone').lean() as any[];
+    const result = [];
+
+    for (const h of houses ?? []) {
+      const house = h as Record<string, any>;
+
+      const { data: activeBookingsData } = await supabase
+        .from('bookings')
+        .select('*, profiles:user_id(name, email, phone)')
+        .eq('service_id', house.id)
+        .eq('status', BookingStatus.CONFIRMED);
+
+      const activeBookings = activeBookingsData ?? [];
 
       const upcomingEnd = activeBookings.filter((b: any) => {
-        const daysLeft = Math.floor((new Date(b.endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        const daysLeft =
+          Math.floor((new Date(b.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
         return daysLeft <= 7 && daysLeft >= 0;
       });
 
-      const pendingBookings = await Booking.find({
-        serviceId: h._id,
-        status: BookingStatus.PENDING,
-        isDeleted: false,
-      }).populate('userId', 'name email phone').lean();
+      const { data: pend } = await supabase
+        .from('bookings')
+        .select('*, profiles:user_id(name, email, phone)')
+        .eq('service_id', house.id)
+        .eq('status', BookingStatus.PENDING);
 
-      // Calculate occupancy (for PG: beds; for rooms: 1)
-      const capacity = h.propertyType === 'pg' ? Math.max(h.bedrooms * 2, 1) : 1;
+      const pendingBookings = pend ?? [];
+
+      const capacity =
+        house.property_type === 'pg' ? Math.max(Number(house.bedrooms ?? 1) * 2, 1) : 1;
       const occupied = activeBookings.length;
       const occupancyPct = Math.min(Math.round((occupied / capacity) * 100), 100);
 
-      return {
-        houseId: h._id,
-        title: h.title,
-        propertyType: h.propertyType,
-        city: h.city,
-        bedrooms: h.bedrooms,
-        pricePerMonth: h.pricePerMonth,
-        pricePerDay: h.pricePerDay,
-        isAvailable: h.isAvailable,
+      result.push({
+        houseId: house.id,
+        title: house.title,
+        propertyType: house.property_type,
+        city: house.city,
+        bedrooms: house.bedrooms,
+        pricePerMonth: house.price_per_month,
+        pricePerDay: house.price_per_day,
+        isAvailable: house.is_available,
         capacity,
         occupied,
         occupancyPct,
-        occupancyColor: occupancyPct >= 70 ? 'green' : occupancyPct >= 30 ? 'amber' : 'red',
+        occupancyColor:
+          occupancyPct >= 70 ? 'green' : occupancyPct >= 30 ? 'amber' : 'red',
         activeBookings: activeBookings.map((b: any) => ({
-          id: b._id,
-          customerName: b.userId?.name || 'Unknown',
-          customerEmail: b.userId?.email || '',
-          startDate: b.startDate,
-          endDate: b.endDate,
-          monthlyRent: b.monthlyRent || h.pricePerMonth,
-          installments: b.installments || [],
+          id: b.id,
+          customerName: b.profiles?.name ?? 'Unknown',
+          customerEmail: b.profiles?.email ?? '',
+          startDate: b.start_date,
+          endDate: b.end_date,
+          monthlyRent: b.monthly_rent ?? house.price_per_month,
+          installments: b.installments ?? [],
         })),
         upcomingVacancies: upcomingEnd.length,
         pendingInterest: pendingBookings.length,
-      };
-    }));
+      });
+    }
 
     return result;
   }

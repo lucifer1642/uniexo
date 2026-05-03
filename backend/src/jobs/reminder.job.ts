@@ -1,34 +1,42 @@
-import { Booking } from '../database/models/Booking';
+import { supabase } from '../config/supabase';
 import { NotificationService } from '../services/notification.service';
 import { logger } from '../config/logger';
 
 export class ReminderJob {
   static async run() {
     logger.info('Running Payment Reminder Job...');
-    
+
     try {
       const today = new Date();
       const threeDaysLater = new Date();
       threeDaysLater.setDate(today.getDate() + 3);
 
-      // Find bookings with pending installments due in the next 3 days
-      const bookingsWithDuePayments = await Booking.find({
-        'installments.status': 'pending',
-        'installments.dueDate': { $lte: threeDaysLater, $gte: today },
-        isDeleted: false,
-      });
+      const todayIso = today.toISOString().split('T')[0];
+      const laterIso = threeDaysLater.toISOString().split('T')[0];
 
-      for (const booking of bookingsWithDuePayments) {
-        if (!booking.installments) continue;
+      const { data: bookingsWithDuePayments, error } = await supabase
+        .from('bookings')
+        .select('id, user_id, installments');
 
-        for (const installment of booking.installments) {
-          if (installment.status === 'pending' && installment.dueDate <= threeDaysLater && installment.dueDate >= today) {
+      if (error) throw error;
+
+      for (const booking of bookingsWithDuePayments ?? []) {
+        const installments = (booking as { installments?: { status: string; amount: number; dueDate?: string }[] }).installments;
+        if (!installments?.length) continue;
+
+        for (const installment of installments) {
+          if (installment.status !== 'pending' || !installment.dueDate) continue;
+
+          const dueDay = new Date(installment.dueDate).toISOString().split('T')[0];
+          if (dueDay >= todayIso && dueDay <= laterIso) {
             await NotificationService.sendPaymentReminder(
-              booking.userId.toString(),
+              String((booking as { user_id: string }).user_id),
               installment.amount,
-              installment.dueDate
+              new Date(installment.dueDate),
             );
-            logger.info(`Sent payment reminder to user ${booking.userId} for installment ${installment.month}`);
+            logger.info(
+              `Sent payment reminder to user ${(booking as { user_id: string }).user_id} for installment`,
+            );
           }
         }
       }

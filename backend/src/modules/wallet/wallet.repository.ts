@@ -61,4 +61,43 @@ export class WalletRepository {
     if (!wallet) return { data: [], pagination: { total: 0, page: 1, limit: query.limit || 10, pages: 0 } };
     return this.getTransactions(wallet.id, query);
   }
+
+  async incrementBalance(userId: string, delta: number): Promise<{ walletId: string; balance: number } | null> {
+    const wallet = await this.getOrCreate(userId);
+    const prev = Number(wallet.balance || 0);
+    const balance = prev + delta;
+    const { data, error } = await supabase
+      .from('wallets')
+      .update({ balance })
+      .eq('id', wallet.id)
+      .select()
+      .single();
+
+    if (error || !data) return null;
+    return { walletId: data.id as string, balance: Number(data.balance ?? balance) };
+  }
+
+  async addTransaction(entry: {
+    walletId: string;
+    userId: string;
+    type: string;
+    amount: number;
+    description: string;
+    referenceId?: string;
+    serviceType?: string;
+    balanceAfter: number;
+  }): Promise<void> {
+    const { error } = await supabase.from('transactions').insert({
+      wallet_id: entry.walletId,
+      user_id: entry.userId,
+      type: entry.type,
+      amount: entry.amount,
+      description: entry.description,
+      reference_id: entry.referenceId ?? null,
+      service_type: entry.serviceType ?? null,
+      balance_after: entry.balanceAfter,
+    });
+
+    if (error) throw error;
+  }
 }

@@ -4,6 +4,7 @@ import { ResponseFormatter } from '../../utils/response';
 import { AuthRequest } from '../../types';
 import { CloudinaryService } from '../../services/cloudinary.service';
 import { BadRequestError } from '../../utils/errors';
+import { refreshTokenClearCookieOptions } from '../../config/cookies';
 
 const userService = new UserService();
 
@@ -100,7 +101,7 @@ export class UserController {
     try {
       const { userId } = (req as AuthRequest).user!;
       await userService.deleteAccount(userId);
-      res.clearCookie('refreshToken', { path: '/api/v1/auth' });
+      res.clearCookie('refreshToken', refreshTokenClearCookieOptions());
       ResponseFormatter.ok(res, 'Account deleted');
     } catch (error) {
       next(error);

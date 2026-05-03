@@ -159,4 +159,40 @@ export class BookingRepository {
     if (error) return [];
     return data;
   }
+
+  /** When a booking is confirmed, auto-cancel other pending bookings on the same listing that overlap dates. */
+  async cancelOverlappingPending(
+    serviceId: string,
+    startIso: string,
+    endIso: string,
+    excludeBookingId: string,
+    cancellationReason: string,
+  ): Promise<void> {
+    const { data: pending, error } = await supabase
+      .from('bookings')
+      .select('id, start_date, end_date')
+      .eq('service_id', serviceId)
+      .eq('status', 'pending');
+
+    if (error || !pending?.length) return;
+
+    const windowStart = new Date(startIso).getTime();
+    const windowEnd = new Date(endIso).getTime();
+
+    const overlapIds = pending
+      .filter((b: { id: string }) => b.id !== excludeBookingId)
+      .filter((b: { start_date: string; end_date: string }) => {
+        const s = new Date(b.start_date).getTime();
+        const e = new Date(b.end_date).getTime();
+        return s <= windowEnd && e >= windowStart;
+      })
+      .map((b: { id: string }) => b.id);
+
+    for (const id of overlapIds) {
+      await supabase
+        .from('bookings')
+        .update({ status: 'cancelled', cancellation_reason: cancellationReason })
+        .eq('id', id);
+    }
+  }
 }

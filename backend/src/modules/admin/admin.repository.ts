@@ -1,230 +1,295 @@
-import {
-  User,
-  VendorProfile,
-  Vehicle,
-  House,
-  LaundryService,
-  MarketplaceItem,
-  Booking,
-  Order,
-  Payment,
-  Transaction,
-  AdminSettings,
-} from '../../database/models';
-import { BookingStatus, PaymentStatus, OrderStatus, VendorApprovalStatus } from '../../types/enums';
+import { supabase } from '../../config/supabase';
+import { PaymentStatus, VendorApprovalStatus } from '../../types/enums';
 
 export class AdminRepository {
   async listUsers(page: number, limit: number, role?: string, search?: string) {
     const skip = (page - 1) * limit;
-    const filter: Record<string, unknown> = { isDeleted: false };
-    if (role && role !== 'all') filter.role = role;
-    if (search) {
-      filter.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-        { phone: { $regex: search, $options: 'i' } },
-      ];
+
+    let q = supabase
+      .from('profiles')
+      .select('*', { count: 'exact' })
+      .eq('is_deleted', false)
+      .order('created_at', { ascending: false });
+
+    if (role && role !== 'all') {
+      q = q.eq('role', role);
     }
-    const [users, total] = await Promise.all([
-      User.find(filter)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .select('-password')
-        .lean(),
-      User.countDocuments(filter),
-    ]);
+    if (search?.trim()) {
+      const s = `%${search.trim()}%`;
+      q = q.ilike('name', s);
+    }
+
+    const { data, error, count } = await q.range(skip, skip + limit - 1);
+
+    if (error) throw error;
+
+    const rows =
+      data?.map((u: Record<string, unknown>) => ({
+        ...u,
+        _id: u.id,
+      })) ?? [];
+
     return {
-      data: users,
+      data: rows,
       pagination: {
-        total,
+        total: count ?? 0,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
-        hasNext: page < Math.ceil(total / limit),
+        totalPages: Math.ceil((count ?? 0) / limit),
+        hasNext: page < Math.ceil((count ?? 0) / limit),
         hasPrev: page > 1,
       },
     };
   }
 
   async getDashboardStats() {
+    const [{ count: totalUsers }, { count: totalVendors }, { count: pendingVendors }] = await Promise.all([
+      supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_deleted', false),
+      supabase.from('vendor_profiles').select('id', { count: 'exact', head: true }),
+      supabase
+        .from('vendor_profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('approval_status', VendorApprovalStatus.PENDING),
+    ]);
+
     const [
-      totalUsers,
-      totalVendors,
-      pendingVendors,
-      totalVehicles,
-      totalHouses,
-      totalBookings,
-      totalOrders,
-      totalPayments,
-      totalMarketplaceItems,
+      { count: totalVehicles },
+      { count: totalHouses },
+      { count: totalBookings },
+      { count: totalOrders },
+      { count: totalPayments },
+      { count: totalMarketplaceItems },
     ] = await Promise.all([
-      User.countDocuments({ isDeleted: false }),
-      VendorProfile.countDocuments({ isDeleted: false }),
-      VendorProfile.countDocuments({ approvalStatus: VendorApprovalStatus.PENDING, isDeleted: false }),
-      Vehicle.countDocuments({ isDeleted: false }),
-      House.countDocuments({ isDeleted: false }),
-      Booking.countDocuments({ isDeleted: false }),
-      Order.countDocuments({ isDeleted: false }),
-      Payment.countDocuments(),
-      MarketplaceItem.countDocuments({ isDeleted: false }),
+      supabase.from('vehicles').select('id', { count: 'exact', head: true }).eq('is_deleted', false),
+      supabase.from('houses').select('id', { count: 'exact', head: true }).eq('is_deleted', false),
+      supabase.from('bookings').select('id', { count: 'exact', head: true }),
+      supabase.from('orders').select('id', { count: 'exact', head: true }),
+      supabase.from('payments').select('id', { count: 'exact', head: true }),
+      supabase.from('marketplace_items').select('id', { count: 'exact', head: true }).eq('is_deleted', false),
     ]);
 
-    const [revenueResult] = await Payment.aggregate([
-      { $match: { status: PaymentStatus.CAPTURED } },
-      { $group: { _id: null, totalRevenue: { $sum: '$amount' } } },
-    ]);
+    const { data: paymentsRows } = await supabase
+      .from('payments')
+      .select('amount')
+      .eq('status', PaymentStatus.CAPTURED);
 
-    const [bookingStats] = await Booking.aggregate([
-      { $match: { isDeleted: false } },
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 },
-        },
-      },
-    ]);
+    const totalRevenue = (paymentsRows || []).reduce(
+      (s: number, p: any) => s + Number(p.amount ?? 0),
+      0,
+    );
 
-    const recentBookings = await Booking.find({ isDeleted: false })
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .populate('userId', 'name email')
-      .populate('vendorId', 'name email')
-      .lean();
+    const { data: bookingStatusRows } = await supabase.from('bookings').select('status');
+    const bookingStats: Record<string, number> = {};
+    for (const b of bookingStatusRows || []) {
+      const k = (b as { status: string }).status;
+      bookingStats[k] = (bookingStats[k] || 0) + 1;
+    }
 
-    const recentPayments = await Payment.find()
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .populate('userId', 'name email')
-      .lean();
+    const { data: recentBookingsNorm } = await supabase
+      .from('bookings')
+      .select('*, profiles:user_id(name, email), vendor:vendor_id(name, email)')
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    const { data: recentPayments } = await supabase
+      .from('payments')
+      .select('*, profiles:user_id(name, email)')
+      .order('created_at', { ascending: false })
+      .limit(10);
 
     return {
       counts: {
-        totalUsers,
-        totalVendors,
-        pendingVendors,
-        totalVehicles,
-        totalHouses,
-        totalBookings,
-        totalOrders,
-        totalPayments,
-        totalMarketplaceItems,
+        totalUsers: totalUsers ?? 0,
+        totalVendors: totalVendors ?? 0,
+        pendingVendors: pendingVendors ?? 0,
+        totalVehicles: totalVehicles ?? 0,
+        totalHouses: totalHouses ?? 0,
+        totalBookings: totalBookings ?? 0,
+        totalOrders: totalOrders ?? 0,
+        totalPayments: totalPayments ?? 0,
+        totalMarketplaceItems: totalMarketplaceItems ?? 0,
       },
-      totalRevenue: revenueResult?.totalRevenue || 0,
-      recentBookings,
-      recentPayments,
+      totalRevenue,
+      bookingStats,
+      recentBookings: recentBookingsNorm,
+      recentPayments: recentPayments ?? [],
     };
   }
 
   async suspendUser(userId: string, suspended: boolean) {
-    return User.findByIdAndUpdate(userId, { isSuspended: suspended }, { new: true });
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({ is_suspended: suspended })
+      .eq('id', userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data ? { ...data, _id: data.id } : null;
   }
 
   async getReportedItems(page: number, limit: number) {
     const skip = (page - 1) * limit;
-    const [items, total] = await Promise.all([
-      MarketplaceItem.find({ isReported: true, isDeleted: false })
-        .sort({ reportCount: -1 })
-        .skip(skip)
-        .limit(limit)
-        .populate('sellerId', 'name email')
-        .lean(),
-      MarketplaceItem.countDocuments({ isReported: true, isDeleted: false }),
-    ]);
+    let q = supabase
+      .from('marketplace_items')
+      .select('*, profiles:seller_id(name, email)', { count: 'exact' })
+      .eq('is_reported', true)
+      .eq('is_deleted', false)
+      .order('report_count', { ascending: false });
+
+    const { data, error, count } = await q.range(skip, skip + limit - 1);
+    if (error) throw error;
+
+    const rows =
+      data?.map((item: Record<string, unknown>) => ({
+        ...item,
+        _id: item.id,
+      })) ?? [];
 
     return {
-      data: items,
+      data: rows,
       pagination: {
-        total,
+        total: count || 0,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
-        hasNext: page < Math.ceil(total / limit),
+        totalPages: Math.ceil((count || 0) / limit),
+        hasNext: page < Math.ceil((count || 0) / limit),
         hasPrev: page > 1,
       },
     };
   }
 
   async getSettings() {
-    return AdminSettings.find().lean();
+    const { data, error } = await supabase.from('admin_settings').select('*').order('key');
+    if (error) throw error;
+    return data ?? [];
   }
 
   async upsertSetting(key: string, value: unknown, description?: string) {
-    return AdminSettings.findOneAndUpdate(
-      { key },
-      { value, description },
-      { new: true, upsert: true },
-    );
+    const { data, error } = await supabase
+      .from('admin_settings')
+      .upsert({
+        key,
+        value,
+        description: description ?? null,
+        updated_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   }
 
   async getTransactions(page: number, limit: number) {
     const skip = (page - 1) * limit;
-    const [transactions, total] = await Promise.all([
-      Transaction.find()
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .populate('userId', 'name email')
-        .lean(),
-      Transaction.countDocuments(),
-    ]);
+
+    const { data, error, count } = await supabase
+      .from('transactions')
+      .select('*, profiles:user_id(name, email)', { count: 'exact' })
+      .range(skip, skip + limit - 1)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    const rows =
+      data?.map((t: Record<string, unknown>) => ({
+        ...t,
+        _id: t.id,
+      })) ?? [];
 
     return {
-      data: transactions,
+      data: rows,
       pagination: {
-        total,
+        total: count || 0,
         page,
         limit,
-        totalPages: Math.ceil(total / limit),
-        hasNext: page < Math.ceil(total / limit),
+        totalPages: Math.ceil((count || 0) / limit),
+        hasNext: page < Math.ceil((count || 0) / limit),
         hasPrev: page > 1,
       },
     };
   }
 
   async removeReportedItem(itemId: string) {
-    return MarketplaceItem.findByIdAndUpdate(
-      itemId,
-      { isDeleted: true },
-      { new: true },
-    );
+    const { data, error } = await supabase
+      .from('marketplace_items')
+      .update({ is_deleted: true })
+      .eq('id', itemId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data ? { ...data, _id: data.id } : null;
   }
 
-  // ==================== Rank Optimization ====================
-
   async getVendorsByCategory(category: 'ROOM' | 'CAR' | 'LAUNDRY') {
-    const vendors = await VendorProfile.find({
-      serviceType: category,
-      isDeleted: false,
-    })
-      .populate('userId', 'name email phone')
-      .sort({ rank: -1, businessName: 1 })
-      .lean();
-    return vendors;
+    const { data, error } = await supabase
+      .from('vendor_profiles')
+      .select('*, profiles:user_id(name, email, phone)')
+      .eq('service_type', category)
+      .order('rank', { ascending: false })
+      .order('business_name', { ascending: true });
+
+    if (error) throw error;
+
+    return (data ?? []).map((v: Record<string, unknown>) => ({
+      ...v,
+      _id: v.id,
+      businessName: v.business_name,
+      businessPhone: v.business_phone,
+      businessAddress: v.business_address,
+      approvalStatus: v.approval_status,
+      userId:
+        typeof v.user_id === 'string'
+          ? { _id: v.user_id, name: (v.profiles as any)?.name }
+          : v.user_id,
+    }));
   }
 
   async updateVendorRank(vendorProfileId: string, rank: number) {
-    const profile = await VendorProfile.findByIdAndUpdate(
-      vendorProfileId,
-      { rank },
-      { new: true },
-    ).populate('userId', 'name email phone');
+    const { data: profile, error: fErr } = await supabase
+      .from('vendor_profiles')
+      .select('*')
+      .eq('id', vendorProfileId)
+      .single();
 
-    if (!profile) return null;
+    if (fErr || !profile) return null;
 
-    const vendorUserId = profile.userId && typeof profile.userId === 'object'
-      ? (profile.userId as any)._id
-      : profile.userId;
+    const userId = profile.user_id as string;
+    const serviceType = profile.service_type as string;
 
-    // Propagate rank to all related listings
-    if (profile.serviceType === 'ROOM') {
-      await House.updateMany({ vendorId: vendorUserId }, { rank });
-    } else if (profile.serviceType === 'CAR') {
-      await Vehicle.updateMany({ vendorId: vendorUserId }, { rank });
-    } else if (profile.serviceType === 'LAUNDRY') {
-      await LaundryService.updateMany({ vendorId: vendorUserId }, { rank });
+    const { error: uErr } = await supabase
+      .from('vendor_profiles')
+      .update({ rank })
+      .eq('id', vendorProfileId);
+
+    if (uErr) throw uErr;
+
+    if (serviceType === 'ROOM') {
+      await supabase.from('houses').update({ rank }).eq('vendor_id', userId);
+    } else if (serviceType === 'CAR') {
+      await supabase.from('vehicles').update({ rank }).eq('vendor_id', userId);
+    } else if (serviceType === 'LAUNDRY') {
+      await supabase.from('laundry_services').update({ rank }).eq('vendor_id', userId);
     }
 
-    return profile;
+    const { data: full } = await supabase
+      .from('vendor_profiles')
+      .select('*, profiles:user_id(name, email, phone)')
+      .eq('id', vendorProfileId)
+      .single();
+
+    return full
+      ? {
+          ...full,
+          _id: full.id,
+          businessName: full.business_name,
+          businessPhone: full.business_phone,
+          businessAddress: full.business_address,
+          approvalStatus: full.approval_status,
+          userId: full.user_id,
+        }
+      : null;
   }
 }

@@ -1,4 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
+import multer from 'multer';
+import { ZodError } from 'zod';
 import { AppError } from '../utils/errors';
 import { logger } from '../config/logger';
 import { ResponseFormatter } from '../utils/response';
@@ -16,11 +18,43 @@ export const errorHandler = (
     return;
   }
 
-  // Zod validation error
-  if (err.name === 'ZodError') {
-    const message = (err as any).errors?.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ') || 'Validation error';
+  // Zod validation error (instance check works across Zod 3/4)
+  if (err instanceof ZodError) {
+    const message =
+      err.issues.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ') || 'Validation error';
     ResponseFormatter.badRequest(res, message);
     return;
+  }
+
+  // Multer upload limits / parsing
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      ResponseFormatter.badRequest(res, 'File too large');
+      return;
+    }
+    if (err.code === 'LIMIT_FILE_COUNT' || err.code === 'LIMIT_UNEXPECTED_FILE') {
+      ResponseFormatter.badRequest(res, 'Too many files or unexpected field');
+      return;
+    }
+    ResponseFormatter.badRequest(res, err.message || 'Upload error');
+    return;
+  }
+
+  // Supabase PostgREST / Postgres (thrown as plain objects with .code)
+  const pgCode = (err as { code?: string }).code;
+  if (typeof pgCode === 'string') {
+    if (pgCode === '23505') {
+      ResponseFormatter.conflict(res, 'A record with this information already exists');
+      return;
+    }
+    if (pgCode === '23503') {
+      ResponseFormatter.badRequest(res, 'Referenced record does not exist');
+      return;
+    }
+    if (pgCode === 'PGRST116') {
+      ResponseFormatter.notFound(res, (err as Error).message || 'Resource not found');
+      return;
+    }
   }
 
   // Mongoose validation error
@@ -33,12 +67,6 @@ export const errorHandler = (
   if (err.name === 'MongoServerError' && (err as any).code === 11000) {
     const field = Object.keys((err as any).keyPattern || {})[0];
     ResponseFormatter.conflict(res, `${field} already exists`);
-    return;
-  }
-
-  // Postgres / Supabase duplicate key error
-  if ((err as any).code === '23505') {
-    ResponseFormatter.conflict(res, 'A record with this information already exists');
     return;
   }
 

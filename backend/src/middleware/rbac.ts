@@ -2,7 +2,9 @@ import { Request, Response, NextFunction } from 'express';
 import { AuthRequest } from '../types';
 import { UserRole, VendorApprovalStatus } from '../types/enums';
 import { ForbiddenError, UnauthorizedError } from '../utils/errors';
-import { VendorProfile } from '../database/models/VendorProfile';
+import { VendorRepository } from '../modules/vendor/vendor.repository';
+
+const vendorRepo = new VendorRepository();
 
 export const authorize = (...roles: UserRole[]) => {
   return (req: Request, _res: Response, next: NextFunction): void => {
@@ -40,16 +42,16 @@ export const isApprovedVendor = async (req: Request, _res: Response, next: NextF
       return next(new ForbiddenError('Insufficient permissions'));
     }
 
-    const vendor = await VendorProfile.findOne({ userId: authReq.user.userId });
+    const vendor = await vendorRepo.findByUserId(authReq.user.userId);
     if (!vendor) {
       return next(new ForbiddenError('Vendor profile not found'));
     }
 
-    if (vendor.approvalStatus !== VendorApprovalStatus.APPROVED) {
-      return next(new ForbiddenError(`Vendor account is ${vendor.approvalStatus}. Approval required.`));
+    if (vendor.approval_status !== VendorApprovalStatus.APPROVED) {
+      return next(new ForbiddenError(`Vendor account is ${vendor.approval_status}. Approval required.`));
     }
 
-    if (!vendor.businessAddress?.trim() || !vendor.businessPhone?.trim()) {
+    if (!vendor.business_address?.trim() || !vendor.business_phone?.trim()) {
       return next(new ForbiddenError('Vendor profile is incomplete. Please update your business address and phone in your profile.'));
     }
 

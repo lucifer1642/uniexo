@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { AuthService } from './auth.service';
 import { ResponseFormatter } from '../../utils/response';
 import { AuthRequest } from '../../types';
-import { env } from '../../config/env';
+import { refreshTokenClearCookieOptions, refreshTokenCookieOptions } from '../../config/cookies';
 
 const authService = new AuthService();
 
@@ -25,13 +25,7 @@ export class AuthController {
         const result = await authService.verifySignupOTP(email, otp);
 
         // Set refresh token in httpOnly cookie
-        res.cookie('refreshToken', result.refreshToken, {
-          httpOnly: true,
-          secure: env.NODE_ENV === 'production',
-          sameSite: 'strict',
-          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-          path: '/',
-        });
+        res.cookie('refreshToken', result.refreshToken, refreshTokenCookieOptions());
 
         ResponseFormatter.created(res, 'Account created successfully', {
           accessToken: result.accessToken,
@@ -52,13 +46,7 @@ export class AuthController {
       const { email, password } = req.body;
       const result = await authService.login(email, password);
 
-      res.cookie('refreshToken', result.refreshToken, {
-        httpOnly: true,
-        secure: env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-        path: '/',
-      });
+      res.cookie('refreshToken', result.refreshToken, refreshTokenCookieOptions());
 
       ResponseFormatter.ok(res, 'Login successful', {
         accessToken: result.accessToken,
@@ -79,13 +67,7 @@ export class AuthController {
 
       const tokens = await authService.refreshTokens(refreshToken);
 
-      res.cookie('refreshToken', tokens.refreshToken, {
-        httpOnly: true,
-        secure: env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-        path: '/',
-      });
+      res.cookie('refreshToken', tokens.refreshToken, refreshTokenCookieOptions());
 
       ResponseFormatter.ok(res, 'Tokens refreshed', {
         accessToken: tokens.accessToken,
@@ -100,7 +82,7 @@ export class AuthController {
       const authReq = req as AuthRequest;
       await authService.logout(authReq.user?.userId || '');
 
-      res.clearCookie('refreshToken', { path: '/' });
+      res.clearCookie('refreshToken', refreshTokenClearCookieOptions());
       ResponseFormatter.ok(res, 'Logged out successfully');
     } catch (error) {
       next(error);

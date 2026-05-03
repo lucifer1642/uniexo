@@ -77,6 +77,10 @@ api.interceptors.response.use(
                     // Retry the original request
                     return api(originalRequest);
                 }
+                useAuthStore.getState().logout();
+                if (typeof window !== 'undefined') {
+                    window.location.href = '/';
+                }
             } catch (refreshError) {
                 // Refresh failed, log user out
                 useAuthStore.getState().logout();

@@ -1,6 +1,7 @@
 import { VehicleRepository } from './vehicle.repository';
+import { BookingRepository } from '../booking/booking.repository';
+import { VendorRepository } from '../vendor/vendor.repository';
 import { CloudinaryService } from '../../services/cloudinary.service';
-import { VendorProfile } from '../../database/models';
 import { ListingApprovalStatus, VendorApprovalStatus } from '../../types/enums';
 import { NotFoundError, ForbiddenError, BadRequestError } from '../../utils/errors';
 import { PaginationQuery } from '../../types';
@@ -9,9 +10,13 @@ import { IVehicle } from '../../database/models';
 
 export class VehicleService {
   private vehicleRepo: VehicleRepository;
+  private bookingRepo: BookingRepository;
+  private vendorRepo: VendorRepository;
 
   constructor() {
     this.vehicleRepo = new VehicleRepository();
+    this.bookingRepo = new BookingRepository();
+    this.vendorRepo = new VendorRepository();
   }
 
   async create(
@@ -19,9 +24,8 @@ export class VehicleService {
     data: Partial<IVehicle> & { model?: string },
     files?: Express.Multer.File[],
   ) {
-    // Verify vendor is approved
-    const vendor = await VendorProfile.findOne({ userId: vendorId });
-    if (!vendor || vendor.approvalStatus !== VendorApprovalStatus.APPROVED) {
+    const vendor = await this.vendorRepo.findByUserId(vendorId);
+    if (!vendor || vendor.approval_status !== VendorApprovalStatus.APPROVED) {
       throw new ForbiddenError('Vendor must be approved to create listings');
     }
 
@@ -31,15 +35,14 @@ export class VehicleService {
       images = await CloudinaryService.uploadMultiple(allowedFiles, 'vehicles');
     }
 
-    // Map 'model' from request to 'modelName' in DB schema
-    const { model, ...rest } = data as any;
+    const { model, ...rest } = data as IVehicle & { model?: string };
 
     const vehicle = await this.vehicleRepo.create({
-      ...rest,
-      modelName: model || rest.modelName,
-      vendorId: vendorId as any,
+      ...(rest as object),
+      modelName: model || (rest as { modelName?: string }).modelName,
+      vendorId,
       images,
-      approvalStatus: ListingApprovalStatus.APPROVED, // auto-approve from approved vendors
+      approvalStatus: ListingApprovalStatus.APPROVED,
     });
 
     return vehicle;
@@ -55,9 +58,7 @@ export class VehicleService {
     const vehicle = await this.vehicleRepo.findById(vehicleId);
     if (!vehicle) throw new NotFoundError('Vehicle not found');
 
-    const vId = typeof vehicle.vendorId === 'object' && vehicle.vendorId._id
-      ? vehicle.vendorId._id.toString()
-      : vehicle.vendorId.toString();
+    const vId = String((vehicle as { vendor_id: string }).vendor_id);
 
     if (vId !== vendorId) {
       throw new ForbiddenError('You can only update your own vehicles');
@@ -70,9 +71,7 @@ export class VehicleService {
     const vehicle = await this.vehicleRepo.findById(vehicleId);
     if (!vehicle) throw new NotFoundError('Vehicle not found');
 
-    const vId = typeof vehicle.vendorId === 'object' && vehicle.vendorId._id
-      ? vehicle.vendorId._id.toString()
-      : vehicle.vendorId.toString();
+    const vId = String((vehicle as { vendor_id: string }).vendor_id);
 
     if (vId !== vendorId) {
       throw new ForbiddenError('You can only update your own vehicles');
@@ -86,9 +85,7 @@ export class VehicleService {
     const vehicle = await this.vehicleRepo.findById(vehicleId);
     if (!vehicle) throw new NotFoundError('Vehicle not found');
 
-    const vId = (vehicle.vendorId as any)._id
-      ? (vehicle.vendorId as any)._id.toString()
-      : vehicle.vendorId.toString();
+    const vId = String((vehicle as { vendor_id: string }).vendor_id);
 
     if (vId !== vendorId) {
       throw new ForbiddenError(`You can only delete your own vehicles. Owner: ${vId}, Requester: ${vendorId}`);
@@ -105,9 +102,7 @@ export class VehicleService {
     const vehicle = await this.vehicleRepo.findById(vehicleId);
     if (!vehicle) throw new NotFoundError('Vehicle not found');
 
-    const vId = typeof vehicle.vendorId === 'object' && vehicle.vendorId._id
-      ? vehicle.vendorId._id.toString()
-      : vehicle.vendorId.toString();
+    const vId = String((vehicle as { vendor_id: string }).vendor_id);
 
     if (vId !== vendorId) {
       throw new ForbiddenError('You can only update your own vehicles');
@@ -129,19 +124,14 @@ export class VehicleService {
     sort?: string;
     order?: 'asc' | 'desc';
   }) {
-    const filter: Record<string, any> = {
+    const filter: Record<string, unknown> = {
       approvalStatus: ListingApprovalStatus.APPROVED,
       isAvailable: true,
     };
 
     if (query.type) filter.type = query.type;
     if (query.brand) filter.brand = query.brand;
-    if (query.location) filter.location = { $regex: query.location, $options: 'i' };
-    if (query.minPrice || query.maxPrice) {
-      filter.pricePerDay = {};
-      if (query.minPrice) filter.pricePerDay.$gte = query.minPrice;
-      if (query.maxPrice) filter.pricePerDay.$lte = query.maxPrice;
-    }
+    // location / date / price sliders are not implemented for Supabase public list yet (was Mongo-specific)
 
     const paginationQuery: PaginationQuery = {
       page: query.page,
@@ -150,7 +140,7 @@ export class VehicleService {
       order: query.order || 'desc',
     };
 
-    return this.vehicleRepo.findAll(filter, paginationQuery);
+    return this.vehicleRepo.findAll(filter as any, paginationQuery);
   }
 
   async listByVendor(vendorId: string, query: PaginationQuery) {
@@ -171,32 +161,33 @@ export class VehicleService {
     return this.vehicleRepo.updateApproval(vehicleId, approvalStatus, rejectionReason);
   }
 
-  // ─── FLEET / DISPATCH ─────────────────────────────────────────────────────
   async getFleetStatus(vendorId: string) {
-    const VehicleModel = require('../../database/models').Vehicle;
-    const BookingModel = require('mongoose').model('Booking');
+    const vehicles = await this.vehicleRepo.findByVendorForFleet(vendorId);
 
-    const vehicles = await VehicleModel.find({ vendorId, isDeleted: false })
-      .populate('currentBookingId')
-      .lean();
+    return Promise.all(
+      vehicles.map(async (v: Record<string, unknown>) => {
+        let currentBooking: unknown = null;
+        const cid = v.current_booking_id as string | undefined;
+        if (cid) {
+          currentBooking = await this.bookingRepo.findById(cid);
+        }
 
-    return Promise.all(vehicles.map(async (v: any) => {
-      let currentBooking = null;
-      if (v.currentBookingId) {
-        currentBooking = await BookingModel.findById(v.currentBookingId)
-          .populate('userId', 'name email phone')
-          .lean();
-      }
-      const minutesLeft = v.expectedReturnAt
-        ? Math.max(0, Math.round((new Date(v.expectedReturnAt).getTime() - Date.now()) / 60000))
-        : null;
-      return {
-        ...v,
-        currentBooking,
-        minutesUntilReturn: minutesLeft,
-        isOverdue: v.expectedReturnAt && new Date(v.expectedReturnAt) < new Date() && v.currentStatus === 'dispatched',
-      };
-    }));
+        const expectedReturnAt = v.expected_return_at ? new Date(String(v.expected_return_at)) : null;
+        const minutesLeft = expectedReturnAt
+          ? Math.max(0, Math.round((expectedReturnAt.getTime() - Date.now()) / 60000))
+          : null;
+
+        return {
+          ...v,
+          currentBooking,
+          minutesUntilReturn: minutesLeft,
+          isOverdue:
+            expectedReturnAt &&
+            expectedReturnAt < new Date() &&
+            v.current_status === 'dispatched',
+        };
+      }),
+    );
   }
 
   async dispatchVehicle(
@@ -213,27 +204,18 @@ export class VehicleService {
     const vehicle = await this.vehicleRepo.findById(vehicleId);
     if (!vehicle) throw new NotFoundError('Vehicle not found');
 
-    const vId = typeof vehicle.vendorId === 'object' && (vehicle.vendorId as any)._id
-      ? (vehicle.vendorId as any)._id.toString()
-      : vehicle.vendorId.toString();
+    const vId = String((vehicle as { vendor_id: string }).vendor_id);
     if (vId !== vendorId) throw new ForbiddenError('Not your vehicle');
 
-    const VehicleModel = require('../../database/models').Vehicle;
-    return VehicleModel.findByIdAndUpdate(
-      vehicleId,
-      {
-        $set: {
-          currentStatus: 'dispatched',
-          isAvailable: false,
-          dispatchedAt: data.dispatchedAt ? new Date(data.dispatchedAt) : new Date(),
-          expectedReturnAt: data.expectedReturnAt ? new Date(data.expectedReturnAt) : undefined,
-          odometerOut: data.odometerOut,
-          dispatchNotes: data.dispatchNotes,
-          currentBookingId: data.currentBookingId,
-        },
-      },
-      { new: true },
-    );
+    return this.vehicleRepo.patchById(vehicleId, {
+      current_status: 'dispatched',
+      is_available: false,
+      dispatched_at: data.dispatchedAt ? data.dispatchedAt : new Date().toISOString(),
+      expected_return_at: data.expectedReturnAt ?? null,
+      odometer_out: data.odometerOut ?? null,
+      dispatch_notes: data.dispatchNotes ?? null,
+      current_booking_id: data.currentBookingId ?? null,
+    });
   }
 
   async returnVehicle(
@@ -244,26 +226,17 @@ export class VehicleService {
     const vehicle = await this.vehicleRepo.findById(vehicleId);
     if (!vehicle) throw new NotFoundError('Vehicle not found');
 
-    const vId = typeof vehicle.vendorId === 'object' && (vehicle.vendorId as any)._id
-      ? (vehicle.vendorId as any)._id.toString()
-      : vehicle.vendorId.toString();
+    const vId = String((vehicle as { vendor_id: string }).vendor_id);
     if (vId !== vendorId) throw new ForbiddenError('Not your vehicle');
 
-    const VehicleModel = require('../../database/models').Vehicle;
-    return VehicleModel.findByIdAndUpdate(
-      vehicleId,
-      {
-        $set: {
-          currentStatus: 'available',
-          isAvailable: true,
-          odometerIn: data.odometerIn,
-          dispatchNotes: data.notes,
-          dispatchedAt: null,
-          expectedReturnAt: null,
-          currentBookingId: null,
-        },
-      },
-      { new: true },
-    );
+    return this.vehicleRepo.patchById(vehicleId, {
+      current_status: 'available',
+      is_available: true,
+      odometer_in: data.odometerIn ?? null,
+      dispatch_notes: data.notes ?? null,
+      dispatched_at: null,
+      expected_return_at: null,
+      current_booking_id: null,
+    });
   }
 }

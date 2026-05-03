@@ -1,6 +1,7 @@
 import { HouseRepository } from './house.repository';
+import { VendorRepository } from '../vendor/vendor.repository';
 import { CloudinaryService } from '../../services/cloudinary.service';
-import { VendorProfile, IHouse } from '../../database/models';
+import { IHouse } from '../../database/models';
 import { ListingApprovalStatus, VendorApprovalStatus } from '../../types/enums';
 import { NotFoundError, ForbiddenError, BadRequestError } from '../../utils/errors';
 import { PaginationQuery } from '../../types';
@@ -8,14 +9,16 @@ import { PaginationQuery } from '../../types';
 
 export class HouseService {
   private houseRepo: HouseRepository;
+  private vendorRepo: VendorRepository;
 
   constructor() {
     this.houseRepo = new HouseRepository();
+    this.vendorRepo = new VendorRepository();
   }
 
   async create(vendorId: string, data: Partial<IHouse>, files?: Express.Multer.File[]) {
-    const vendor = await VendorProfile.findOne({ userId: vendorId });
-    if (!vendor || vendor.approvalStatus !== VendorApprovalStatus.APPROVED) {
+    const vendor = await this.vendorRepo.findByUserId(vendorId);
+    if (!vendor || vendor.approval_status !== VendorApprovalStatus.APPROVED) {
       throw new ForbiddenError('Vendor must be approved to create listings');
     }
 
@@ -41,7 +44,7 @@ export class HouseService {
   async update(houseId: string, vendorId: string, data: Partial<IHouse>) {
     const house = await this.houseRepo.findById(houseId);
     if (!house) throw new NotFoundError('House not found');
-    if (house.vendorId.toString() !== vendorId) {
+    if (String((house as { vendor_id?: string }).vendor_id ?? house.vendorId) !== vendorId) {
       throw new ForbiddenError('You can only update your own listings');
     }
     return this.houseRepo.update(houseId, data);
@@ -50,7 +53,7 @@ export class HouseService {
   async uploadImages(houseId: string, vendorId: string, files: Express.Multer.File[]) {
     const house = await this.houseRepo.findById(houseId);
     if (!house) throw new NotFoundError('House not found');
-    if (house.vendorId.toString() !== vendorId) {
+    if (String((house as { vendor_id?: string }).vendor_id ?? house.vendorId) !== vendorId) {
       throw new ForbiddenError('You can only update your own listings');
     }
 
@@ -61,7 +64,7 @@ export class HouseService {
   async delete(houseId: string, vendorId: string) {
     const house = await this.houseRepo.findById(houseId);
     if (!house) throw new NotFoundError('House not found');
-    if (house.vendorId.toString() !== vendorId) {
+    if (String((house as { vendor_id?: string }).vendor_id ?? house.vendorId) !== vendorId) {
       throw new ForbiddenError('You can only delete your own listings');
     }
     await this.houseRepo.softDelete(houseId);
@@ -79,34 +82,13 @@ export class HouseService {
     sort?: string;
     order?: 'asc' | 'desc';
   }) {
-    const filter: Record<string, any> = {
+    const filter: Record<string, unknown> = {
       approvalStatus: ListingApprovalStatus.APPROVED,
       isAvailable: true,
     };
 
-    if (query.city) filter.city = { $regex: query.city, $options: 'i' };
-    if (query.state) filter.state = { $regex: query.state, $options: 'i' };
+    if (query.city) filter.city = query.city;
     if (query.propertyType) filter.propertyType = query.propertyType;
-    if (query.bedrooms) filter.bedrooms = { $gte: query.bedrooms };
-    if (query.minPrice || query.maxPrice) {
-      const priceCondition: any = {};
-      if (query.minPrice) priceCondition.$gte = query.minPrice;
-      if (query.maxPrice) priceCondition.$lte = query.maxPrice;
-
-      // If propertyType specifies 'pg', filter by pricePerMonth
-      // If 'room', filter by pricePerDay
-      // Otherwise, match either
-      if (query.propertyType === 'pg') {
-        filter.pricePerMonth = priceCondition;
-      } else if (query.propertyType === 'room') {
-        filter.pricePerDay = priceCondition;
-      } else {
-        filter.$or = [
-          { pricePerMonth: priceCondition },
-          { pricePerDay: priceCondition }
-        ];
-      }
-    }
 
     return this.houseRepo.findAll(filter, {
       page: query.page,

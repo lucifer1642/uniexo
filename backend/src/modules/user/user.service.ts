@@ -2,8 +2,7 @@ import bcrypt from 'bcryptjs';
 import { UserRepository } from './user.repository';
 import { CloudinaryService } from '../../services/cloudinary.service';
 import { NotFoundError, BadRequestError } from '../../utils/errors';
-import { KycRequest, KycStatus } from '../../database/models/KycRequest';
-import { User } from '../../database/models/User';
+import { KycStatus } from '../../types/enums';
 
 const SALT_ROUNDS = 12;
 
@@ -18,7 +17,7 @@ export class UserService {
     const user = await this.userRepo.findById(userId);
     if (!user) throw new NotFoundError('User not found');
     return {
-      id: user._id,
+      id: user.id,
       name: user.name,
       email: user.email,
       phone: user.phone,
@@ -38,7 +37,7 @@ export class UserService {
     const user = await this.userRepo.updateProfile(userId, data);
     if (!user) throw new NotFoundError('User not found');
     return {
-      id: user._id,
+      id: user.id,
       name: user.name,
       email: user.email,
       phone: user.phone,
@@ -70,7 +69,7 @@ export class UserService {
     const user = await this.userRepo.findByIdWithPassword(userId);
     if (!user) throw new NotFoundError('User not found');
 
-    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    const isMatch = await bcrypt.compare(currentPassword, user.password || '');
     if (!isMatch) throw new BadRequestError('Current password is incorrect');
 
     const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
@@ -81,24 +80,14 @@ export class UserService {
     await this.userRepo.softDelete(userId);
   }
 
-  async submitKyc(userId: string, bankDetails: any, documents: any[]) {
-    const user = await User.findById(userId);
+  async submitKyc(userId: string, bankDetails: Record<string, unknown>, documents: unknown[]) {
+    const user = await this.userRepo.findById(userId);
     if (!user) throw new NotFoundError('User not found');
 
     if (user.kycStatus === KycStatus.APPROVED || user.kycStatus === KycStatus.PENDING) {
       throw new BadRequestError(`Cannot submit KYC when status is ${user.kycStatus}`);
     }
 
-    const kycRequest = await KycRequest.findOneAndUpdate(
-      { userId },
-      { bankDetails, documents, status: KycStatus.PENDING, rejectionReason: null },
-      { upsert: true, new: true }
-    );
-
-    user.kycStatus = KycStatus.PENDING;
-    user.bankDetails = bankDetails;
-    await user.save();
-
-    return kycRequest;
+    return this.userRepo.submitKycRequest(userId, bankDetails, documents);
   }
 }

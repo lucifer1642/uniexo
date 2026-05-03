@@ -102,6 +102,18 @@ export class HouseRepository {
       .eq('id', id);
   }
 
+  async setListedAvailability(id: string, isAvailable: boolean): Promise<any | null> {
+    const { data, error } = await supabase
+      .from('houses')
+      .update({ is_available: isAvailable })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) return null;
+    return data;
+  }
+
   async findAll(filter: Record<string, any>, query: PaginationQuery) {
     const page = query.page || 1;
     const limit = query.limit || 10;
@@ -116,6 +128,14 @@ export class HouseRepository {
     }
     if (filter.propertyType) {
       baseQuery = baseQuery.eq('property_type', filter.propertyType);
+    }
+
+    if (filter.isAvailable === true) {
+      baseQuery = baseQuery.eq('is_available', true);
+    }
+
+    if (filter.city && typeof filter.city === 'string') {
+      baseQuery = baseQuery.ilike('city', `%${filter.city}%`);
     }
 
     const { data, error, count } = await baseQuery

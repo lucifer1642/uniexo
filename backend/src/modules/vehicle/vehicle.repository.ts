@@ -81,6 +81,19 @@ export class VehicleRepository {
       .eq('id', id);
   }
 
+  async patchById(id: string, patch: Record<string, unknown>): Promise<any | null> {
+    const { data, error } = await supabase
+      .from('vehicles')
+      .update(patch)
+      .eq('id', id)
+      .eq('is_deleted', false)
+      .select()
+      .single();
+
+    if (error) return null;
+    return data;
+  }
+
   async findAll(filter: Record<string, unknown>, query: PaginationQuery) {
     const page = query.page || 1;
     const limit = query.limit || 10;
@@ -95,6 +108,14 @@ export class VehicleRepository {
     }
     if (filter.type) {
       baseQuery = baseQuery.eq('type', filter.type);
+    }
+
+    if (filter.isAvailable === true) {
+      baseQuery = baseQuery.eq('is_available', true);
+    }
+
+    if (filter.brand) {
+      baseQuery = baseQuery.ilike('brand', `%${filter.brand}%`);
     }
 
     const { data, error, count } = await baseQuery
@@ -138,6 +159,17 @@ export class VehicleRepository {
         pages: Math.ceil((count || 0) / limit),
       },
     };
+  }
+
+  async findByVendorForFleet(vendorId: string): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('vehicles')
+      .select('*')
+      .eq('vendor_id', vendorId)
+      .eq('is_deleted', false);
+
+    if (error) return [];
+    return data ?? [];
   }
 
   async updateAvailability(

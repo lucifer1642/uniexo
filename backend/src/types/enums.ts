@@ -4,6 +4,23 @@ export enum UserRole {
   ADMIN = 'admin',
 }
 
+export enum KycStatus {
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+  NONE = 'none',
+}
+
+export enum NotificationType {
+  INFO = 'info',
+  SUCCESS = 'success',
+  WARNING = 'warning',
+  DANGER = 'danger',
+  KYC_UPDATE = 'kyc_update',
+  BOOKING_REMINDER = 'booking_reminder',
+  PAYMENT_DUE = 'payment_due',
+}
+
 export enum BookingStatus {
   PENDING = 'pending',
   CONFIRMED = 'confirmed',
