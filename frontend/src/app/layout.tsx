@@ -7,6 +7,7 @@ import { Footer } from "@/components/footer";
 import { Toaster } from "sonner";
 import { GlobalProfileSidebar } from "@/components/global-profile-sidebar";
 import { CacheManager } from "@/components/cache-manager";
+import { PushNotificationProvider } from "@/components/push-notification-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,6 +42,7 @@ export default function RootLayout({
             {children}
           </main>
           <Footer />
+          <PushNotificationProvider />
         </Providers>
         <Toaster 
           position="bottom-right" 

@@ -123,10 +123,10 @@ export default function LoginPage() {
         </div>
 
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="relative z-10 w-full max-w-md px-4"
+          transition={{ type: 'spring', damping: 20, stiffness: 200 }}
+          className="relative z-10 w-full max-w-md px-3 md:px-4"
         >
           <div className="sm:mx-auto sm:w-full sm:max-w-md mb-8">
             <h2 className="text-center text-4xl font-black tracking-tighter text-white">
@@ -140,7 +140,7 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <div className="backdrop-blur-2xl bg-white/[0.03] border border-white/10 shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] rounded-3xl p-8 sm:p-10">
+          <div className="backdrop-blur-2xl bg-white/[0.03] border border-white/10 shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] rounded-2xl md:rounded-3xl p-6 sm:p-8 md:p-10">
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-zinc-300 text-sm font-medium ml-1">Email address</Label>
@@ -150,7 +150,7 @@ export default function LoginPage() {
                   type="email"
                   autoComplete="email"
                   required
-                  className="h-12 bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 focus:border-lime-500/50 focus:ring-lime-500/20 transition-all rounded-xl"
+                  className="h-13 md:h-12 bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 focus:border-lime-500/50 focus:ring-lime-500/20 transition-all rounded-xl text-base"
                   placeholder="john@uniexo.in"
                   value={formData.email}
                   onChange={handleChange}
@@ -171,7 +171,7 @@ export default function LoginPage() {
                     type={showPassword ? 'text' : 'password'}
                     autoComplete="current-password"
                     required
-                    className="h-12 pr-12 bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 focus:border-lime-500/50 focus:ring-lime-500/20 transition-all rounded-xl"
+                    className="h-13 md:h-12 pr-12 bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 focus:border-lime-500/50 focus:ring-lime-500/20 transition-all rounded-xl text-base"
                     placeholder="••••••••"
                     value={formData.password}
                     onChange={handleChange}
@@ -191,7 +191,7 @@ export default function LoginPage() {
                 <motion.div 
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  className="text-red-400 text-xs font-medium bg-red-500/10 border border-red-500/20 py-2 px-3 rounded-lg"
+                  className="text-red-400 text-xs font-medium bg-red-500/10 border border-red-500/20 py-2.5 px-3 rounded-lg animate-shake"
                 >
                   {error}
                 </motion.div>
@@ -199,7 +199,7 @@ export default function LoginPage() {
 
               <Button 
                 type="submit" 
-                className="w-full h-12 text-black bg-lime-400 hover:bg-lime-300 font-bold rounded-xl transition-all shadow-[0_0_20px_-5px_rgba(255,0,127,0.5)] active:scale-[0.98]" 
+                className="w-full h-13 md:h-12 text-black bg-lime-400 hover:bg-lime-300 font-bold rounded-xl transition-all shadow-[0_0_20px_-5px_rgba(255,0,127,0.5)] active:scale-[0.97] tap-feedback text-base" 
                 disabled={loading}
               >
                 {loading ? (

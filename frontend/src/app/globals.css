@@ -45,10 +45,12 @@
   }
   body {
     @apply bg-background text-foreground;
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
 @layer utilities {
+  /* ── Scrollbar ─────────────────────────────── */
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
@@ -57,6 +59,7 @@
     scrollbar-width: none;
   }
 
+  /* ── Glass Effects ─────────────────────────── */
   .glass {
     @apply bg-white/40 backdrop-blur-md border border-white/20 shadow-xl;
   }
@@ -65,6 +68,7 @@
     @apply bg-slate-900/40 backdrop-blur-md border border-white/10 shadow-xl;
   }
 
+  /* ── Mesh Gradient ─────────────────────────── */
   .mesh-gradient {
     background-color: #f2efe7;
     background-image: 
@@ -79,13 +83,88 @@
     transition: transform 0.1s linear;
   }
 
+  /* ── Mobile-First Animations ───────────────── */
   @keyframes float {
     0% { transform: translateY(0px); }
     50% { transform: translateY(-10px); }
     100% { transform: translateY(0px); }
   }
-
   .animate-float {
     animation: float 4s ease-in-out infinite;
+  }
+
+  @keyframes slide-up {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .animate-slide-up {
+    animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes slide-down {
+    from { opacity: 0; transform: translateY(-16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .animate-slide-down {
+    animation: slide-down 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes scale-in {
+    from { opacity: 0; transform: scale(0.92); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+  .animate-scale-in {
+    animation: scale-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(163, 230, 53, 0); }
+    50%      { box-shadow: 0 0 20px 4px rgba(163, 230, 53, 0.15); }
+  }
+  .animate-pulse-glow {
+    animation: pulse-glow 2.5s ease-in-out infinite;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%      { transform: translateX(-6px); }
+    40%      { transform: translateX(6px); }
+    60%      { transform: translateX(-4px); }
+    80%      { transform: translateX(4px); }
+  }
+  .animate-shake {
+    animation: shake 0.4s ease-in-out;
+  }
+
+  /* ── Haptic Tap Feedback ───────────────────── */
+  .tap-feedback {
+    @apply active:scale-[0.97] transition-transform duration-100;
+  }
+
+  /* ── Mobile Snap Scroll ────────────────────── */
+  .snap-x-mandatory {
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  .snap-center {
+    scroll-snap-align: center;
+  }
+
+  /* ── Safe Area (notched phones) ────────────── */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .mb-safe {
+    margin-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* ── Mobile Bottom Nav Spacing ─────────────── */
+  .has-bottom-nav {
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* ── Drag Indicator ────────────────────────── */
+  .drag-indicator {
+    @apply w-10 h-1 bg-zinc-600 rounded-full mx-auto;
   }
 }

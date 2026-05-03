@@ -47,7 +47,7 @@ export function ListingCard({
   const isOwner = user?.id === vendorId;
 
   return (
-    <Card className="group overflow-hidden rounded-2xl transition-all duration-300 hover:shadow-xl hover:-translate-y-1 bg-card border-border/50">
+    <Card className="group overflow-hidden rounded-xl md:rounded-2xl transition-all duration-300 hover:shadow-xl hover:-translate-y-1 active:scale-[0.98] bg-card border-border/50">
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
         <Dialog>
           <DialogTrigger asChild>
@@ -76,7 +76,7 @@ export function ListingCard({
         )}
       </div>
 
-      <CardContent className="p-5">
+      <CardContent className="p-4 md:p-5">
         <div className="flex justify-between items-start mb-2">
           <h3 className="font-semibold text-lg line-clamp-1 flex-1 pr-4">{title}</h3>
           {rating ? (
@@ -88,12 +88,12 @@ export function ListingCard({
         </div>
         
         <div className="mb-4">
-          <span className="text-xl font-bold text-primary">${price.toFixed(2)}</span>
+          <span className="text-xl font-bold text-primary">₹{price.toFixed(2)}</span>
           {unit && <span className="text-sm text-muted-foreground ml-1">/ {unit}</span>}
         </div>
 
         {attributes.length > 0 && (
-          <div className="grid grid-cols-4 gap-2 border-t pt-4 border-border/50">
+          <div className="grid grid-cols-4 gap-1.5 md:gap-2 border-t pt-3 md:pt-4 border-border/50">
             {attributes.map((attr, index) => {
               const Icon = attr.icon;
               return (
@@ -117,7 +117,7 @@ export function ListingCard({
       <CardFooter className="p-4 pt-0 border-t mt-auto border-border/5">
         <Dialog>
           <DialogTrigger asChild>
-            <Button className="w-full rounded-xl transition-all font-semibold cursor-pointer">
+            <Button className="w-full rounded-xl transition-all font-semibold cursor-pointer h-11 md:h-12 tap-feedback">
               {isOwner ? 'Manage Listing' : 'View Details & Book'}
             </Button>
           </DialogTrigger>
@@ -139,7 +139,7 @@ export function ListingCard({
                    {vendorName && <p className="text-muted-foreground text-sm mt-1">By {vendorName}</p>}
                  </div>
                  <div className="text-right">
-                   <div className="text-2xl font-bold text-primary">${price.toFixed(2)}</div>
+                   <div className="text-2xl font-bold text-primary">₹{price.toFixed(2)}</div>
                    {unit && <div className="text-sm text-muted-foreground">/ {unit}</div>}
                  </div>
                </div>

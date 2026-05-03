@@ -16,8 +16,9 @@ function VehicleCard({ vehicle }: { vehicle: any }) {
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
+      whileTap={{ scale: 0.98 }}
       whileHover={{ y: -8 }}
-      className="group relative flex flex-col bg-[#1a050f] border border-white/5 rounded-[2rem] overflow-hidden transition-all duration-500 hover:border-primary/30 shadow-2xl"
+      className="group relative flex flex-col bg-[#1a050f] border border-white/5 rounded-[1.5rem] md:rounded-[2rem] overflow-hidden transition-all duration-500 hover:border-primary/30 shadow-2xl tap-feedback"
     >
       <Link href={vehicle.href} className="block">
         <div className="relative aspect-[16/10] overflow-hidden">
@@ -57,9 +58,9 @@ function VehicleCard({ vehicle }: { vehicle: any }) {
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 md:p-6">
           <div className="flex justify-between items-start mb-2">
-            <h3 className="font-black text-xl leading-tight group-hover:text-blue-400 transition-colors line-clamp-1">{vehicle.title}</h3>
+            <h3 className="font-black text-lg md:text-xl leading-tight group-hover:text-blue-400 transition-colors line-clamp-1">{vehicle.title}</h3>
             <div className="flex items-center gap-1 text-xs font-black text-blue-400">
               <Star className="w-3 h-3 fill-current" />
               <span>4.8</span>
@@ -71,18 +72,18 @@ function VehicleCard({ vehicle }: { vehicle: any }) {
             <span className="line-clamp-1">{vehicle.rawLocation}</span>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 mb-6">
-             <div className="flex flex-col items-center p-2 rounded-2xl bg-white/[0.02] border border-white/5">
-                <Fuel className="w-4 h-4 text-zinc-400 mb-1" />
-                <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">PETROL</span>
+          <div className="grid grid-cols-3 gap-1.5 md:gap-2 mb-4 md:mb-6">
+             <div className="flex flex-col items-center p-1.5 md:p-2 rounded-xl md:rounded-2xl bg-white/[0.02] border border-white/5">
+                <Fuel className="w-3.5 h-3.5 md:w-4 md:h-4 text-zinc-400 mb-0.5 md:mb-1" />
+                <span className="text-[7px] md:text-[8px] font-black text-zinc-500 uppercase tracking-wider">PETROL</span>
              </div>
-             <div className="flex flex-col items-center p-2 rounded-2xl bg-white/[0.02] border border-white/5">
-                <Users className="w-4 h-4 text-zinc-400 mb-1" />
-                <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">5 SEATS</span>
+             <div className="flex flex-col items-center p-1.5 md:p-2 rounded-xl md:rounded-2xl bg-white/[0.02] border border-white/5">
+                <Users className="w-3.5 h-3.5 md:w-4 md:h-4 text-zinc-400 mb-0.5 md:mb-1" />
+                <span className="text-[7px] md:text-[8px] font-black text-zinc-500 uppercase tracking-wider">5 SEATS</span>
              </div>
-             <div className="flex flex-col items-center p-2 rounded-2xl bg-white/[0.02] border border-white/5">
-                <Gauge className="w-4 h-4 text-zinc-400 mb-1" />
-                <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">AUTO</span>
+             <div className="flex flex-col items-center p-1.5 md:p-2 rounded-xl md:rounded-2xl bg-white/[0.02] border border-white/5">
+                <Gauge className="w-3.5 h-3.5 md:w-4 md:h-4 text-zinc-400 mb-0.5 md:mb-1" />
+                <span className="text-[7px] md:text-[8px] font-black text-zinc-500 uppercase tracking-wider">AUTO</span>
              </div>
           </div>
 
@@ -119,7 +120,7 @@ function VendorGroup({ vendorName, vehicles }: { vendorName: string, vehicles: a
         <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8">
         {vehicles.map(vehicle => (
           <VehicleCard key={vehicle.id} vehicle={vehicle} />
         ))}
@@ -156,24 +157,24 @@ export default function VehiclesPage() {
   });
 
   return (
-    <div className="min-h-screen bg-black text-white selection:bg-primary/30 pb-20">
+    <div className="min-h-screen bg-black text-white selection:bg-primary/30 pb-20 has-bottom-nav md:pb-20">
       {/* Hero Header */}
-      <div className="relative pt-20 pb-16 overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-blue-500/5 blur-[120px] rounded-full pointer-events-none" />
-        <div className="container mx-auto px-6 relative z-10">
-          <div className="flex flex-col md:flex-row justify-between items-end gap-8">
+      <div className="relative pt-10 md:pt-20 pb-8 md:pb-16 overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[300px] md:h-[500px] bg-blue-500/5 blur-[80px] md:blur-[120px] rounded-full pointer-events-none" />
+        <div className="container mx-auto px-4 md:px-6 relative z-10">
+          <div className="flex flex-col md:flex-row justify-between items-end gap-4 md:gap-8">
             <div className="max-w-2xl">
                <motion.div 
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                >
-                 <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 mb-4 font-black tracking-widest px-4 py-1">
+                 <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 mb-3 md:mb-4 font-black tracking-widest px-3 md:px-4 py-1 text-[10px] md:text-xs">
                     ELITE RENTALS
                  </Badge>
-                 <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-[0.9] mb-6">
+                 <h1 className="text-3xl md:text-7xl font-black tracking-tighter leading-[0.9] mb-3 md:mb-6">
                     Your ride, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-blue-500 font-black">Redefined.</span>
                  </h1>
-                 <p className="text-zinc-500 text-lg font-medium">From daily commutes to weekend escapes, rent verified cars and bikes with ease.</p>
+                 <p className="text-zinc-500 text-sm md:text-lg font-medium">Rent verified cars and bikes with ease.</p>
                </motion.div>
             </div>
             {isVendor && <AddVehicleDialog />}
@@ -181,27 +182,27 @@ export default function VehiclesPage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-6">
+      <div className="container mx-auto px-4 md:px-6">
         {/* Filter Bar */}
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-6 mb-16 p-2 bg-white/[0.02] border border-white/5 rounded-3xl backdrop-blur-3xl shadow-2xl">
-          <div className="flex gap-2">
+        <div className="flex justify-between items-center gap-4 mb-8 md:mb-16 p-1.5 md:p-2 bg-white/[0.02] border border-white/5 rounded-2xl md:rounded-3xl backdrop-blur-3xl shadow-2xl overflow-x-auto scrollbar-hide">
+          <div className="flex gap-1.5 md:gap-2 flex-shrink-0">
              <button 
                 onClick={() => setTypeFilter('all')}
-                className={`px-8 py-3 rounded-2xl text-xs font-black tracking-widest transition-all ${typeFilter === 'all' ? 'bg-blue-500 text-white shadow-[0_0_20px_-5px_rgba(59,130,246,0.5)]' : 'text-zinc-500 hover:text-white'}`}
+                className={`px-4 md:px-8 py-2.5 md:py-3 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-black tracking-widest transition-all whitespace-nowrap tap-feedback ${typeFilter === 'all' ? 'bg-blue-500 text-white shadow-[0_0_20px_-5px_rgba(59,130,246,0.5)]' : 'text-zinc-500 hover:text-white'}`}
              >
-                ALL FLEET
+                ALL
              </button>
              <button 
                 onClick={() => setTypeFilter('car')}
-                className={`px-8 py-3 rounded-2xl text-xs font-black tracking-widest transition-all ${typeFilter === 'car' ? 'bg-blue-500 text-white shadow-[0_0_20px_-5px_rgba(59,130,246,0.5)]' : 'text-zinc-500 hover:text-white'}`}
+                className={`px-4 md:px-8 py-2.5 md:py-3 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-black tracking-widest transition-all whitespace-nowrap tap-feedback ${typeFilter === 'car' ? 'bg-blue-500 text-white shadow-[0_0_20px_-5px_rgba(59,130,246,0.5)]' : 'text-zinc-500 hover:text-white'}`}
              >
-                CARS ONLY
+                CARS
              </button>
              <button 
                 onClick={() => setTypeFilter('bike')}
-                className={`px-8 py-3 rounded-2xl text-xs font-black tracking-widest transition-all ${typeFilter === 'bike' ? 'bg-blue-500 text-white shadow-[0_0_20px_-5px_rgba(59,130,246,0.5)]' : 'text-zinc-500 hover:text-white'}`}
+                className={`px-4 md:px-8 py-2.5 md:py-3 rounded-xl md:rounded-2xl text-[10px] md:text-xs font-black tracking-widest transition-all whitespace-nowrap tap-feedback ${typeFilter === 'bike' ? 'bg-blue-500 text-white shadow-[0_0_20px_-5px_rgba(59,130,246,0.5)]' : 'text-zinc-500 hover:text-white'}`}
              >
-                BIKES ONLY
+                BIKES
              </button>
           </div>
           
@@ -217,7 +218,7 @@ export default function VehiclesPage() {
         </div>
 
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 py-20">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 py-10 md:py-20">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="aspect-[16/11] rounded-[2rem] bg-white/[0.02] border border-white/5 animate-pulse" />
             ))}
