@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { useAuthStore } from '@/store/auth.store';
 
 export interface Notification {
   _id: string;
@@ -13,6 +14,7 @@ export interface Notification {
 
 export function useNotifications() {
   const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuthStore();
 
   const { data: notifications = [], isLoading } = useQuery<Notification[]>({
     queryKey: ['notifications'],
@@ -20,7 +22,10 @@ export function useNotifications() {
       const response = await api.get('/users/notifications');
       return response.data.data;
     },
-    refetchInterval: 60000, // Poll every 60s (10k users × 30s = too many requests)
+    refetchInterval: 60000,
+    // CRITICAL: Only fetch when user is logged in — otherwise it fires 401s
+    // which trigger the redirect interceptor → infinite reload loop
+    enabled: isAuthenticated,
   });
 
   const markAsRead = useMutation({
