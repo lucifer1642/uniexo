@@ -9,7 +9,7 @@ import {
   ConflictError,
   NotFoundError,
 } from '../../utils/errors';
-import { Wallet, VendorProfile } from '../../database/models';
+import { Wallet, VendorProfile, LaundryService } from '../../database/models';
 import { UserRole } from '../../types/enums';
 
 const SALT_ROUNDS = 12;
@@ -96,7 +96,6 @@ export class AuthService {
 
         // Auto-create LaundryService entry for laundry vendors
         if (vendorData.serviceType === 'LAUNDRY') {
-          const { LaundryService } = require('../../database/models');
           await LaundryService.create({
             vendorId: user._id,
             name: vendorData.businessName,

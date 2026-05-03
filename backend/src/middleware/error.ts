@@ -16,6 +16,13 @@ export const errorHandler = (
     return;
   }
 
+  // Zod validation error
+  if (err.name === 'ZodError') {
+    const message = (err as any).errors?.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ') || 'Validation error';
+    ResponseFormatter.badRequest(res, message);
+    return;
+  }
+
   // Mongoose validation error
   if (err.name === 'ValidationError') {
     ResponseFormatter.badRequest(res, err.message);
