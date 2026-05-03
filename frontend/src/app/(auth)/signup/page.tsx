@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Car, Building, CheckCircle2, Eye, EyeOff, LocateFixed, Sparkles } from 'lucide-react';
-import { api } from '@/lib/api';
+import { supabase } from '@/lib/supabase';
 import { AuthRedirectWrapper } from '@/components/auth-redirect-wrapper';
 import { toast } from 'sonner';
 import { LegalModal } from '@/components/legal-modal';
@@ -109,34 +109,42 @@ export default function SignupPage() {
     }
 
     try {
-      const payload: any = {
+      const metadata: any = {
         name: formData.name,
-        email: formData.email,
         phone: formData.phone,
-        password: formData.password,
         role,
       };
 
       if (role === 'user') {
-        payload.universityId = formData.universityId;
-        payload.location = formData.location;
+        metadata.universityId = formData.universityId;
+        metadata.location = formData.location;
       } else if (role === 'vendor') {
-        payload.businessName = formData.businessName;
-        payload.serviceType = formData.serviceType;
+        metadata.businessName = formData.businessName;
+        metadata.serviceType = formData.serviceType;
         if (formData.serviceType === 'LAUNDRY') {
-          payload.onsitePickup = onsitePickup;
-          payload.onStoreService = onStoreService;
-          payload.onsitePickupCharge = Number(onsitePickupCharge) || 0;
+          metadata.onsitePickup = onsitePickup;
+          metadata.onStoreService = onStoreService;
+          metadata.onsitePickupCharge = Number(onsitePickupCharge) || 0;
         }
       }
 
-      await api.post('/auth/signup', payload);
-      toast.success('Account created! Please verify your email.', { icon: '✨' });
-      router.push(`/verify-otp?email=${encodeURIComponent(formData.email)}&purpose=signup`);
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: metadata,
+        }
+      });
+
+      if (signUpError) throw signUpError;
+
+      // Supabase auto-confirms users in dev (or if confirmation disabled)
+      // The trigger we added creates the profile automatically
+      toast.success('Account created successfully!', { icon: '✨' });
+      router.push('/login');
     } catch (err: any) {
       console.error('Signup Error:', err);
-      const backendMessage = err.response?.data?.message;
-      setError(backendMessage || err.message || 'Something went wrong during signup');
+      setError(err.message || 'Something went wrong during signup');
     } finally {
       setLoading(false);
     }

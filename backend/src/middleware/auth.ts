@@ -2,9 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { AuthRequest } from '../types';
 import { UnauthorizedError } from '../utils/errors';
 import { logger } from '../config/logger';
-import { AuthRepository } from '../modules/auth/auth.repository';
-
-const authRepo = new AuthRepository();
+import { supabase } from '../config/supabase';
 
 export const authenticate = async (
   req: Request,
@@ -20,16 +18,30 @@ export const authenticate = async (
 
     const token = authHeader.split(' ')[1];
 
-    const user = await authRepo.findByToken(token);
-    if (!user) {
-      logger.warn('Auth failed: Token not found in DB');
+    // Verify token with Supabase Auth
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    
+    if (error || !user) {
+      logger.warn('Auth failed: Invalid Supabase token');
       throw new UnauthorizedError('Invalid or expired session');
     }
 
+    // Retrieve full profile from our DB
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile) {
+      logger.warn(`Auth failed: Profile missing for user ${user.id}`);
+      throw new UnauthorizedError('User profile not found');
+    }
+
     (req as AuthRequest).user = {
-      userId: user.id,
-      role: user.role,
-      email: user.email
+      userId: profile.id,
+      role: profile.role,
+      email: profile.email
     };
     next();
   } catch (error) {
@@ -49,13 +61,22 @@ export const optionalAuth = async (
     }
 
     const token = authHeader.split(' ')[1];
-    const user = await authRepo.findByToken(token);
+    
+    const { data: { user } } = await supabase.auth.getUser(token);
     if (user) {
-      (req as AuthRequest).user = {
-        userId: user.id,
-        role: user.role,
-        email: user.email
-      };
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+        
+      if (profile) {
+        (req as AuthRequest).user = {
+          userId: profile.id,
+          role: profile.role,
+          email: profile.email
+        };
+      }
     }
     next();
   } catch {

@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import authRoutes from '../modules/auth/auth.routes';
 import userRoutes from '../modules/user/user.routes';
 import vendorRoutes from '../modules/vendor/vendor.routes';
 import vehicleRoutes from '../modules/vehicle/vehicle.routes';
@@ -13,8 +12,6 @@ import adminRoutes from '../modules/admin/admin.routes';
 import reviewRoutes from '../modules/review/review.routes';
 
 const router = Router();
-
-router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/vendors', vendorRoutes);
 router.use('/vehicles', vehicleRoutes);

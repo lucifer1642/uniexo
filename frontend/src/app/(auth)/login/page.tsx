@@ -8,8 +8,8 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuthStore } from '@/store/auth.store';
-import { api } from '@/lib/api';
+import { useAuthStore, UserRole } from '@/store/auth.store';
+import { supabase } from '@/lib/supabase';
 import { AuthRedirectWrapper } from '@/components/auth-redirect-wrapper';
 import { toast } from 'sonner';
 import { LegalModal } from '@/components/legal-modal';
@@ -49,10 +49,27 @@ export default function LoginPage() {
         return;
       }
 
-      const response = await api.post('/auth/login', formData);
-      const { user, accessToken } = response.data.data;
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
 
-      login(user, accessToken);
+      if (signInError) throw signInError;
+
+      // Extract user info to match our store structure
+      const user = data.user;
+      if (!user) throw new Error('No user data returned');
+
+      const userData = {
+        id: user.id,
+        name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+        email: user.email!,
+        phone: user.user_metadata?.phone,
+        role: (user.user_metadata?.role as UserRole) || 'user',
+        avatar: user.user_metadata?.avatar_url,
+      };
+
+      login(userData, data.session.access_token);
       toast.success('Successfully logged in', { icon: '✨' });
       
       const urlParams = new URLSearchParams(window.location.search);
@@ -61,7 +78,7 @@ export default function LoginPage() {
 
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.message || err.message || 'Invalid credentials');
+      setError(err.message || 'Invalid credentials');
     } finally {
       setLoading(false);
     }

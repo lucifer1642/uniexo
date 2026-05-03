@@ -29,6 +29,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import { supabase } from '@/lib/supabase';
 import { KycUploadDialog } from './kyc-upload-dialog';
 
 const SERVICE_LINKS = [
@@ -58,16 +59,20 @@ export function GlobalProfileSidebar() {
 
   if (!user) return null;
 
+  const [logoutLoading, setLogoutLoading] = useState(false);
+
   const handleLogout = async () => {
     try {
-      await api.post('/auth/logout');
+      setLogoutLoading(true);
+      await supabase.auth.signOut();
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
       logout();
-      toast.success('Logged out successfully');
+      setLogoutLoading(false);
       onClose();
-      router.push('/login');
+      router.push('/');
+      toast.success('Logged out successfully', { icon: '👋' });
     }
   };
 

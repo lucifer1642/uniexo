@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useAuthStore } from '@/store/auth.store';
+import { supabase } from '@/lib/supabase';
 
 /**
  * All API calls go to /api/v1 (relative).
@@ -36,13 +37,13 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !original._retry && !isAuthRoute) {
       original._retry = true;
       try {
-        const res = await axios.post(`${baseURL}/auth/refresh`, {}, { withCredentials: true });
-        const newToken = res.data?.data?.accessToken ?? res.data?.accessToken;
-        if (newToken) {
-          useAuthStore.setState({ token: newToken });
-          original.headers.Authorization = `Bearer ${newToken}`;
-          return api(original);
-        }
+        const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError || !session) throw new Error('Refresh failed');
+        
+        const newToken = session.access_token;
+        useAuthStore.setState({ token: newToken });
+        original.headers.Authorization = `Bearer ${newToken}`;
+        return api(original);
       } catch {
         useAuthStore.getState().logout();
         if (typeof window !== 'undefined') window.location.href = '/login';

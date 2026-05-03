@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { api } from '@/lib/api';
+import { supabase } from '@/lib/supabase';
 import { AuthRedirectWrapper } from '@/components/auth-redirect-wrapper';
 import { toast } from 'sonner';
 
@@ -18,7 +18,6 @@ function ResetPasswordForm() {
   
   const [formData, setFormData] = useState({
     email: '',
-    otp: '',
     newPassword: '',
   });
 
@@ -27,6 +26,13 @@ function ResetPasswordForm() {
     if (emailParam) {
       setFormData(prev => ({ ...prev, email: emailParam }));
     }
+    
+    // Check if we have an active session from the recovery link
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        setError('No active recovery session. Please request a new reset link.');
+      }
+    });
   }, [searchParams]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,12 +46,18 @@ function ResetPasswordForm() {
     setError('');
     
     try {
-      await api.post('/auth/reset-password', formData);
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: formData.newPassword
+      });
+
+      if (updateError) throw updateError;
+
       toast.success('Password reset successfully! Please login with your new password.');
+      await supabase.auth.signOut(); // Sign out the recovery session
       router.push('/login');
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.message || err.message || 'Failed to reset password');
+      setError(err.message || 'Failed to reset password');
     } finally {
       setLoading(false);
     }
@@ -64,21 +76,6 @@ function ResetPasswordForm() {
             disabled
             className="h-12 bg-white/[0.05] border-white/10 text-zinc-500 rounded-xl cursor-not-allowed"
             value={formData.email}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="otp" className="text-zinc-300 text-sm font-medium ml-1">Reset OTP</Label>
-          <Input
-            id="otp"
-            name="otp"
-            type="text"
-            required
-            className="h-12 tracking-[0.5em] text-center text-xl font-bold bg-white/[0.05] border-white/10 text-lime-400 focus:border-lime-500/50 focus:ring-lime-500/20 rounded-xl"
-            placeholder="000000"
-            maxLength={6}
-            value={formData.otp}
-            onChange={handleChange}
           />
         </div>
 

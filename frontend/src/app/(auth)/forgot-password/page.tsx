@@ -7,7 +7,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { api } from '@/lib/api';
+import { supabase } from '@/lib/supabase';
 import { AuthRedirectWrapper } from '@/components/auth-redirect-wrapper';
 import { toast } from 'sonner';
 
@@ -29,13 +29,17 @@ export default function ForgotPasswordPage() {
         return;
       }
 
-      await api.post('/auth/forgot-password', { email });
-      toast.success('OTP sent to your email');
-      router.push(`/reset-password?email=${encodeURIComponent(email)}`);
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (resetError) throw resetError;
+
+      toast.success('Password reset link sent to your email', { icon: '✉️' });
 
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.message || err.message || 'Failed to send OTP');
+      setError(err.message || 'Failed to send reset link');
     } finally {
       setLoading(false);
     }
