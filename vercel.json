@@ -10,10 +10,14 @@
       "use": "@vercel/node"
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/v1/(.*)",
-      "dest": "backend/src/app.ts"
+      "source": "/api/v1/:match*",
+      "destination": "backend/src/app.ts"
+    },
+    {
+      "source": "/:match*",
+      "destination": "frontend/:match*"
     }
   ]
 }
