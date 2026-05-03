@@ -9,5 +9,11 @@
       "src": "backend/src/app.ts",
       "use": "@vercel/node"
     }
+  ],
+  "routes": [
+    {
+      "src": "/api/v1/(.*)",
+      "dest": "backend/src/app.ts"
+    }
   ]
 }
