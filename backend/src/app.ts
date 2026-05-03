@@ -26,10 +26,9 @@ if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
 // Gzip/Brotli all responses > 1KB. Reduces payload by 60-80%.
 // 10k users × 10KB avg response = 100MB → 20MB with compression.
 app.use(compression({
-  level: 6,      // Balance between speed and compression ratio
-  threshold: 1024, // Only compress responses > 1KB
-  filter: (req, res) => {
-    // Don't compress if client says no
+  level: 6,
+  threshold: 1024,
+  filter: (req: express.Request, res: express.Response) => {
     if (req.headers['x-no-compression']) return false;
     return compression.filter(req, res);
   },
