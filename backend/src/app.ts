@@ -12,9 +12,6 @@ import cron from 'node-cron';
 import { ReminderJob } from './jobs/reminder.job';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 
-// Initialize Redis (auto-connects on import)
-import './config/redis';
-
 const app = express();
 
 // ─── Security ────────────────────────────────────────────

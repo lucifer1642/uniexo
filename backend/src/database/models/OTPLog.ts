@@ -6,6 +6,7 @@ export interface IOTPLog extends Document {
   otp: string;
   purpose: string;
   isUsed: boolean;
+  userData?: Record<string, unknown>;
   expiresAt: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -17,6 +18,7 @@ const otpLogSchema = new Schema<IOTPLog>(
     otp: { type: String, required: true },
     purpose: { type: String, required: true },
     isUsed: { type: Boolean, default: false },
+    userData: { type: Schema.Types.Mixed },
     expiresAt: { type: Date, required: true, index: { expires: 0 } },
   },
   { timestamps: true },

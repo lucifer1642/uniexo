@@ -16,6 +16,7 @@ export interface IUser extends Document {
   idCardPhotoUrl?: string;
   universityId?: string;
   kycStatus: 'pending' | 'approved' | 'rejected' | 'none';
+  refreshToken?: string;
   bankDetails?: {
     accountHolder: string;
     accountNumber: string;
@@ -32,6 +33,7 @@ const userSchema = new Schema<IUser>(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     phone: { type: String, required: true, trim: true },
     password: { type: String, required: true, select: false },
+    refreshToken: { type: String, select: false },
     role: { type: String, enum: Object.values(UserRole), default: UserRole.USER },
     isEmailVerified: { type: Boolean, default: false },
     isSuspended: { type: Boolean, default: false },

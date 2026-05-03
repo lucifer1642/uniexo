@@ -1,8 +1,8 @@
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
-import { redis } from '../config/redis';
 import { logger } from '../config/logger';
 import { JWTPayload } from '../types';
+import { User, BlacklistedToken } from '../database/models';
 
 export class TokenService {
   static generateAccessToken(payload: JWTPayload): string {
@@ -37,50 +37,48 @@ export class TokenService {
 
   static async blacklistToken(token: string, expiresInSeconds: number): Promise<void> {
     try {
-      await redis.set(`bl:${token}`, '1', 'EX', expiresInSeconds);
+      await BlacklistedToken.create({
+        token,
+        expiresAt: new Date(Date.now() + expiresInSeconds * 1000),
+      });
     } catch (err) {
-      logger.warn(
-        'Redis blacklistToken failed; revoke listing unavailable until REDIS_URL is configured',
-        err,
-      );
+      logger.warn('Failed to blacklist token in DB', err);
     }
   }
 
   static async isTokenBlacklisted(token: string): Promise<boolean> {
     try {
-      const result = await redis.get(`bl:${token}`);
+      const result = await BlacklistedToken.findOne({ token });
       return result !== null;
     } catch (err) {
-      logger.warn('Redis isTokenBlacklisted failed; treating token as not blacklisted', err);
+      logger.warn('Failed to check token blacklist in DB; treating as not blacklisted', err);
       return false;
     }
   }
 
   static async storeRefreshToken(userId: string, token: string): Promise<void> {
     try {
-      await redis.set(`rt:${userId}`, token, 'EX', 7 * 24 * 60 * 60);
+      await User.findByIdAndUpdate(userId, { refreshToken: token });
     } catch (err) {
-      logger.warn(
-        'Redis storeRefreshToken failed; login still succeeds but set REDIS_URL (e.g. Upstash) for refresh rotation',
-        err,
-      );
+      logger.warn('Failed to store refresh token in User document', err);
     }
   }
 
   static async getStoredRefreshToken(userId: string): Promise<string | null> {
     try {
-      return await redis.get(`rt:${userId}`);
+      const user = await User.findById(userId).select('+refreshToken');
+      return user?.refreshToken || null;
     } catch (err) {
-      logger.warn('Redis getStoredRefreshToken failed', err);
+      logger.warn('Failed to get stored refresh token', err);
       return null;
     }
   }
 
   static async removeRefreshToken(userId: string): Promise<void> {
     try {
-      await redis.del(`rt:${userId}`);
+      await User.findByIdAndUpdate(userId, { $unset: { refreshToken: 1 } });
     } catch (err) {
-      logger.warn('Redis removeRefreshToken failed', err);
+      logger.warn('Failed to remove refresh token from User document', err);
     }
   }
 }

@@ -16,6 +16,7 @@ export { OTPLog } from './OTPLog';
 export { AdminSettings } from './AdminSettings';
 export { KycRequest } from './KycRequest';
 export { Notification } from './Notification';
+export { BlacklistedToken } from './BlacklistedToken';
 
 export type { IUser } from './User';
 export type { IVendorProfile } from './VendorProfile';
@@ -35,3 +36,4 @@ export type { IOTPLog } from './OTPLog';
 export type { IAdminSettings } from './AdminSettings';
 export type { IKycRequest } from './KycRequest';
 export type { INotification } from './Notification';
+export type { IBlacklistedToken } from './BlacklistedToken';

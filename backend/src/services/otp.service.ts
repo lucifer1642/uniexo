@@ -1,22 +1,13 @@
-import { redis } from '../config/redis';
 import { generateOTP } from '../utils/helpers';
 import { OTPLog } from '../database/models';
 import { logger } from '../config/logger';
 import { EmailService } from './email.service';
-import { ServiceUnavailableError } from '../utils/errors';
 
 const OTP_EXPIRY_SECONDS = 300; // 5 minutes (TTL)
-const OTP_PREFIX = 'otp';
-
-function redisUnavailable(): ServiceUnavailableError {
-  return new ServiceUnavailableError(
-    'Verification requires Redis. Add REDIS_URL (e.g. Upstash) to your backend environment.',
-  );
-}
 
 export class OTPService {
   /**
-   * Generates a secure random OTP, stores it in Redis with TTL, 
+   * Generates a secure random OTP, stores it in MongoDB with TTL, 
    * and automatically sends it to the user's email.
    */
   static async generateAndSend(
@@ -24,32 +15,20 @@ export class OTPService {
     purpose: string,
     userData?: Record<string, unknown>
   ): Promise<string> {
-    // 1. Generate secure OTP
     const otp = generateOTP(6);
-    const key = `${OTP_PREFIX}:${purpose}:${email}`;
 
-    // 2. Store in Redis for auto-expiry (Dynamic validation)
-    const data = JSON.stringify({ otp, email, purpose, userData });
-    try {
-      await redis.set(key, data, 'EX', OTP_EXPIRY_SECONDS);
-    } catch (err) {
-      logger.error('Redis OTP store failed (signup/resend)', err);
-      throw redisUnavailable();
-    }
-
-    // 3. Send via Email automatically - Fire and Forget for speed
-    EmailService.sendOTP(email, otp, purpose).catch(err => {
-      logger.error(`Background OTP Email Failure for ${email}:`, err);
-    });
-
-    // 4. Log for audit trails - Run in background as well
-    OTPLog.create({
+    // Store in DB
+    await OTPLog.create({
       email,
       otp,
       purpose,
+      userData,
       expiresAt: new Date(Date.now() + OTP_EXPIRY_SECONDS * 1000),
-    }).catch(err => {
-      logger.error(`Background OTP Log Failure for ${email}:`, err);
+    });
+
+    // Send via Email automatically - Fire and Forget for speed
+    EmailService.sendOTP(email, otp, purpose).catch(err => {
+      logger.error(`Background OTP Email Failure for ${email}:`, err);
     });
 
     logger.info(`OTP Engine: Triggered ${purpose} OTP to ${email}`);
@@ -67,31 +46,24 @@ export class OTPService {
     purpose: string,
     userData?: Record<string, unknown>,
   ): Promise<string> {
-    const otp = generateOTP();
-    const key = `${OTP_PREFIX}:${purpose}:${email}`;
+    const otp = generateOTP(6);
 
-    const data = JSON.stringify({ otp, email, purpose, userData });
-    try {
-      await redis.set(key, data, 'EX', OTP_EXPIRY_SECONDS);
-    } catch (err) {
-      logger.error('Redis OTP store failed', err);
-      throw redisUnavailable();
-    }
-
-    // Log OTP for audit
     await OTPLog.create({
       email,
       otp,
       purpose,
+      userData,
       expiresAt: new Date(Date.now() + OTP_EXPIRY_SECONDS * 1000),
     });
 
     logger.info(`OTP generated for ${email} (${purpose})`);
-    console.log(`\n========== OTP ==========`);
-    console.log(`  Email  : ${email}`);
-    console.log(`  OTP    : ${otp}`);
-    console.log(`  Purpose: ${purpose}`);
-    console.log(`=========================\n`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`\n========== OTP ==========`);
+      console.log(`  Email  : ${email}`);
+      console.log(`  OTP    : ${otp}`);
+      console.log(`  Purpose: ${purpose}`);
+      console.log(`=========================\n`);
+    }
     return otp;
   }
 
@@ -100,48 +72,29 @@ export class OTPService {
     otp: string,
     purpose: string,
   ): Promise<{ valid: boolean; userData?: Record<string, unknown> }> {
-    const key = `${OTP_PREFIX}:${purpose}:${email}`;
-    let stored: string | null;
-    try {
-      stored = await redis.get(key);
-    } catch (err) {
-      logger.error('Redis OTP read failed', err);
-      throw redisUnavailable();
-    }
+    // Find the most recent unexpired, unused OTP for this email and purpose
+    const log = await OTPLog.findOne({
+      email,
+      purpose,
+      isUsed: false,
+      expiresAt: { $gt: new Date() }
+    }).sort({ createdAt: -1 });
 
-    if (!stored) {
+    if (!log || log.otp !== otp) {
       return { valid: false };
     }
 
-    const data = JSON.parse(stored);
-    if (data.otp !== otp) {
-      return { valid: false };
-    }
+    // Mark as used
+    log.isUsed = true;
+    await log.save();
 
-    try {
-      await redis.del(key);
-    } catch (err) {
-      logger.error('Redis OTP delete failed after verify', err);
-      throw redisUnavailable();
-    }
-
-    // Mark as used in log - Backgrounded for speed
-    OTPLog.findOneAndUpdate(
-      { email, otp, purpose, isUsed: false },
-      { isUsed: true },
-      { sort: { createdAt: -1 } },
-    ).catch(err => logger.error(`Verification log update failure for ${email}:`, err));
-
-    return { valid: true, userData: data.userData };
+    return { valid: true, userData: log.userData };
   }
 
   static async invalidate(email: string, purpose: string): Promise<void> {
-    const key = `${OTP_PREFIX}:${purpose}:${email}`;
-    try {
-      await redis.del(key);
-    } catch (err) {
-      logger.error('Redis OTP invalidate failed', err);
-      throw redisUnavailable();
-    }
+    await OTPLog.updateMany(
+      { email, purpose, isUsed: false },
+      { isUsed: true }
+    );
   }
 }
