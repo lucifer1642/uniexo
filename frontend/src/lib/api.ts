@@ -1,8 +1,28 @@
 import axios from 'axios';
 import { useAuthStore } from '@/store/auth.store';
 
-// In integrated mode, we use relative paths. Fallback to localhost:5000 for local dev if needed.
-const baseURL = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? '/api/v1' : 'http://localhost:5000/api/v1');
+/**
+ * API base (must end with /api/v1 for this client).
+ * - Production: set NEXT_PUBLIC_API_URL to the full base, or set BACKEND_URL on Vercel and use same-origin /api/v1 (rewrites in next.config).
+ * - Browser: relative /api/v1 when not using a public API URL (goes through Next rewrites if BACKEND_URL is set).
+ * - SSR on Vercel: use this deployment’s origin + /api/v1 so rewrites apply; local dev uses the Express server.
+ */
+function resolveApiBaseUrl(): string {
+  const explicit = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (explicit) {
+    return explicit.replace(/\/$/, '');
+  }
+  if (typeof window !== 'undefined') {
+    return '/api/v1';
+  }
+  const vercel = process.env.VERCEL_URL;
+  if (vercel) {
+    return `https://${vercel}/api/v1`;
+  }
+  return 'http://localhost:5000/api/v1';
+}
+
+const baseURL = resolveApiBaseUrl();
 
 export const api = axios.create({
     baseURL,
