@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
 import { redis } from '../config/redis';
+import { logger } from '../config/logger';
 import { JWTPayload } from '../types';
 
 export class TokenService {
@@ -35,24 +36,51 @@ export class TokenService {
   }
 
   static async blacklistToken(token: string, expiresInSeconds: number): Promise<void> {
-    await redis.set(`bl:${token}`, '1', 'EX', expiresInSeconds);
+    try {
+      await redis.set(`bl:${token}`, '1', 'EX', expiresInSeconds);
+    } catch (err) {
+      logger.warn(
+        'Redis blacklistToken failed; revoke listing unavailable until REDIS_URL is configured',
+        err,
+      );
+    }
   }
 
   static async isTokenBlacklisted(token: string): Promise<boolean> {
-    const result = await redis.get(`bl:${token}`);
-    return result !== null;
+    try {
+      const result = await redis.get(`bl:${token}`);
+      return result !== null;
+    } catch (err) {
+      logger.warn('Redis isTokenBlacklisted failed; treating token as not blacklisted', err);
+      return false;
+    }
   }
 
   static async storeRefreshToken(userId: string, token: string): Promise<void> {
-    // Store refresh token with 7 days expiry
-    await redis.set(`rt:${userId}`, token, 'EX', 7 * 24 * 60 * 60);
+    try {
+      await redis.set(`rt:${userId}`, token, 'EX', 7 * 24 * 60 * 60);
+    } catch (err) {
+      logger.warn(
+        'Redis storeRefreshToken failed; login still succeeds but set REDIS_URL (e.g. Upstash) for refresh rotation',
+        err,
+      );
+    }
   }
 
   static async getStoredRefreshToken(userId: string): Promise<string | null> {
-    return redis.get(`rt:${userId}`);
+    try {
+      return await redis.get(`rt:${userId}`);
+    } catch (err) {
+      logger.warn('Redis getStoredRefreshToken failed', err);
+      return null;
+    }
   }
 
   static async removeRefreshToken(userId: string): Promise<void> {
-    await redis.del(`rt:${userId}`);
+    try {
+      await redis.del(`rt:${userId}`);
+    } catch (err) {
+      logger.warn('Redis removeRefreshToken failed', err);
+    }
   }
 }

@@ -198,8 +198,9 @@ export class AuthService {
       const decoded = TokenService.verifyRefreshToken(refreshToken);
       const storedToken = await TokenService.getStoredRefreshToken(decoded.userId);
 
-      if (!storedToken || storedToken !== refreshToken) {
-        // Possible token reuse attack – invalidate all tokens
+      // When Redis is unavailable or login never persisted refresh (no REDIS_URL), storedToken is null:
+      // trust JWT verification only. When Redis has a value, enforce rotation / reuse detection.
+      if (storedToken != null && storedToken !== refreshToken) {
         await TokenService.removeRefreshToken(decoded.userId);
         throw new UnauthorizedError('Token reuse detected');
       }

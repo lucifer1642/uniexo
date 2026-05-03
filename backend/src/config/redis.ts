@@ -2,6 +2,16 @@ import Redis, { RedisOptions } from 'ioredis';
 import { env } from './env';
 import { logger } from './logger';
 
+if (
+  process.env.VERCEL === '1' &&
+  !env.REDIS_URL &&
+  env.USE_MOCK_REDIS !== 'true'
+) {
+  logger.warn(
+    'REDIS_URL is not set on Vercel: OTP/signup flows need Redis; login uses JWT-only fallback until you add REDIS_URL (e.g. Upstash).',
+  );
+}
+
 const redisOptions: RedisOptions = env.REDIS_URL ?
   (env.REDIS_URL.startsWith('rediss://') ? { tls: { rejectUnauthorized: false }, maxRetriesPerRequest: 3, enableOfflineQueue: false, commandTimeout: 5000 } : { maxRetriesPerRequest: 3, enableOfflineQueue: false, commandTimeout: 5000 })
   : {

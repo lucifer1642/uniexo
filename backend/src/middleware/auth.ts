@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env';
-import { redis } from '../config/redis';
 import { AuthRequest, JWTPayload } from '../types';
 import { UnauthorizedError } from '../utils/errors';
+import { TokenService } from '../services/token.service';
 
 export const authenticate = async (
   req: Request,
@@ -18,9 +18,7 @@ export const authenticate = async (
 
     const token = authHeader.split(' ')[1];
 
-    // Check if token is blacklisted
-    const isBlacklisted = await redis.get(`bl:${token}`);
-    if (isBlacklisted) {
+    if (await TokenService.isTokenBlacklisted(token)) {
       throw new UnauthorizedError('Token has been revoked');
     }
 
@@ -50,8 +48,7 @@ export const optionalAuth = async (
     }
 
     const token = authHeader.split(' ')[1];
-    const isBlacklisted = await redis.get(`bl:${token}`);
-    if (isBlacklisted) {
+    if (await TokenService.isTokenBlacklisted(token)) {
       return next();
     }
 
