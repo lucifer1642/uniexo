@@ -9,6 +9,7 @@ import {
   NotFoundError,
 } from '../../utils/errors';
 import { UserRole } from '../../types/enums';
+import { logger } from '../../config/logger';
 
 export class AuthService {
   private authRepo: AuthRepository;
@@ -36,14 +37,26 @@ export class AuthService {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
-    await this.authRepo.createOTP({
-      email: data.email,
-      otp,
-      purpose: 'signup',
-      userData: { ...data, password: hashedPassword }
-    });
+    try {
+      await this.authRepo.createOTP({
+        email: data.email,
+        otp,
+        purpose: 'signup',
+        userData: { ...data, password: hashedPassword }
+      });
+      logger.info(`OTP created in DB for ${data.email}`);
+    } catch (error) {
+      logger.error('Failed to create OTP in DB', error);
+      throw error;
+    }
 
-    await EmailService.sendOTP(data.email, otp, 'signup');
+    try {
+      await EmailService.sendOTP(data.email, otp, 'signup');
+      logger.info(`OTP email sent to ${data.email}`);
+    } catch (error) {
+      logger.error('Failed to send OTP email', error);
+      throw error;
+    }
   }
 
   async verifySignupOTP(email: string, otp: string): Promise<{
