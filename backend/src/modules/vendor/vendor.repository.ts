@@ -1,47 +1,132 @@
-import { VendorProfile, IVendorProfile, User } from '../../database/models';
+import { supabase } from '../../config/supabase';
 import { VendorApprovalStatus } from '../../types/enums';
-
 import { PaginationQuery } from '../../types';
-import { paginate } from '../../utils/pagination';
 
 export class VendorRepository {
-  async create(data: Partial<IVendorProfile>): Promise<IVendorProfile> {
-    return VendorProfile.create(data);
+  async create(data: any): Promise<any> {
+    const { data: profile, error } = await supabase
+      .from('vendor_profiles')
+      .insert({
+        user_id: data.userId,
+        business_name: data.businessName,
+        business_address: data.businessAddress,
+        business_phone: data.businessPhone,
+        service_type: data.serviceType,
+        description: data.description,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return profile;
   }
 
-  async findByUserId(userId: string): Promise<IVendorProfile | null> {
-    return VendorProfile.findOne({ userId }).populate('userId', 'name email phone').exec();
+  async findByUserId(userId: string): Promise<any | null> {
+    const { data, error } = await supabase
+      .from('vendor_profiles')
+      .select('*, profiles(name, email, phone)')
+      .eq('user_id', userId)
+      .single();
+    
+    if (error) return null;
+    return data;
   }
 
-  async findById(id: string): Promise<IVendorProfile | null> {
-    return VendorProfile.findById(id).populate('userId', 'name email phone').exec();
+  async findById(id: string): Promise<any | null> {
+    const { data, error } = await supabase
+      .from('vendor_profiles')
+      .select('*, profiles(name, email, phone)')
+      .eq('id', id)
+      .single();
+    
+    if (error) return null;
+    return data;
   }
 
-  async updateProfile(userId: string, data: Partial<IVendorProfile>): Promise<IVendorProfile | null> {
-    return VendorProfile.findOneAndUpdate({ userId }, data, { new: true }).exec();
+  async updateProfile(userId: string, data: any): Promise<any | null> {
+    const { data: profile, error } = await supabase
+      .from('vendor_profiles')
+      .update({
+        business_name: data.businessName,
+        business_address: data.businessAddress,
+        business_phone: data.businessPhone,
+        description: data.description,
+        service_type: data.serviceType,
+      })
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error) return null;
+    return profile;
   }
 
   async updateApproval(
     id: string,
     status: VendorApprovalStatus,
     rejectionReason?: string,
-  ): Promise<IVendorProfile | null> {
-    return VendorProfile.findByIdAndUpdate(
-      id,
-      { approvalStatus: status, rejectionReason },
-      { new: true },
-    ).exec();
+  ): Promise<any | null> {
+    const { data, error } = await supabase
+      .from('vendor_profiles')
+      .update({
+        approval_status: status,
+        rejection_reason: rejectionReason,
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) return null;
+    return data;
   }
 
   async findAll(filter: Record<string, any>, query: PaginationQuery) {
-    return paginate(VendorProfile, filter, query, { path: 'userId', select: 'name email phone' });
+    const skip = (query.page - 1) * query.limit;
+    let baseQuery = supabase
+      .from('vendor_profiles')
+      .select('*, profiles(name, email, phone)', { count: 'exact' });
+
+    if (filter.approvalStatus) {
+      baseQuery = baseQuery.eq('approval_status', filter.approvalStatus);
+    }
+
+    const { data, error, count } = await baseQuery
+      .range(skip, skip + query.limit - 1)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return {
+      data,
+      pagination: {
+        total: count || 0,
+        page: query.page,
+        limit: query.limit,
+        pages: Math.ceil((count || 0) / query.limit),
+      },
+    };
   }
 
-  async updateDocuments(id: string, documents: string[]): Promise<IVendorProfile | null> {
-    return VendorProfile.findByIdAndUpdate(
-      id,
-      { $push: { documents: { $each: documents } } },
-      { new: true },
-    ).exec();
+  async getKPIs(vendorId: string): Promise<any | null> {
+    const { data, error } = await supabase
+      .from('vendor_kpis')
+      .select('*')
+      .eq('vendor_id', vendorId)
+      .single();
+    
+    if (error) return null;
+    return data;
+  }
+
+  async updateDocuments(id: string, documents: string[]): Promise<any | null> {
+    const { data, error } = await supabase
+      .from('vendor_profiles')
+      .update({ documents })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) return null;
+    return data;
   }
 }

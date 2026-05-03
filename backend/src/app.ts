@@ -4,7 +4,6 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { env } from './config/env';
 import { logger } from './config/logger';
-import { connectDatabase } from './database/connection';
 import { globalLimiter } from './middleware/rateLimiter';
 import { errorHandler, notFoundHandler } from './middleware/error';
 import routes from './routes';
@@ -62,18 +61,6 @@ app.get('/health', (_req, res) => {
   });
 });
 
-// Vercel serverless: await MongoDB before /api/v1 (queries used to run before connect finished)
-if (process.env.VERCEL) {
-  app.use('/api/v1', async (_req, _res, next) => {
-    try {
-      await connectDatabase();
-      next();
-    } catch (err) {
-      next(err);
-    }
-  });
-}
-
 app.use('/api/v1', routes);
 
 // ─── Frontend Proxy (Integrated Mode) ────────────────────
@@ -103,8 +90,6 @@ app.use(errorHandler);
 // ─── Start Server ────────────────────────────────────────
 const startServer = async () => {
   try {
-    await connectDatabase();
-
     // Only listen if not running on Vercel
     if (!process.env.VERCEL) {
       app.listen(env.PORT, () => {

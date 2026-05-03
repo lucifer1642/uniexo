@@ -100,118 +100,36 @@ export class VendorService {
   }
 
   async getDashboardStats(userId: string) {
-    const profile = await this.vendorRepo.findByUserId(userId);
-    if (!profile) throw new NotFoundError('Vendor profile not found');
-
-    const vendorBookings = await Booking.find({ vendorId: userId });
-
-    const totalOrders = vendorBookings.length;
-    const pendingOrders = vendorBookings.filter(b => b.status === 'pending').length;
-    const completedOrders = vendorBookings.filter(b => b.status === 'completed').length;
-    const revenue = vendorBookings
-      .filter(b => b.status === 'completed')
-      .reduce((sum, b) => sum + (b.totalAmount - (b.commissionAmount || 0)), 0);
-
-    const totalVehicles = await Vehicle.countDocuments({ vendorId: userId });
-    const totalHouses = await House.countDocuments({ vendorId: userId });
+    const kpis = await this.vendorRepo.getKPIs(userId);
+    if (!kpis) throw new NotFoundError('Vendor analytics not found');
 
     return {
-      totalOrders,
-      pendingOrders,
-      completedOrders,
-      revenue,
+      totalOrders: kpis.total_bookings,
+      pendingOrders: kpis.pending_bookings,
+      completedOrders: kpis.completed_bookings,
+      revenue: kpis.net_earnings,
       traffic: 0,
-      totalVehicles,
-      totalHouses,
-      status: profile.approvalStatus,
+      totalVehicles: kpis.vehicle_count,
+      totalHouses: kpis.house_count,
+      status: kpis.approval_status,
     };
   }
 
   // ─── ANALYTICS: OVERVIEW KPI ─────────────────────────────────────────
   async getAnalyticsOverview(userId: string) {
-    const profile = await this.vendorRepo.findByUserId(userId);
-    if (!profile) throw new NotFoundError('Vendor profile not found');
-
-    const allBookings = await Booking.find({ vendorId: userId });
-    const confirmedBookings = allBookings.filter(b =>
-      b.status === BookingStatus.CONFIRMED || b.status === BookingStatus.COMPLETED
-    );
-    const completedBookings = allBookings.filter(b => b.status === BookingStatus.COMPLETED);
-    const pendingBookings = allBookings.filter(b => b.status === BookingStatus.PENDING);
-    const cancelledBookings = allBookings.filter(b => b.status === BookingStatus.CANCELLED);
-
-    const totalRevenue = confirmedBookings.reduce((s, b) => s + b.totalAmount, 0);
-    const totalCommission = confirmedBookings.reduce((s, b) => s + (b.commissionAmount || 0), 0);
-    const netEarnings = totalRevenue - totalCommission;
-
-    // Month-over-month revenue
-    const now = new Date();
-    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-
-    const thisMonthRevenue = confirmedBookings
-      .filter(b => new Date(b.createdAt) >= thisMonthStart)
-      .reduce((s, b) => s + b.totalAmount, 0);
-    const lastMonthRevenue = confirmedBookings
-      .filter(b => new Date(b.createdAt) >= lastMonthStart && new Date(b.createdAt) <= lastMonthEnd)
-      .reduce((s, b) => s + b.totalAmount, 0);
-
-    const momGrowth = lastMonthRevenue === 0
-      ? (thisMonthRevenue > 0 ? 100 : 0)
-      : parseFloat((((thisMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100).toFixed(1));
-
-    const conversionRate = allBookings.length === 0
-      ? 0
-      : parseFloat(((confirmedBookings.length / allBookings.length) * 100).toFixed(1));
-
-    const avgBookingValue = confirmedBookings.length === 0
-      ? 0
-      : parseFloat((totalRevenue / confirmedBookings.length).toFixed(2));
-
-    // Today's bookings
-    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-    const bookingsToday = allBookings.filter(b => new Date(b.createdAt) >= todayStart).length;
-
-    // Laundry orders if vendor has laundry service
-    const laundryService = await LaundryService.findOne({ vendorId: userId, isDeleted: false });
-    let laundryRevenue = 0;
-    let totalLaundryOrders = 0;
-    if (laundryService) {
-      const laundryOrders = await Order.find({ laundryServiceId: laundryService._id });
-      totalLaundryOrders = laundryOrders.length;
-      laundryRevenue = laundryOrders
-        .filter(o => o.status !== OrderStatus.CANCELLED)
-        .reduce((s, o) => s + (o.totalAmount - (o.commissionAmount || 0)), 0);
-    }
-
-    // Vehicles & Houses
-    const totalVehicles = await Vehicle.countDocuments({ vendorId: userId, isDeleted: false });
-    const totalHouses = await House.countDocuments({ vendorId: userId, isDeleted: false });
-    const availableVehicles = await Vehicle.countDocuments({ vendorId: userId, currentStatus: 'available', isDeleted: false });
-    const dispatchedVehicles = await Vehicle.countDocuments({ vendorId: userId, currentStatus: 'dispatched', isDeleted: false });
+    const kpis = await this.vendorRepo.getKPIs(userId);
+    if (!kpis) throw new NotFoundError('Vendor analytics not found');
 
     return {
-      totalRevenue,
-      totalCommission,
-      netEarnings: netEarnings + laundryRevenue,
-      totalBookings: allBookings.length,
-      confirmedBookings: confirmedBookings.length,
-      completedBookings: completedBookings.length,
-      pendingBookings: pendingBookings.length,
-      cancelledBookings: cancelledBookings.length,
-      conversionRate,
-      avgBookingValue,
-      momGrowth,
-      bookingsToday,
-      totalVehicles,
-      totalHouses,
-      availableVehicles,
-      dispatchedVehicles,
-      totalLaundryOrders,
-      laundryRevenue,
-      vendorStatus: profile.approvalStatus,
-      serviceType: profile.serviceType,
+      totalRevenue: kpis.gross_revenue,
+      netEarnings: kpis.net_earnings,
+      totalBookings: kpis.total_bookings,
+      confirmedBookings: kpis.confirmed_bookings,
+      completedBookings: kpis.completed_bookings,
+      pendingBookings: kpis.pending_bookings,
+      totalVehicles: kpis.vehicle_count,
+      totalHouses: kpis.house_count,
+      vendorStatus: kpis.approval_status,
     };
   }
 

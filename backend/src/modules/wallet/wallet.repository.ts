@@ -1,25 +1,62 @@
-import { Wallet, IWallet, Transaction, ITransaction } from '../../database/models';
+import { supabase } from '../../config/supabase';
 import { PaginationQuery } from '../../types';
-import { paginate } from '../../utils/pagination';
 
 export class WalletRepository {
-  async findByUserId(userId: string): Promise<IWallet | null> {
-    return Wallet.findOne({ userId }).exec();
+  async findByUserId(userId: string): Promise<any | null> {
+    const { data, error } = await supabase
+      .from('wallets')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+    
+    if (error) return null;
+    return data;
   }
 
-  async getOrCreate(userId: string): Promise<IWallet> {
-    let wallet = await Wallet.findOne({ userId }).exec();
-    if (!wallet) {
-      wallet = await Wallet.create({ userId });
-    }
+  async getOrCreate(userId: string): Promise<any> {
+    const { data: existing, error: findError } = await supabase
+      .from('wallets')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (!findError && existing) return existing;
+
+    const { data: wallet, error: insertError } = await supabase
+      .from('wallets')
+      .insert({ user_id: userId })
+      .select()
+      .single();
+
+    if (insertError) throw insertError;
     return wallet;
   }
 
   async getTransactions(walletId: string, query: PaginationQuery) {
-    return paginate(Transaction, { walletId }, query);
+    const skip = (query.page - 1) * query.limit;
+    const { data, error, count } = await supabase
+      .from('transactions')
+      .select('*', { count: 'exact' })
+      .eq('wallet_id', walletId)
+      .range(skip, skip + query.limit - 1)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return {
+      data,
+      pagination: {
+        total: count || 0,
+        page: query.page,
+        limit: query.limit,
+        pages: Math.ceil((count || 0) / query.limit),
+      },
+    };
   }
 
   async getUserTransactions(userId: string, query: PaginationQuery) {
-    return paginate(Transaction, { userId }, query);
+    const wallet = await this.findByUserId(userId);
+    if (!wallet) return { data: [], pagination: { total: 0, page: 1, limit: query.limit, pages: 0 } };
+    return this.getTransactions(wallet.id, query);
   }
 }

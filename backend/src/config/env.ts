@@ -29,7 +29,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(5000),
 
-  MONGODB_URI: z.string().min(1, 'MONGODB_URI is required'),
+  MONGODB_URI: z.string().optional(),
 
   REDIS_URL: z.string().optional(),
   REDIS_HOST: z.string().default('127.0.0.1'),
@@ -58,6 +58,9 @@ const envSchema = z.object({
   CLOUDINARY_API_SECRET: z.string().min(1),
 
   CLIENT_URL: z.string().url().default('http://localhost:3000'),
+
+  SUPABASE_URL: z.string().url(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
 
   DEFAULT_COMMISSION_PERCENT: z.coerce.number().min(0).max(100).default(10),
 });

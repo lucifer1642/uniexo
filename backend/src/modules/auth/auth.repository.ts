@@ -1,37 +1,60 @@
-import { User, IUser } from '../../database/models';
+import { supabase } from '../../config/supabase';
 import { UserRole } from '../../types/enums';
 
 export class AuthRepository {
-  async findByEmail(email: string, includePassword = false): Promise<IUser | null> {
-    const query = User.findOne({ email });
-    if (includePassword) {
-      query.select('+password');
-    }
-    return query.exec();
+  async findByEmail(email: string): Promise<any | null> {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('email', email.toLowerCase())
+      .single();
+    
+    if (error) return null;
+    return data;
   }
 
   async createUser(data: {
+    id: string;
     name: string;
     email: string;
     phone: string;
-    password: string;
     role?: UserRole;
-    isEmailVerified?: boolean;
     universityId?: string;
     location?: string;
-  }): Promise<IUser> {
-    return User.create(data);
+  }): Promise<any> {
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .insert({
+        id: data.id,
+        name: data.name,
+        email: data.email.toLowerCase(),
+        phone: data.phone,
+        role: data.role || UserRole.USER,
+        university_id: data.universityId,
+        location: data.location,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return profile;
   }
 
-  async updatePassword(userId: string, hashedPassword: string): Promise<void> {
-    await User.findByIdAndUpdate(userId, { password: hashedPassword });
+  async findById(userId: string): Promise<any | null> {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    if (error) return null;
+    return data;
   }
 
   async verifyEmail(userId: string): Promise<void> {
-    await User.findByIdAndUpdate(userId, { isEmailVerified: true });
-  }
-
-  async findById(userId: string): Promise<IUser | null> {
-    return User.findById(userId).exec();
+    await supabase
+      .from('profiles')
+      .update({ kyc_status: 'approved' })
+      .eq('id', userId);
   }
 }
