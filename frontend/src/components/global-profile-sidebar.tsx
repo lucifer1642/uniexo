@@ -175,6 +175,17 @@ export function GlobalProfileSidebar() {
 
         {/* Quick Navigation Links */}
         <div className="space-y-1 md:space-y-2 mb-8 md:mb-12">
+          {user?.role === 'admin' && (
+            <Link href="/admin" onClick={onClose} className="flex items-center justify-between p-3 md:p-4 rounded-xl md:rounded-2xl bg-lime-400/10 border border-lime-400/20 hover:bg-lime-400/20 transition-colors group tap-feedback">
+                <div className="flex items-center gap-3">
+                  <div className="p-1.5 md:p-2 rounded-lg md:rounded-xl bg-lime-400/20 text-lime-400">
+                      <LayoutGrid className="w-4 h-4" />
+                  </div>
+                  <span className="text-sm font-bold text-lime-400">Admin Panel</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-lime-400" />
+            </Link>
+          )}
           <Link href="/dashboard" onClick={onClose} className="flex items-center justify-between p-3 md:p-4 rounded-xl md:rounded-2xl hover:bg-white/[0.05] transition-colors group tap-feedback">
               <div className="flex items-center gap-3">
                 <div className="p-1.5 md:p-2 rounded-lg md:rounded-xl bg-white/[0.03] text-zinc-400 group-hover:text-lime-400 transition-colors">

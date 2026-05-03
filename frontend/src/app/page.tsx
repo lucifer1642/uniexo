@@ -21,6 +21,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuthStore } from '@/store/auth.store';
 import { Dashboard } from '@/components/dashboard';
+import { useRouter } from 'next/navigation';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -931,14 +932,21 @@ function Landing() {
 }
 
 export default function Home() {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const [isClient, setIsClient] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    if (isAuthenticated && user?.role === 'admin') {
+      router.push('/admin');
+    }
+  }, [isAuthenticated, user, router]);
 
   if (!isClient) return null;
+
+  // If admin, we already started redirecting in useEffect, but to avoid flash:
+  if (isAuthenticated && user?.role === 'admin') return null;
 
   return isAuthenticated ? <Dashboard /> : <Landing />;
 }
