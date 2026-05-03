@@ -1,136 +1,326 @@
-import { MarketplaceItem, IMarketplaceItem, Message, IMessage, Offer, IOffer } from '../../database/models';
-
+import { supabase } from '../../config/supabase';
 import { PaginationQuery } from '../../types';
-import { paginate } from '../../utils/pagination';
 
 export class MarketplaceRepository {
-  async createItem(data: Partial<IMarketplaceItem>): Promise<IMarketplaceItem> {
-    return MarketplaceItem.create(data);
+  async createItem(data: any): Promise<any> {
+    const { data: item, error } = await supabase
+      .from('marketplace_items')
+      .insert({
+        seller_id: data.sellerId,
+        title: data.title,
+        description: data.description,
+        category: data.category,
+        price: data.price,
+        condition: data.condition,
+        images: data.images,
+        dynamic_fields: data.dynamicFields,
+        location: data.location,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return item;
   }
 
-  async findItemById(id: string): Promise<IMarketplaceItem | null> {
-    return MarketplaceItem.findById(id).populate('sellerId', 'name email phone').exec();
+  async findItemById(id: string): Promise<any | null> {
+    const { data, error } = await supabase
+      .from('marketplace_items')
+      .select('*, profiles:seller_id(name, email, phone)')
+      .eq('id', id)
+      .single();
+    
+    if (error) return null;
+    return data;
   }
 
-  async updateItem(id: string, data: Partial<IMarketplaceItem>): Promise<IMarketplaceItem | null> {
-    return MarketplaceItem.findByIdAndUpdate(id, data, { new: true }).exec();
+  async updateItem(id: string, data: any): Promise<any | null> {
+    const { data: item, error } = await supabase
+      .from('marketplace_items')
+      .update(data)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) return null;
+    return item;
   }
 
   async softDeleteItem(id: string): Promise<void> {
-    await MarketplaceItem.findByIdAndUpdate(id, { isDeleted: true });
+    await supabase
+      .from('marketplace_items')
+      .update({ is_deleted: true })
+      .eq('id', id);
   }
 
   async findAllItems(filter: Record<string, any>, query: PaginationQuery) {
-    return paginate(MarketplaceItem, filter, query, { path: 'sellerId', select: 'name email' });
+    const skip = (query.page - 1) * query.limit;
+    let baseQuery = supabase
+      .from('marketplace_items')
+      .select('*, profiles:seller_id(name, email)', { count: 'exact' })
+      .eq('is_deleted', false);
+
+    if (filter.category) baseQuery = baseQuery.eq('category', filter.category);
+    if (filter.isSold !== undefined) baseQuery = baseQuery.eq('is_sold', filter.isSold);
+
+    const { data, error, count } = await baseQuery
+      .range(skip, skip + query.limit - 1)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return {
+      data,
+      pagination: {
+        total: count || 0,
+        page: query.page,
+        limit: query.limit,
+        pages: Math.ceil((count || 0) / query.limit),
+      },
+    };
   }
 
   async findItemsByUser(userId: string, query: PaginationQuery) {
-    return paginate(MarketplaceItem, { sellerId: userId }, query);
-  }
+    const skip = (query.page - 1) * query.limit;
+    const { data, error, count } = await supabase
+      .from('marketplace_items')
+      .select('*', { count: 'exact' })
+      .eq('seller_id', userId)
+      .eq('is_deleted', false)
+      .range(skip, skip + query.limit - 1)
+      .order('created_at', { ascending: false });
 
-  async addImages(id: string, images: string[]): Promise<IMarketplaceItem | null> {
-    return MarketplaceItem.findByIdAndUpdate(
-      id,
-      { $push: { images: { $each: images } } },
-      { new: true },
-    ).exec();
-  }
+    if (error) throw error;
 
-  async reportItem(id: string, reason: string): Promise<IMarketplaceItem | null> {
-    return MarketplaceItem.findByIdAndUpdate(
-      id,
-      {
-        $inc: { reportCount: 1 },
-        $push: { reportReasons: reason },
-        $set: { isReported: true },
+    return {
+      data,
+      pagination: {
+        total: count || 0,
+        page: query.page,
+        limit: query.limit,
+        pages: Math.ceil((count || 0) / query.limit),
       },
-      { new: true },
-    ).exec();
+    };
+  }
+
+  async addImages(id: string, images: string[]): Promise<any | null> {
+    const { data: current } = await supabase.from('marketplace_items').select('images').eq('id', id).single();
+    const newImages = [...(current?.images || []), ...images];
+
+    const { data, error } = await supabase
+      .from('marketplace_items')
+      .update({ images: newImages })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) return null;
+    return data;
+  }
+
+  async reportItem(id: string, reason: string): Promise<any | null> {
+    // Supabase RPC or fetch-update
+    const { data: current } = await supabase.from('marketplace_items').select('report_count, report_reasons').eq('id', id).single();
+    const newReasons = [...(current?.report_reasons || []), reason];
+    
+    const { data, error } = await supabase
+      .from('marketplace_items')
+      .update({
+        report_count: (current?.report_count || 0) + 1,
+        report_reasons: newReasons,
+        is_reported: true,
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) return null;
+    return data;
   }
 
   // Messages
-  async createMessage(data: Partial<IMessage>): Promise<IMessage> {
-    return Message.create(data);
+  async createMessage(data: any): Promise<any> {
+    const { data: msg, error } = await supabase
+      .from('messages')
+      .insert({
+        sender_id: data.senderId,
+        receiver_id: data.receiverId,
+        content: data.content,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return msg;
   }
 
   async getConversation(userId1: string, userId2: string, itemId?: string, query?: PaginationQuery) {
-    const filter: Record<string, any> = {
-      $or: [
-        { senderId: userId1, receiverId: userId2 },
-        { senderId: userId2, receiverId: userId1 },
-      ],
+    const skip = (query?.page ? (query.page - 1) * query.limit : 0);
+    const limit = query?.limit || 50;
+
+    let baseQuery = supabase
+      .from('messages')
+      .select('*', { count: 'exact' })
+      .or(`and(sender_id.eq.${userId1},receiver_id.eq.${userId2}),and(sender_id.eq.${userId2},receiver_id.eq.${userId1})`);
+
+    const { data, error, count } = await baseQuery
+      .range(skip, skip + limit - 1)
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+
+    return {
+      data,
+      pagination: {
+        total: count || 0,
+        page: query?.page || 1,
+        limit,
+        pages: Math.ceil((count || 0) / limit),
+      },
     };
-    if (itemId) filter.itemId = itemId;
-    return paginate(Message, filter, query || { page: 1, limit: 50, sort: 'createdAt', order: 'asc' });
   }
 
   async getUserConversations(userId: string) {
-    return Message.aggregate([
-      {
-        $match: {
-          $or: [{ senderId: userId }, { receiverId: userId }],
-          isDeleted: false,
-        },
-      },
-      { $sort: { createdAt: -1 } },
-      {
-        $group: {
-          _id: {
-            $cond: [{ $eq: ['$senderId', userId] }, '$receiverId', '$senderId'],
-          },
-          lastMessage: { $first: '$$ROOT' },
-          unreadCount: {
-            $sum: {
-              $cond: [
-                { $and: [{ $eq: ['$receiverId', userId] }, { $eq: ['$isRead', false] }] },
-                1,
-                0,
-              ],
-            },
-          },
-        },
-      },
-      { $sort: { 'lastMessage.createdAt': -1 } },
-    ]);
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    // Group by other user in JS for now (Supabase RPC would be better)
+    const conversations = new Map();
+    data.forEach(msg => {
+      const otherId = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
+      if (!conversations.has(otherId)) {
+        conversations.set(otherId, {
+          lastMessage: msg,
+          unreadCount: (msg.receiver_id === userId && !msg.is_read) ? 1 : 0
+        });
+      } else if (msg.receiver_id === userId && !msg.is_read) {
+        conversations.get(otherId).unreadCount++;
+      }
+    });
+
+    return Array.from(conversations.entries()).map(([id, info]) => ({
+      _id: id,
+      ...info
+    }));
   }
 
   async markMessagesAsRead(senderId: string, receiverId: string): Promise<void> {
-    await Message.updateMany(
-      { senderId, receiverId, isRead: false },
-      { isRead: true },
-    );
+    await supabase
+      .from('messages')
+      .update({ is_read: true })
+      .eq('sender_id', senderId)
+      .eq('receiver_id', receiverId)
+      .eq('is_read', false);
   }
 
   // Offers
-  async createOffer(data: Partial<IOffer>): Promise<IOffer> {
-    return Offer.create(data);
+  async createOffer(data: any): Promise<any> {
+    const { data: offer, error } = await supabase
+      .from('offers')
+      .insert({
+        sender_id: data.senderId,
+        receiver_id: data.receiverId,
+        item_id: data.itemId,
+        amount: data.amount,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return offer;
   }
 
-  async findOfferById(id: string): Promise<IOffer | null> {
-    return Offer.findById(id).populate('itemId').populate('buyerId', 'name email phone').populate('sellerId', 'name email phone').exec();
+  async findOfferById(id: string): Promise<any | null> {
+    const { data, error } = await supabase
+      .from('offers')
+      .select('*, marketplace_items(*), profiles:sender_id(name, email, phone), receiver:receiver_id(name, email, phone)')
+      .eq('id', id)
+      .single();
+    
+    if (error) return null;
+    return data;
   }
 
-  async updateOfferStatus(id: string, status: string): Promise<IOffer | null> {
-    return Offer.findByIdAndUpdate(id, { status }, { new: true }).exec();
+  async updateOfferStatus(id: string, status: string): Promise<any | null> {
+    const { data, error } = await supabase
+      .from('offers')
+      .update({ status })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) return null;
+    return data;
   }
 
   async findOffersByBuyer(buyerId: string, query: PaginationQuery) {
-    return paginate(Offer, { buyerId }, query, [
-      { path: 'itemId', select: 'title price images category' },
-      { path: 'sellerId', select: 'name email phone' }
-    ]);
+    const skip = (query.page - 1) * query.limit;
+    const { data, error, count } = await supabase
+      .from('offers')
+      .select('*, marketplace_items(title, price, images, category), profiles:receiver_id(name, email, phone)', { count: 'exact' })
+      .eq('sender_id', buyerId)
+      .range(skip, skip + query.limit - 1)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return {
+      data,
+      pagination: {
+        total: count || 0,
+        page: query.page,
+        limit: query.limit,
+        pages: Math.ceil((count || 0) / query.limit),
+      },
+    };
   }
 
   async findOffersBySeller(sellerId: string, query: PaginationQuery) {
-    return paginate(Offer, { sellerId }, query, [
-      { path: 'itemId', select: 'title price images category' },
-      { path: 'buyerId', select: 'name email phone' }
-    ]);
+    const skip = (query.page - 1) * query.limit;
+    const { data, error, count } = await supabase
+      .from('offers')
+      .select('*, marketplace_items(title, price, images, category), profiles:sender_id(name, email, phone)', { count: 'exact' })
+      .eq('receiver_id', sellerId)
+      .range(skip, skip + query.limit - 1)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return {
+      data,
+      pagination: {
+        total: count || 0,
+        page: query.page,
+        limit: query.limit,
+        pages: Math.ceil((count || 0) / query.limit),
+      },
+    };
   }
 
   async findOffersForItem(itemId: string, query: PaginationQuery) {
-    return paginate(Offer, { itemId }, query, [
-      { path: 'buyerId', select: 'name email phone' }
-    ]);
+    const skip = (query.page - 1) * query.limit;
+    const { data, error, count } = await supabase
+      .from('offers')
+      .select('*, profiles:sender_id(name, email, phone)', { count: 'exact' })
+      .eq('item_id', itemId)
+      .range(skip, skip + query.limit - 1)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return {
+      data,
+      pagination: {
+        total: count || 0,
+        page: query.page,
+        limit: query.limit,
+        pages: Math.ceil((count || 0) / query.limit),
+      },
+    };
   }
 }
