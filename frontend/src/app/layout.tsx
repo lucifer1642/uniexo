@@ -6,6 +6,7 @@ import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Toaster } from "sonner";
 import { GlobalProfileSidebar } from "@/components/global-profile-sidebar";
+import { CacheManager } from "@/components/cache-manager";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,6 +34,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
         <Providers>
+          <CacheManager />
           <Navbar />
           <GlobalProfileSidebar />
           <main className="flex-1 flex flex-col">
