@@ -1,11 +1,18 @@
 import { Router } from 'express';
 import { AdminController } from './admin.controller';
+import { AnalyticsController } from './analytics.controller';
 import { authenticate } from '../../middleware/auth';
 import { isAdmin } from '../../middleware/rbac';
 
 const router = Router();
 
 router.use(authenticate, isAdmin);
+
+// Deep Analytics & KPIs
+router.get('/analytics/kpi', AnalyticsController.getKpiStats);
+router.get('/analytics/revenue', AnalyticsController.getRevenueTrends);
+router.get('/analytics/modules', AnalyticsController.getModuleInsights);
+router.get('/analytics/conversion', AnalyticsController.getConversionFunnel);
 
 router.get('/dashboard', AdminController.getDashboard);
 router.get('/users', AdminController.listUsers);

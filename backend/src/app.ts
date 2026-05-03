@@ -3,6 +3,7 @@ import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import compression from 'compression';
+import { createServer } from 'http';
 import { env } from './config/env';
 import { logger } from './config/logger';
 import { globalLimiter } from './middleware/rateLimiter';
@@ -12,19 +13,17 @@ import cron from 'node-cron';
 import { ReminderJob } from './jobs/reminder.job';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { connectDatabase } from './database/connection';
+import { NexusSocketService } from './services/nexus.socket';
 
 const app = express();
+const server = createServer(app);
 
-// ─── Trust Proxy (CRITICAL for Vercel/Cloudflare/any reverse proxy) ──
-// Required so rate-limiter uses the real client IP, not the proxy IP.
-// Without this, ALL users share a single rate-limit bucket → mass lockout.
+// ─── Trust Proxy ─────────────────────────────────────────
 if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
 }
 
 // ─── Response Compression ────────────────────────────────
-// Gzip/Brotli all responses > 1KB. Reduces payload by 60-80%.
-// 10k users × 10KB avg response = 100MB → 20MB with compression.
 app.use(compression({
   level: 6,
   threshold: 1024,
@@ -35,30 +34,20 @@ app.use(compression({
 }));
 
 // ─── Security Headers ────────────────────────────────────
-// Helmet sets ~15 security headers that prevent firewalls from
-// flagging the app as suspicious (X-Content-Type, CSP, HSTS, etc.)
 app.use(helmet({
-  // Relax CSP for API-only backend (no HTML served)
   contentSecurityPolicy: false,
-  // Allow cross-origin requests (needed for frontend on different domain)
   crossOriginResourcePolicy: { policy: 'cross-origin' },
-  // HSTS: tell browsers to always use HTTPS
   strictTransportSecurity: {
-    maxAge: 31536000, // 1 year
+    maxAge: 31536000,
     includeSubDomains: true,
   },
 }));
 
-// ─── CORS (Firewall-Friendly) ────────────────────────────
-// Properly configured CORS prevents firewalls from blocking
-// cross-origin requests. The OPTIONS preflight response includes
-// all necessary headers so corporate firewalls pass it through.
+// ─── CORS ────────────────────────────────────────────────
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, curl, health checks)
       if (!origin) return callback(null, true);
-
       const allowedOrigins = [
         env.CLIENT_URL,
         'http://localhost:3000',
@@ -68,8 +57,6 @@ app.use(
         'https://uniexo.in',
         'https://www.uniexo.in',
       ];
-
-      // Allow any vercel domain automatically
       if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
         callback(null, true);
       } else {
@@ -81,7 +68,7 @@ app.use(
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
     exposedHeaders: ['RateLimit-Limit', 'RateLimit-Remaining', 'RateLimit-Reset'],
-    maxAge: 86400, // Cache preflight for 24h — reduces OPTIONS requests by 99%
+    maxAge: 86400,
   }),
 );
 
@@ -93,20 +80,23 @@ app.use(cookieParser());
 // ─── Rate Limiting ───────────────────────────────────────
 app.use(globalLimiter);
 
-// ─── Health Check (bypasses rate limiter) ────────────────
+// ─── Health Check ────────────────────────────────────────
 app.get('/health', (_req, res) => {
   res.status(200).json({
     status: 'ok',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
+    nexus: {
+      activeUsers: NexusSocketService.getInstance().getActiveCount(),
+    }
   });
 });
 
 // ─── API Routes ──────────────────────────────────────────
 app.use('/api/v1', routes);
 
-// ─── Frontend Proxy (Integrated Mode / Local Dev Only) ───
+// ─── Frontend Proxy (Local Dev) ──────────────────────────
 if (!process.env.VERCEL) {
   app.use(
     '/',
@@ -119,7 +109,7 @@ if (!process.env.VERCEL) {
   );
 }
 
-// ─── Scheduled Jobs (long-running servers only; skip Vercel) ─
+// ─── Scheduled Jobs ──────────────────────────────────────
 if (!process.env.VERCEL) {
   cron.schedule('0 0 * * *', () => {
     ReminderJob.run();
@@ -134,10 +124,14 @@ app.use(errorHandler);
 const startServer = async () => {
   try {
     await connectDatabase();
+    
+    // Initialize Nexus Real-time Engine
+    NexusSocketService.getInstance().init(server);
+
     if (!process.env.VERCEL) {
-      app.listen(env.PORT, () => {
+      server.listen(env.PORT, () => {
         logger.info(`🚀 Server running on port ${env.PORT} in ${env.NODE_ENV} mode`);
-        logger.info(`📊 Rate limit: 500 req/15min per IP | DB pool: 50 connections`);
+        logger.info(`📊 Nexus Real-time Engine initialized`);
       });
     } else {
       logger.info('🚀 App initialized for Vercel Serverless environment');
@@ -153,7 +147,9 @@ const startServer = async () => {
 if (!process.env.VERCEL) {
   startServer();
 } else {
-  logger.info('🚀 App initialized for Vercel Serverless environment');
+  // On Vercel, we still need to call startServer to init DB/middleware
+  // but Vercel handles the actual listening
+  startServer();
 }
 
 export default app;

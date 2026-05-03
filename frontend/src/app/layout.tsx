@@ -8,6 +8,7 @@ import { Toaster } from "sonner";
 import { GlobalProfileSidebar } from "@/components/global-profile-sidebar";
 import { CacheManager } from "@/components/cache-manager";
 import { PushNotificationProvider } from "@/components/push-notification-provider";
+import { NexusProvider } from "@/components/providers/nexus-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,14 +36,16 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
         <Providers>
-          <CacheManager />
-          <Navbar />
-          <GlobalProfileSidebar />
-          <main className="flex-1 flex flex-col">
-            {children}
-          </main>
-          <Footer />
-          <PushNotificationProvider />
+          <NexusProvider>
+            <CacheManager />
+            <Navbar />
+            <GlobalProfileSidebar />
+            <main className="flex-1 flex flex-col">
+              {children}
+            </main>
+            <Footer />
+            <PushNotificationProvider />
+          </NexusProvider>
         </Providers>
         <Toaster 
           position="bottom-right" 

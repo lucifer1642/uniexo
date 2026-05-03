@@ -2,10 +2,9 @@
 
 import { useAdminDashboard } from '@/hooks/use-admin';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Users, Car, Home, ShoppingBag, PackageCheck, DollarSign, ShieldAlert, ClipboardList } from 'lucide-react';
+import { NexusDashboard } from '@/components/admin/nexus-dashboard';
 import Link from 'next/link';
-import type { Booking, Payment, User as UserType, DashboardData } from '@/types';
+import type { Booking, Payment, User as UserType } from '@/types';
 
 export default function AdminOverviewPage() {
   const { data, isLoading } = useAdminDashboard();
@@ -13,12 +12,12 @@ export default function AdminOverviewPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard Overview</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-white">Nexus Control</h1>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 8 }).map((_, i) => (
-            <Card key={i} className="p-6 animate-pulse">
-              <div className="h-4 bg-muted rounded w-24 mb-3" />
-              <div className="h-8 bg-muted rounded w-16" />
+            <Card key={i} className="p-6 animate-pulse bg-white/5 border-white/10">
+              <div className="h-4 bg-white/10 rounded w-24 mb-3" />
+              <div className="h-8 bg-white/10 rounded w-16" />
             </Card>
           ))}
         </div>
@@ -26,51 +25,12 @@ export default function AdminOverviewPage() {
     );
   }
 
-  const counts = data?.counts || ({} as Partial<DashboardData['counts']>);
-  const totalRevenue = data?.totalRevenue || 0;
-
-  const stats = [
-    { label: 'Total Users', value: counts.totalUsers || 0, icon: Users, color: 'text-blue-500', href: '/admin/users' },
-    { label: 'Total Vendors', value: counts.totalVendors || 0, icon: ShieldAlert, color: 'text-violet-500', href: '/admin/vendors' },
-    { label: 'Pending Vendors', value: counts.pendingVendors || 0, icon: ClipboardList, color: 'text-amber-500', href: '/admin/vendors' },
-    { label: 'Total Revenue', value: `₹${totalRevenue.toLocaleString()}`, icon: DollarSign, color: 'text-emerald-500', href: '/admin/payments' },
-    { label: 'Vehicles', value: counts.totalVehicles || 0, icon: Car, color: 'text-sky-500' },
-    { label: 'Houses', value: counts.totalHouses || 0, icon: Home, color: 'text-pink-500' },
-    { label: 'Marketplace Items', value: counts.totalMarketplaceItems || 0, icon: ShoppingBag, color: 'text-orange-500' },
-    { label: 'Total Bookings', value: counts.totalBookings || 0, icon: PackageCheck, color: 'text-teal-500', href: '/admin/bookings' },
-  ];
-
   const getUserName = (user: UserType | string | undefined) =>
     typeof user === 'object' && user !== null ? user.name : 'N/A';
-  const getUserEmail = (user: UserType | string | undefined) =>
-    typeof user === 'object' && user !== null ? user.email : '';
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-bold tracking-tight">Dashboard Overview</h1>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => {
-          const content = (
-            <Card key={stat.label} className="p-6 hover:shadow-md transition-shadow cursor-pointer">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-medium text-muted-foreground">{stat.label}</span>
-                <stat.icon className={`w-5 h-5 ${stat.color}`} />
-              </div>
-              <p className="text-2xl font-bold">{stat.value}</p>
-            </Card>
-          );
-
-          if (stat.href) {
-            return (
-              <Link key={stat.label} href={stat.href}>
-                {content}
-              </Link>
-            );
-          }
-          return <div key={stat.label}>{content}</div>;
-        })}
-      </div>
+      <NexusDashboard />
 
       {/* Recent Bookings */}
       {data?.recentBookings && data.recentBookings.length > 0 && (
