@@ -96,27 +96,41 @@ export class AuthService {
     refreshToken: string;
     user: any;
   }> {
+    logger.info(`Login attempt for ${email}`);
     const user = await this.authRepo.findByEmailWithPassword(email);
-    if (!user || !user.password) {
+    if (!user) {
+      logger.warn(`Login failed: User not found for ${email}`);
       throw new UnauthorizedError('Invalid email or password');
+    }
+
+    if (!user.password) {
+      logger.warn(`Login failed: No local password set for ${email}. User may need to reset password.`);
+      throw new UnauthorizedError('Please reset your password to migrate to the new login system');
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      logger.warn(`Login failed: Password mismatch for ${email}`);
       throw new UnauthorizedError('Invalid email or password');
     }
 
     const tokens = TokenService.generateTokenPair({
       userId: user.id,
       role: user.role,
-      email: user.email
+      email: user.email,
     });
 
     await this.authRepo.updateRefreshToken(user.id, tokens.refreshToken);
+    logger.info(`Login successful for ${email}`);
 
     return {
       ...tokens,
-      user
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      }
     };
   }
 

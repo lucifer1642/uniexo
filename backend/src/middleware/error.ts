@@ -36,6 +36,12 @@ export const errorHandler = (
     return;
   }
 
+  // Postgres / Supabase duplicate key error
+  if ((err as any).code === '23505') {
+    ResponseFormatter.conflict(res, 'A record with this information already exists');
+    return;
+  }
+
   // Mongoose cast error
   if (err.name === 'CastError') {
     ResponseFormatter.badRequest(res, 'Invalid ID format');
