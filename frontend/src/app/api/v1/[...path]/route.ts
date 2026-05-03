@@ -8,13 +8,22 @@ import { NextRequest, NextResponse } from 'next/server';
  * If not set, falls back to localhost:5000 (local dev).
  */
 
+const isProd = process.env.NODE_ENV === 'production';
 const BACKEND = (
   process.env.BACKEND_URL ||
   process.env.NEXT_PUBLIC_BACKEND_ORIGIN ||
-  'http://localhost:5000'
+  (isProd ? '' : 'http://localhost:5000')
 ).replace(/\/$/, '');
 
 async function handler(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
+  if (!BACKEND) {
+    console.error('[API Proxy] BACKEND_URL environment variable is missing in production.');
+    return NextResponse.json(
+      { success: false, message: 'Server Configuration Error: BACKEND_URL is not set.' },
+      { status: 500 }
+    );
+  }
+
   const { path } = await params;
   const targetUrl = `${BACKEND}/api/v1/${path.join('/')}${req.nextUrl.search}`;
 

@@ -6,8 +6,10 @@ import { useAuthStore } from '@/store/auth.store';
  * On Vercel: Next.js route at /api/v1/[...path]/route.ts proxies to BACKEND_URL.
  * Locally: NEXT_PUBLIC_API_URL=http://localhost:5000/api/v1 bypasses the proxy.
  */
-const baseURL =
-  process.env.NEXT_PUBLIC_API_URL?.trim() || '/api/v1';
+const isProd = process.env.NODE_ENV === 'production';
+const baseURL = isProd 
+  ? '/api/v1' 
+  : (process.env.NEXT_PUBLIC_API_URL?.trim() || '/api/v1');
 
 export const api = axios.create({
   baseURL,
