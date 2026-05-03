@@ -1,9 +1,4 @@
-import mongoose from 'mongoose';
-import { BookingModel } from '../booking/booking.model';
-import { PaymentModel } from '../payment/payment.model';
-import { UserModel } from '../user/user.model';
-import { VehicleModel } from '../vehicle/vehicle.model';
-import { HouseModel } from '../house/house.model';
+import { supabase } from '../../config/supabase';
 
 export class AnalyticsService {
   /**
@@ -14,37 +9,33 @@ export class AnalyticsService {
     today.setHours(0, 0, 0, 0);
 
     const [
-      totalUsers,
-      totalVendors,
-      totalRevenue,
-      todayRevenue,
-      totalBookings,
-      activeBookings
+      { count: totalUsers },
+      { count: totalVendors },
+      { data: allCapturedPayments },
+      { count: totalBookings },
+      { count: activeBookings }
     ] = await Promise.all([
-      UserModel.countDocuments(),
-      UserModel.countDocuments({ role: 'vendor' }),
-      PaymentModel.aggregate([
-        { $match: { status: 'captured' } },
-        { $group: { _id: null, total: { $sum: '$amount' } } }
-      ]),
-      PaymentModel.aggregate([
-        { $match: { status: 'captured', createdAt: { $gte: today } } },
-        { $group: { _id: null, total: { $sum: '$amount' } } }
-      ]),
-      BookingModel.countDocuments(),
-      BookingModel.countDocuments({ status: 'confirmed' })
+      supabase.from('profiles').select('*', { count: 'exact', head: true }),
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'vendor'),
+      supabase.from('payments').select('amount, created_at').eq('status', 'captured'),
+      supabase.from('bookings').select('*', { count: 'exact', head: true }),
+      supabase.from('bookings').select('*', { count: 'exact', head: true }).eq('status', 'confirmed')
     ]);
+
+    const totalRevenue = allCapturedPayments?.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) || 0;
+    const todayRevenue = allCapturedPayments?.filter(p => new Date(p.created_at) >= today)
+      .reduce((sum, p) => sum + (Number(p.amount) || 0), 0) || 0;
 
     return {
       counts: {
-        users: totalUsers,
-        vendors: totalVendors,
-        bookings: totalBookings,
-        activeBookings
+        users: totalUsers || 0,
+        vendors: totalVendors || 0,
+        bookings: totalBookings || 0,
+        activeBookings: activeBookings || 0
       },
       revenue: {
-        total: totalRevenue[0]?.total || 0,
-        today: todayRevenue[0]?.total || 0
+        total: totalRevenue,
+        today: todayRevenue
       }
     };
   }
@@ -56,69 +47,95 @@ export class AnalyticsService {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    return PaymentModel.aggregate([
-      { 
-        $match: { 
-          status: 'captured', 
-          createdAt: { $gte: thirtyDaysAgo } 
-        } 
-      },
-      {
-        $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-          amount: { $sum: "$amount" },
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { "_id": 1 } }
-    ]);
+    const { data: payments } = await supabase
+      .from('payments')
+      .select('amount, created_at')
+      .eq('status', 'captured')
+      .gte('created_at', thirtyDaysAgo.toISOString());
+
+    if (!payments) return [];
+
+    const trendsMap: Record<string, { amount: number, count: number }> = {};
+    
+    payments.forEach(p => {
+      const date = new Date(p.created_at).toISOString().split('T')[0];
+      if (!trendsMap[date]) trendsMap[date] = { amount: 0, count: 0 };
+      trendsMap[date].amount += Number(p.amount) || 0;
+      trendsMap[date].count += 1;
+    });
+
+    return Object.entries(trendsMap).map(([_id, data]) => ({
+      _id,
+      ...data
+    })).sort((a, b) => a._id.localeCompare(b._id));
   }
 
   /**
-   * Conversion Funnel: Search -> View -> Book -> Pay (Approximated)
+   * Conversion Funnel: Search -> View -> Book -> Pay
    */
   async getConversionMetrics() {
-    const [totalBookings, capturedPayments] = await Promise.all([
-      BookingModel.countDocuments(),
-      PaymentModel.countDocuments({ status: 'captured' })
+    const [
+      { count: totalBookings },
+      { count: capturedPayments }
+    ] = await Promise.all([
+      supabase.from('bookings').select('*', { count: 'exact', head: true }),
+      supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'captured')
     ]);
 
+    const bookings = totalBookings || 0;
+    const payments = capturedPayments || 0;
+
     return {
-      bookingToPaymentRatio: totalBookings > 0 ? (capturedPayments / totalBookings) * 100 : 0,
-      totalBookings,
-      completedPayments: capturedPayments
+      bookingToPaymentRatio: bookings > 0 ? (payments / bookings) * 100 : 0,
+      totalBookings: bookings,
+      completedPayments: payments
     };
   }
 
   /**
-   * Module Performance: Which service is making the most money?
+   * Module Performance
    */
   async getModulePerformance() {
-    return BookingModel.aggregate([
-      { $match: { status: 'confirmed' } },
-      {
-        $group: {
-          _id: "$serviceType",
-          revenue: { $sum: "$totalAmount" },
-          bookings: { $sum: 1 }
-        }
-      },
-      { $sort: { revenue: -1 } }
-    ]);
+    const { data: confirmedBookings } = await supabase
+      .from('bookings')
+      .select('service_type, total_amount')
+      .eq('status', 'confirmed');
+
+    if (!confirmedBookings) return [];
+
+    const moduleMap: Record<string, { revenue: number, bookings: number }> = {};
+
+    confirmedBookings.forEach(b => {
+      const type = b.service_type || 'other';
+      if (!moduleMap[type]) moduleMap[type] = { revenue: 0, bookings: 0 };
+      moduleMap[type].revenue += Number(b.total_amount) || 0;
+      moduleMap[type].bookings += 1;
+    });
+
+    return Object.entries(moduleMap).map(([_id, data]) => ({
+      _id,
+      ...data
+    })).sort((a, b) => b.revenue - a.revenue);
   }
 
   /**
-   * KYC Velocity: Average time to approve/reject
+   * KYC Velocity
    */
   async getKycVelocity() {
-    // This assumes we have a processedAt field or similar. 
-    // For now, let's just return counts of pending vs total.
-    const [pending, approved, rejected] = await Promise.all([
-      UserModel.countDocuments({ kycStatus: 'pending' }),
-      UserModel.countDocuments({ kycStatus: 'approved' }),
-      UserModel.countDocuments({ kycStatus: 'rejected' })
+    const [
+      { count: pending },
+      { count: approved },
+      { count: rejected }
+    ] = await Promise.all([
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('kyc_status', 'pending'),
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('kyc_status', 'approved'),
+      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('kyc_status', 'rejected')
     ]);
 
-    return { pending, approved, rejected };
+    return { 
+      pending: pending || 0, 
+      approved: approved || 0, 
+      rejected: rejected || 0 
+    };
   }
 }
