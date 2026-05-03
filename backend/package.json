@@ -15,7 +15,7 @@
   "license": "ISC",
   "description": "Multi-service marketplace backend",
   "engines": {
-    "node": ">=18.0.0"
+    "node": "20.x"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.1",

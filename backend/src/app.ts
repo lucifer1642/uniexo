@@ -13,6 +13,11 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 
 const app = express();
 
+// Vercel / reverse proxies send X-Forwarded-For; express-rate-limit requires this (ERR_ERL_UNEXPECTED_X_FORWARDED_FOR otherwise).
+if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 // ─── Security ────────────────────────────────────────────
 app.use(helmet());
 app.use(
@@ -77,11 +82,12 @@ if (!process.env.VERCEL) {
   );
 }
 
-// ─── Scheduled Jobs ──────────────────────────────────────
-// Run every day at midnight
-cron.schedule('0 0 * * *', () => {
-  ReminderJob.run();
-});
+// ─── Scheduled Jobs (long-running servers only; skip Vercel serverless) ───
+if (!process.env.VERCEL) {
+  cron.schedule('0 0 * * *', () => {
+    ReminderJob.run();
+  });
+}
 
 // ─── Error Handling ──────────────────────────────────────
 app.use(notFoundHandler);
