@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Car, Building, CheckCircle2, Eye, EyeOff, LocateFixed, Sparkles } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/store/auth.store';
 import { AuthRedirectWrapper } from '@/components/auth-redirect-wrapper';
 import { toast } from 'sonner';
 import { LegalModal } from '@/components/legal-modal';
@@ -138,10 +139,30 @@ export default function SignupPage() {
 
       if (signUpError) throw signUpError;
 
-      // Supabase auto-confirms users in dev (or if confirmation disabled)
-      // The trigger we added creates the profile automatically
-      toast.success('Account created successfully!', { icon: '✨' });
-      router.push('/login');
+      // ── Auto sign-in after signup ─────────────────────────
+      // If Supabase returned a session (email confirmation disabled),
+      // log the user in immediately — no need to go back to /login.
+      if (data.session && data.user) {
+        const { login } = useAuthStore.getState();
+        login(
+          {
+            id: data.user.id,
+            name: metadata.name,
+            email: formData.email,
+            phone: metadata.phone,
+            role: metadata.role || 'user',
+            avatar: data.user.user_metadata?.avatar,
+            kycStatus: 'none',
+          },
+          data.session.access_token
+        );
+        toast.success('Welcome to UniExo! 🎉', { icon: '✨' });
+        router.push('/');
+      } else {
+        // Email confirmation is enabled — redirect to login
+        toast.success('Account created! Check your email to verify.', { icon: '📧' });
+        router.push('/login');
+      }
     } catch (err: any) {
       console.error('Signup Error:', err);
       setError(err.message || 'Something went wrong during signup');
