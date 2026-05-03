@@ -1,5 +1,7 @@
+import bcrypt from 'bcryptjs';
 import { AuthRepository } from './auth.repository';
-import { supabase } from '../../config/supabase';
+import { TokenService } from '../../services/token.service';
+import { EmailService } from '../../services/email.service';
 import {
   BadRequestError,
   UnauthorizedError,
@@ -31,84 +33,77 @@ export class AuthService {
       throw new ConflictError('Email already registered');
     }
 
-    const { error } = await supabase.auth.signUp({
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+
+    await this.authRepo.createOTP({
       email: data.email,
-      password: data.password,
-      options: {
-        data: {
-          name: data.name,
-          role: data.role || UserRole.USER,
-          phone: data.phone,
-          businessName: data.businessName,
-          serviceType: data.serviceType,
-          universityId: data.universityId,
-          location: data.location,
-        },
-      },
+      otp,
+      purpose: 'signup',
+      userData: { ...data, password: hashedPassword }
     });
 
-    if (error) throw new BadRequestError(error.message);
+    await EmailService.sendOTP(data.email, otp, 'signup');
   }
 
   async verifySignupOTP(email: string, otp: string): Promise<{
     accessToken: string;
     refreshToken: string;
-    user: Record<string, unknown>;
+    user: any;
   }> {
-    const { data, error } = await supabase.auth.verifyOtp({
-      email,
-      token: otp,
-      type: 'signup',
-    });
-
-    if (error || !data.user || !data.session) {
-      throw new BadRequestError(error?.message || 'Invalid or expired OTP');
+    const otpLog = await this.authRepo.findOTP(email, otp, 'signup');
+    if (!otpLog) {
+      throw new BadRequestError('Invalid or expired OTP');
     }
 
-    const user = data.user;
-    const profile = await this.authRepo.findById(user.id);
+    const userData = otpLog.user_data;
+    const profile = await this.authRepo.createUser({
+      ...userData,
+      is_verified: true
+    });
+    
+    await this.authRepo.deleteOTP(email, 'signup');
+
+    const tokens = TokenService.generateTokenPair({
+      userId: profile.id,
+      role: profile.role,
+      email: profile.email
+    });
+
+    await this.authRepo.updateRefreshToken(profile.id, tokens.refreshToken);
 
     return {
-      accessToken: data.session.access_token,
-      refreshToken: data.session.refresh_token,
-      user: {
-        id: user.id,
-        name: profile?.name || user.user_metadata.name,
-        email: user.email,
-        phone: profile?.phone || user.user_metadata.phone,
-        role: profile?.role || user.user_metadata.role,
-      },
+      ...tokens,
+      user: profile
     };
   }
 
   async login(email: string, password: string): Promise<{
     accessToken: string;
     refreshToken: string;
-    user: Record<string, unknown>;
+    user: any;
   }> {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error || !data.user || !data.session) {
-      throw new UnauthorizedError(error?.message || 'Invalid email or password');
+    const user = await this.authRepo.findByEmailWithPassword(email);
+    if (!user || !user.password) {
+      throw new UnauthorizedError('Invalid email or password');
     }
 
-    const user = data.user;
-    const profile = await this.authRepo.findById(user.id);
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      throw new UnauthorizedError('Invalid email or password');
+    }
+
+    const tokens = TokenService.generateTokenPair({
+      userId: user.id,
+      role: user.role,
+      email: user.email
+    });
+
+    await this.authRepo.updateRefreshToken(user.id, tokens.refreshToken);
 
     return {
-      accessToken: data.session.access_token,
-      refreshToken: data.session.refresh_token,
-      user: {
-        id: user.id,
-        name: profile?.name || user.user_metadata.name,
-        email: user.email,
-        phone: profile?.phone || user.user_metadata.phone,
-        role: profile?.role || user.user_metadata.role,
-        kycStatus: profile?.kyc_status,
-      },
+      ...tokens,
+      user
     };
   }
 
@@ -116,57 +111,55 @@ export class AuthService {
     accessToken: string;
     refreshToken: string;
   }> {
-    const { data, error } = await supabase.auth.refreshSession({
-      refresh_token: refreshToken,
-    });
+    try {
+      const payload = TokenService.verifyRefreshToken(refreshToken);
+      const user = await this.authRepo.findById(payload.userId);
+      
+      if (!user || user.refresh_token !== refreshToken) {
+        throw new UnauthorizedError('Invalid refresh token');
+      }
 
-    if (error || !data.session) {
-      throw new UnauthorizedError('Invalid refresh token');
+      const tokens = TokenService.generateTokenPair({
+        userId: user.id,
+        role: user.role,
+        email: user.email
+      });
+
+      await this.authRepo.updateRefreshToken(user.id, tokens.refreshToken);
+
+      return tokens;
+    } catch (error) {
+      throw new UnauthorizedError('Invalid or expired refresh token');
     }
-
-    return {
-      accessToken: data.session.access_token,
-      refreshToken: data.session.refresh_token,
-    };
   }
 
-  async logout(_userId?: string, _token?: string): Promise<void> {
-    await supabase.auth.signOut();
+  async logout(userId: string): Promise<void> {
+    await this.authRepo.updateRefreshToken(userId, null);
   }
 
   async forgotPassword(email: string): Promise<void> {
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
-    if (error) {
-      // Don't reveal whether the email exists for security, but log it
-      console.error('Password reset error:', error.message);
-    }
+    const user = await this.authRepo.findByEmail(email);
+    if (!user) return; // Silent return for security
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    await this.authRepo.createOTP({ email, otp, purpose: 'password-reset' });
+    await EmailService.sendOTP(email, otp, 'password-reset');
   }
 
   async resetPassword(email: string, otp: string, newPassword: string): Promise<void> {
-    // 1. Verify OTP
-    const { error: verifyError } = await supabase.auth.verifyOtp({
-      email,
-      token: otp,
-      type: 'recovery',
-    });
+    const otpLog = await this.authRepo.findOTP(email, otp, 'password-reset');
+    if (!otpLog) {
+      throw new BadRequestError('Invalid or expired OTP');
+    }
 
-    if (verifyError) throw new BadRequestError(verifyError.message);
-
-    // 2. Update password
-    const { error: updateError } = await supabase.auth.updateUser({
-      password: newPassword,
-    });
-
-    if (updateError) throw new BadRequestError(updateError.message);
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await this.authRepo.updatePassword(email, hashedPassword);
+    await this.authRepo.deleteOTP(email, 'password-reset');
   }
 
   async resendOTP(email: string, purpose: string): Promise<void> {
-    const type = purpose === 'signup' ? 'signup' : 'recovery';
-    const { error } = await supabase.auth.resend({
-      type: type as any,
-      email,
-    });
-
-    if (error) throw new BadRequestError(error.message);
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    await this.authRepo.createOTP({ email, otp, purpose });
+    await EmailService.sendOTP(email, otp, purpose);
   }
 }
