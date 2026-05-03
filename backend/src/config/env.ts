@@ -7,13 +7,14 @@ import fs from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Resolve .env path: works from both src/config/ (dev) and dist/ (prod build)
-// Priority: backend/.env (explicit path) → cwd .env (fallback)
+// Priority:
+// 1. backend/.env (when running from monorepo root)
+// 2. .env (when running from backend dir directly)
 const envPaths = [
-  path.resolve(__dirname, '../../.env'),   // from src/config/env.ts → backend/.env
-  path.resolve(__dirname, '../.env'),       // from dist/config/env.js → backend/.env  
-  path.resolve(process.cwd(), 'backend/.env'), // from monorepo root
-  path.resolve(process.cwd(), '.env'),      // fallback: cwd .env
+  path.resolve(process.cwd(), 'backend/.env'),
+  path.resolve(process.cwd(), '.env'),
+  path.resolve(__dirname, '../../.env'), // Fallbacks
+  path.resolve(__dirname, '../.env')
 ];
 
 const envFile = envPaths.find(p => fs.existsSync(p));
