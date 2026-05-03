@@ -38,7 +38,8 @@ app.use(
       if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
         callback(null, true);
       } else {
-        callback(new Error('Not allowed by CORS'));
+        logger.warn(`CORS denied origin: ${origin}`);
+        callback(null, false);
       }
     },
     credentials: true,
@@ -63,6 +64,18 @@ app.get('/health', (_req, res) => {
     uptime: process.uptime(),
   });
 });
+
+// Vercel serverless: await MongoDB before /api/v1 (queries used to run before connect finished)
+if (process.env.VERCEL) {
+  app.use('/api/v1', async (_req, _res, next) => {
+    try {
+      await connectDatabase();
+      next();
+    } catch (err) {
+      next(err);
+    }
+  });
+}
 
 app.use('/api/v1', routes);
 
@@ -111,11 +124,10 @@ const startServer = async () => {
   }
 };
 
-// For Vercel, we need to ensure the database is connected
-if (process.env.VERCEL) {
-  connectDatabase().catch(err => logger.error('Vercel DB Connection Error:', err));
-} else {
+if (!process.env.VERCEL) {
   startServer();
+} else {
+  logger.info('🚀 App initialized for Vercel Serverless environment');
 }
 
 export default app;

@@ -41,6 +41,22 @@ export const errorHandler = (
     return;
   }
 
+  // MongoDB unavailable (common on Vercel if MONGODB_URI is wrong or IP not allowlisted)
+  if (
+    err.name === 'MongoServerSelectionError' ||
+    err.name === 'MongoNetworkError' ||
+    (typeof (err as Error).message === 'string' &&
+      (err as Error).message.includes('connect ECONNREFUSED') &&
+      (err as Error).message.includes('27017'))
+  ) {
+    ResponseFormatter.error(
+      res,
+      503,
+      'Database unavailable. Verify MONGODB_URI and Atlas network access (allow 0.0.0.0/0 or Vercel).',
+    );
+    return;
+  }
+
   ResponseFormatter.serverError(res);
 };
 

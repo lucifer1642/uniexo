@@ -3,9 +3,16 @@ import { generateOTP } from '../utils/helpers';
 import { OTPLog } from '../database/models';
 import { logger } from '../config/logger';
 import { EmailService } from './email.service';
+import { ServiceUnavailableError } from '../utils/errors';
 
 const OTP_EXPIRY_SECONDS = 300; // 5 minutes (TTL)
 const OTP_PREFIX = 'otp';
+
+function redisUnavailable(): ServiceUnavailableError {
+  return new ServiceUnavailableError(
+    'Verification requires Redis. Add REDIS_URL (e.g. Upstash) to your backend environment.',
+  );
+}
 
 export class OTPService {
   /**
@@ -23,7 +30,12 @@ export class OTPService {
 
     // 2. Store in Redis for auto-expiry (Dynamic validation)
     const data = JSON.stringify({ otp, email, purpose, userData });
-    await redis.set(key, data, 'EX', OTP_EXPIRY_SECONDS);
+    try {
+      await redis.set(key, data, 'EX', OTP_EXPIRY_SECONDS);
+    } catch (err) {
+      logger.error('Redis OTP store failed (signup/resend)', err);
+      throw redisUnavailable();
+    }
 
     // 3. Send via Email automatically - Fire and Forget for speed
     EmailService.sendOTP(email, otp, purpose).catch(err => {
@@ -59,7 +71,12 @@ export class OTPService {
     const key = `${OTP_PREFIX}:${purpose}:${email}`;
 
     const data = JSON.stringify({ otp, email, purpose, userData });
-    await redis.set(key, data, 'EX', OTP_EXPIRY_SECONDS);
+    try {
+      await redis.set(key, data, 'EX', OTP_EXPIRY_SECONDS);
+    } catch (err) {
+      logger.error('Redis OTP store failed', err);
+      throw redisUnavailable();
+    }
 
     // Log OTP for audit
     await OTPLog.create({
@@ -84,7 +101,13 @@ export class OTPService {
     purpose: string,
   ): Promise<{ valid: boolean; userData?: Record<string, unknown> }> {
     const key = `${OTP_PREFIX}:${purpose}:${email}`;
-    const stored = await redis.get(key);
+    let stored: string | null;
+    try {
+      stored = await redis.get(key);
+    } catch (err) {
+      logger.error('Redis OTP read failed', err);
+      throw redisUnavailable();
+    }
 
     if (!stored) {
       return { valid: false };
@@ -95,8 +118,12 @@ export class OTPService {
       return { valid: false };
     }
 
-    // Delete OTP after successful verification
-    await redis.del(key);
+    try {
+      await redis.del(key);
+    } catch (err) {
+      logger.error('Redis OTP delete failed after verify', err);
+      throw redisUnavailable();
+    }
 
     // Mark as used in log - Backgrounded for speed
     OTPLog.findOneAndUpdate(
@@ -110,6 +137,11 @@ export class OTPService {
 
   static async invalidate(email: string, purpose: string): Promise<void> {
     const key = `${OTP_PREFIX}:${purpose}:${email}`;
-    await redis.del(key);
+    try {
+      await redis.del(key);
+    } catch (err) {
+      logger.error('Redis OTP invalidate failed', err);
+      throw redisUnavailable();
+    }
   }
 }
