@@ -2,15 +2,27 @@ import { z } from 'zod';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// dotenv.config({ path: path.resolve(__dirname, '../../.env') });
-dotenv.config();
-// if (process.env.NODE_ENV !== "production") {
-//   dotenv.config();
-// }
+// Resolve .env path: works from both src/config/ (dev) and dist/ (prod build)
+// Priority: backend/.env (explicit path) → cwd .env (fallback)
+const envPaths = [
+  path.resolve(__dirname, '../../.env'),   // from src/config/env.ts → backend/.env
+  path.resolve(__dirname, '../.env'),       // from dist/config/env.js → backend/.env  
+  path.resolve(process.cwd(), 'backend/.env'), // from monorepo root
+  path.resolve(process.cwd(), '.env'),      // fallback: cwd .env
+];
+
+const envFile = envPaths.find(p => fs.existsSync(p));
+if (envFile) {
+  dotenv.config({ path: envFile });
+} else {
+  // On Vercel, env vars are injected by the platform — no .env file needed
+  dotenv.config();
+}
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
