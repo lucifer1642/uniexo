@@ -44,6 +44,7 @@ export function GlobalProfileSidebar() {
   const { user, logout } = useAuthStore();
   const router = useRouter();
   const [isKycDialogOpen, setIsKycDialogOpen] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
 
   // Prevent body scroll when sidebar is open
   useEffect(() => {
@@ -58,8 +59,6 @@ export function GlobalProfileSidebar() {
   }, [isOpen]);
 
   if (!user) return null;
-
-  const [logoutLoading, setLogoutLoading] = useState(false);
 
   const handleLogout = async () => {
     try {

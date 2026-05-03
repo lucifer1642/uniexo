@@ -49,26 +49,27 @@ export default function LoginPage() {
         return;
       }
 
+      // 1. Sign in with Supabase natively
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
       });
 
       if (signInError) throw signInError;
+      if (!data.user || !data.session) throw new Error('No user data returned');
 
-      // Extract user info to match our store structure
-      const user = data.user;
-      if (!user) throw new Error('No user data returned');
-
+      // 2. Build user object for zustand store from Supabase metadata
+      const meta = data.user.user_metadata || {};
       const userData = {
-        id: user.id,
-        name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
-        email: user.email!,
-        phone: user.user_metadata?.phone,
-        role: (user.user_metadata?.role as UserRole) || 'user',
-        avatar: user.user_metadata?.avatar_url,
+        id: data.user.id,
+        name: meta.name || data.user.email?.split('@')[0] || 'User',
+        email: data.user.email!,
+        phone: meta.phone,
+        role: (meta.role as UserRole) || 'user',
+        avatar: meta.avatar_url,
       };
 
+      // 3. Store in zustand and redirect
       login(userData, data.session.access_token);
       toast.success('Successfully logged in', { icon: '✨' });
       
@@ -77,8 +78,12 @@ export default function LoginPage() {
       router.push(redirectUrl || '/');
 
     } catch (err: any) {
-      console.error(err);
-      setError(err.message || 'Invalid credentials');
+      console.error('Login error:', err);
+      if (err.message?.includes('Invalid login credentials')) {
+        setError('Invalid email or password');
+      } else {
+        setError(err.message || 'Login failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -264,5 +269,3 @@ export default function LoginPage() {
     </AuthRedirectWrapper>
   );
 }
-
-
