@@ -18,6 +18,7 @@ export async function connectDatabase(): Promise<void> {
   try {
     await mongoose.connect(uri, {
       autoIndex: env.NODE_ENV !== 'production',
+      serverSelectionTimeoutMS: 5000, // 5 seconds
     });
     logger.info('✅ MongoDB connected');
 
@@ -36,7 +37,7 @@ export async function connectDatabase(): Promise<void> {
     if (process.env.VERCEL) {
       throw error;
     }
-    process.exit(1);
+    // process.exit(1); // Allow server to start without DB
   }
 }
 

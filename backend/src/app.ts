@@ -10,6 +10,7 @@ import routes from './routes';
 import cron from 'node-cron';
 import { ReminderJob } from './jobs/reminder.job';
 import { createProxyMiddleware } from 'http-proxy-middleware';
+import { connectDatabase } from './database/connection';
 
 const app = express();
 
@@ -96,6 +97,7 @@ app.use(errorHandler);
 // ─── Start Server ────────────────────────────────────────
 const startServer = async () => {
   try {
+    await connectDatabase();
     // Only listen if not running on Vercel
     if (!process.env.VERCEL) {
       app.listen(env.PORT, () => {
