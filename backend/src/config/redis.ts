@@ -13,14 +13,14 @@ if (
 }
 
 const redisOptions: RedisOptions = env.REDIS_URL ?
-  (env.REDIS_URL.startsWith('rediss://') ? { tls: { rejectUnauthorized: false }, maxRetriesPerRequest: 3, enableOfflineQueue: false, commandTimeout: 5000 } : { maxRetriesPerRequest: 3, enableOfflineQueue: false, commandTimeout: 5000 })
+  (env.REDIS_URL.startsWith('rediss://') ? { tls: { rejectUnauthorized: false }, maxRetriesPerRequest: 3, enableOfflineQueue: true, commandTimeout: 5000 } : { maxRetriesPerRequest: 3, enableOfflineQueue: true, commandTimeout: 5000 })
   : {
     host: env.REDIS_HOST,
     port: env.REDIS_PORT,
     ...(env.REDIS_PASSWORD && { password: env.REDIS_PASSWORD }),
     ...(env.REDIS_TLS === 'true' && { tls: { rejectUnauthorized: false } }),
     maxRetriesPerRequest: 3,
-    enableOfflineQueue: false,
+    enableOfflineQueue: true,
     commandTimeout: 5000,
     retryStrategy(times: number) {
       const delay = Math.min(times * 200, 2000);
