@@ -119,4 +119,15 @@ export class AuthRepository {
       .update({ password: passwordHash })
       .eq('email', email.toLowerCase());
   }
+
+  async findByToken(token: string): Promise<any | null> {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('refresh_token', token)
+      .single();
+    
+    if (error) return null;
+    return data;
+  }
 }

@@ -86,8 +86,14 @@ export class AuthService {
     await this.authRepo.updateRefreshToken(profile.id, tokens.refreshToken);
 
     return {
-      ...tokens,
-      user: profile
+      accessToken: tokens.refreshToken, // Use refresh token as access token for DB-backed sessions
+      refreshToken: tokens.refreshToken,
+      user: {
+        id: profile.id,
+        name: profile.name,
+        email: profile.email,
+        role: profile.role,
+      }
     };
   }
 
@@ -124,7 +130,8 @@ export class AuthService {
     logger.info(`Login successful for ${email}`);
 
     return {
-      ...tokens,
+      accessToken: tokens.refreshToken, // Use refresh token as access token for DB-backed sessions
+      refreshToken: tokens.refreshToken,
       user: {
         id: user.id,
         name: user.name,
@@ -154,7 +161,10 @@ export class AuthService {
 
       await this.authRepo.updateRefreshToken(user.id, tokens.refreshToken);
 
-      return tokens;
+      return {
+        accessToken: tokens.refreshToken,
+        refreshToken: tokens.refreshToken
+      };
     } catch (error) {
       throw new UnauthorizedError('Invalid or expired refresh token');
     }

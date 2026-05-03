@@ -1,10 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { env } from '../config/env';
-import { AuthRequest, JWTPayload } from '../types';
+import { AuthRequest } from '../types';
 import { UnauthorizedError } from '../utils/errors';
-import { TokenService } from '../services/token.service';
 import { logger } from '../config/logger';
+import { AuthRepository } from '../modules/auth/auth.repository';
+
+const authRepo = new AuthRepository();
 
 export const authenticate = async (
   req: Request,
@@ -20,27 +20,20 @@ export const authenticate = async (
 
     const token = authHeader.split(' ')[1];
 
-    if (await TokenService.isTokenBlacklisted(token)) {
-      logger.warn('Auth failed: Token blacklisted');
-      throw new UnauthorizedError('Token has been revoked');
+    const user = await authRepo.findByToken(token);
+    if (!user) {
+      logger.warn('Auth failed: Token not found in DB');
+      throw new UnauthorizedError('Invalid or expired session');
     }
 
-    try {
-      const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET) as JWTPayload;
-      (req as AuthRequest).user = decoded;
-      next();
-    } catch (err) {
-      logger.error('JWT verification failed', err);
-      throw err;
-    }
+    (req as AuthRequest).user = {
+      userId: user.id,
+      role: user.role,
+      email: user.email
+    };
+    next();
   } catch (error) {
-    if (error instanceof jwt.TokenExpiredError) {
-      next(new UnauthorizedError('Access token expired'));
-    } else if (error instanceof jwt.JsonWebTokenError) {
-      next(new UnauthorizedError('Invalid access token'));
-    } else {
-      next(error);
-    }
+    next(error);
   }
 };
 
@@ -56,12 +49,14 @@ export const optionalAuth = async (
     }
 
     const token = authHeader.split(' ')[1];
-    if (await TokenService.isTokenBlacklisted(token)) {
-      return next();
+    const user = await authRepo.findByToken(token);
+    if (user) {
+      (req as AuthRequest).user = {
+        userId: user.id,
+        role: user.role,
+        email: user.email
+      };
     }
-
-    const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET) as JWTPayload;
-    (req as AuthRequest).user = decoded;
     next();
   } catch {
     next();
