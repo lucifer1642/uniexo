@@ -2,92 +2,50 @@ import axios from 'axios';
 import { useAuthStore } from '@/store/auth.store';
 
 /**
- * Resolves the API base URL.
- *
- * Priority:
- * 1. NEXT_PUBLIC_API_URL — set this in Vercel/production to your backend full URL
- *    e.g. https://your-backend.railway.app/api/v1
- * 2. On browser with VERCEL_URL (SSR) → use rewrite /api/v1
- * 3. Local dev → http://localhost:5000/api/v1
+ * All API calls go to /api/v1 (relative).
+ * On Vercel: Next.js route at /api/v1/[...path]/route.ts proxies to BACKEND_URL.
+ * Locally: NEXT_PUBLIC_API_URL=http://localhost:5000/api/v1 bypasses the proxy.
  */
-function resolveApiBaseUrl(): string {
-  const explicit = process.env.NEXT_PUBLIC_API_URL?.trim();
-  if (explicit) {
-    return explicit.endsWith('/api/v1') ? explicit : `${explicit.replace(/\/$/, '')}/api/v1`;
-  }
-
-  // Browser-side: use relative path (goes through Next.js rewrites if BACKEND_URL is set)
-  if (typeof window !== 'undefined') {
-    // If we're on the actual uniexo domain, point directly to the backend
-    if (window.location.hostname.includes('uniexo')) {
-      // Production: Next.js will rewrite /api/v1 → BACKEND_URL/api/v1 via next.config.ts
-      return '/api/v1';
-    }
-    return '/api/v1';
-  }
-
-  // SSR on Vercel
-  const vercel = process.env.VERCEL_URL;
-  if (vercel) {
-    return `https://${vercel}/api/v1`;
-  }
-
-  return 'http://localhost:5000/api/v1';
-}
-
-const baseURL = resolveApiBaseUrl();
+const baseURL =
+  process.env.NEXT_PUBLIC_API_URL?.trim() || '/api/v1';
 
 export const api = axios.create({
   baseURL,
   withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  timeout: 15000,
+  headers: { 'Content-Type': 'application/json' },
 });
 
-// ── Request: inject access token ─────────────────────────────────────────────
-api.interceptors.request.use(
-  (config) => {
-    const token = useAuthStore.getState().token;
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error),
-);
+// Inject auth token on every request
+api.interceptors.request.use((config) => {
+  const token = useAuthStore.getState().token;
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
 
-// ── Response: handle 401 with token refresh ───────────────────────────────────
+// On 401, try refresh once then logout
 api.interceptors.response.use(
-  (response) => response,
+  (res) => res,
   async (error) => {
-    const originalRequest = error.config;
+    const original = error.config;
+    const isAuthRoute = ['/auth/login', '/auth/signup', '/auth/refresh', '/auth/verify-otp']
+      .some((p) => original?.url?.includes(p));
 
-    // Never retry auth endpoints
-    const authPaths = ['/auth/login', '/auth/signup', '/auth/refresh', '/auth/verify-otp'];
-    if (authPaths.some((p) => originalRequest.url?.includes(p))) {
-      return Promise.reject(error);
-    }
-
-    // On 401, attempt token refresh once
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
+    if (error.response?.status === 401 && !original._retry && !isAuthRoute) {
+      original._retry = true;
       try {
         const res = await axios.post(`${baseURL}/auth/refresh`, {}, { withCredentials: true });
-        const newToken = res.data?.data?.accessToken || res.data?.accessToken;
+        const newToken = res.data?.data?.accessToken ?? res.data?.accessToken;
         if (newToken) {
           useAuthStore.setState({ token: newToken });
-          originalRequest.headers.Authorization = `Bearer ${newToken}`;
-          return api(originalRequest);
+          original.headers.Authorization = `Bearer ${newToken}`;
+          return api(original);
         }
       } catch {
         useAuthStore.getState().logout();
-        if (typeof window !== 'undefined') {
-          window.location.href = '/';
-        }
+        if (typeof window !== 'undefined') window.location.href = '/login';
       }
     }
-
     return Promise.reject(error);
   },
 );
