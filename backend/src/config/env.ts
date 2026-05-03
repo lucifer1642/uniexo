@@ -32,8 +32,8 @@ const envSchema = z.object({
   MONGODB_URI: z.string().optional(),
 
   REDIS_URL: z.string().optional(),
-  REDIS_HOST: z.string().default('127.0.0.1'),
-  REDIS_PORT: z.coerce.number().default(6379),
+  REDIS_HOST: z.string().optional().default('127.0.0.1'),
+  REDIS_PORT: z.coerce.number().optional().default(6379),
   REDIS_PASSWORD: z.string().optional().default(''),
   REDIS_TLS: z.string().optional().default('false'),
   USE_MOCK_REDIS: z.string().optional().default('false'),
@@ -49,13 +49,13 @@ const envSchema = z.object({
   SMTP_PASS: z.string().min(1),
   SMTP_FROM: z.string().min(1),
 
-  RAZORPAY_KEY_ID: z.string().min(1),
-  RAZORPAY_KEY_SECRET: z.string().min(1),
-  RAZORPAY_WEBHOOK_SECRET: z.string().min(1),
+  RAZORPAY_KEY_ID: z.string().optional().default(''),
+  RAZORPAY_KEY_SECRET: z.string().optional().default(''),
+  RAZORPAY_WEBHOOK_SECRET: z.string().optional().default(''),
 
-  CLOUDINARY_CLOUD_NAME: z.string().min(1),
-  CLOUDINARY_API_KEY: z.string().min(1),
-  CLOUDINARY_API_SECRET: z.string().min(1),
+  CLOUDINARY_CLOUD_NAME: z.string().optional().default(''),
+  CLOUDINARY_API_KEY: z.string().optional().default(''),
+  CLOUDINARY_API_SECRET: z.string().optional().default(''),
 
   CLIENT_URL: z.string().url().default('http://localhost:3000'),
 

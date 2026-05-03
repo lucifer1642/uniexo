@@ -1,43 +1,42 @@
-import { generateOTP } from '../utils/helpers';
-import { OTPLog } from '../database/models';
+/**
+ * OTPService — now backed by Supabase `otp_logs` table.
+ * MongoDB OTPLog model is no longer used.
+ */
+import { supabase } from '../config/supabase';
 import { logger } from '../config/logger';
 import { EmailService } from './email.service';
 
-const OTP_EXPIRY_SECONDS = 300; // 5 minutes (TTL)
+const OTP_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
+
+function generateOTP(length = 6): string {
+  return Math.floor(Math.pow(10, length - 1) + Math.random() * 9 * Math.pow(10, length - 1)).toString();
+}
 
 export class OTPService {
-  /**
-   * Generates a secure random OTP, stores it in MongoDB with TTL, 
-   * and automatically sends it to the user's email.
-   */
   static async generateAndSend(
     email: string,
     purpose: string,
-    userData?: Record<string, unknown>
+    userData?: Record<string, unknown>,
   ): Promise<string> {
     const otp = generateOTP(6);
+    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS).toISOString();
 
-    // Store in DB
-    await OTPLog.create({
-      email,
+    await supabase.from('otp_logs').insert({
+      email: email.toLowerCase(),
       otp,
       purpose,
-      userData,
-      expiresAt: new Date(Date.now() + OTP_EXPIRY_SECONDS * 1000),
+      user_data: userData ?? null,
+      expires_at: expiresAt,
     });
 
-    // Send via Email automatically - Fire and Forget for speed
-    EmailService.sendOTP(email, otp, purpose).catch(err => {
-      logger.error(`Background OTP Email Failure for ${email}:`, err);
-    });
+    EmailService.sendOTP(email, otp, purpose).catch(err =>
+      logger.error(`Background OTP Email Failure for ${email}:`, err),
+    );
 
-    logger.info(`OTP Engine: Triggered ${purpose} OTP to ${email}`);
-    
-    // In dev, we also log to console for convenience
+    logger.info(`OTP sent for ${purpose} to ${email}`);
     if (process.env.NODE_ENV !== 'production') {
       console.log(`\n[OTP DEBUG] ${email} (${purpose}) -> ${otp}\n`);
     }
-
     return otp;
   }
 
@@ -47,23 +46,17 @@ export class OTPService {
     userData?: Record<string, unknown>,
   ): Promise<string> {
     const otp = generateOTP(6);
+    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS).toISOString();
 
-    await OTPLog.create({
-      email,
+    await supabase.from('otp_logs').insert({
+      email: email.toLowerCase(),
       otp,
       purpose,
-      userData,
-      expiresAt: new Date(Date.now() + OTP_EXPIRY_SECONDS * 1000),
+      user_data: userData ?? null,
+      expires_at: expiresAt,
     });
 
     logger.info(`OTP generated for ${email} (${purpose})`);
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`\n========== OTP ==========`);
-      console.log(`  Email  : ${email}`);
-      console.log(`  OTP    : ${otp}`);
-      console.log(`  Purpose: ${purpose}`);
-      console.log(`=========================\n`);
-    }
     return otp;
   }
 
@@ -72,29 +65,30 @@ export class OTPService {
     otp: string,
     purpose: string,
   ): Promise<{ valid: boolean; userData?: Record<string, unknown> }> {
-    // Find the most recent unexpired, unused OTP for this email and purpose
-    const log = await OTPLog.findOne({
-      email,
-      purpose,
-      isUsed: false,
-      expiresAt: { $gt: new Date() }
-    }).sort({ createdAt: -1 });
+    const { data, error } = await supabase
+      .from('otp_logs')
+      .select('*')
+      .eq('email', email.toLowerCase())
+      .eq('otp', otp)
+      .eq('purpose', purpose)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
 
-    if (!log || log.otp !== otp) {
-      return { valid: false };
-    }
+    if (error || !data) return { valid: false };
 
-    // Mark as used
-    log.isUsed = true;
-    await log.save();
+    // Delete used OTP
+    await supabase.from('otp_logs').delete().eq('id', data.id);
 
-    return { valid: true, userData: log.userData };
+    return { valid: true, userData: data.user_data ?? undefined };
   }
 
   static async invalidate(email: string, purpose: string): Promise<void> {
-    await OTPLog.updateMany(
-      { email, purpose, isUsed: false },
-      { isUsed: true }
-    );
+    await supabase
+      .from('otp_logs')
+      .delete()
+      .eq('email', email.toLowerCase())
+      .eq('purpose', purpose);
   }
 }
