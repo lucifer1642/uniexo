@@ -4,6 +4,22 @@ import { ResponseFormatter } from '../../utils/response';
 import { logger } from '../../config/logger';
 
 export class AuthController {
+  static async sendSignupOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { email } = req.body;
+      logger.info(`[AUTH] Received Signup OTP request for ${email}`);
+      if (!email) {
+        ResponseFormatter.badRequest(res, 'Email is required');
+        return;
+      }
+      await OTPService.generateAndSend(email, 'signup');
+      ResponseFormatter.ok(res, 'Verification code sent to your email');
+    } catch (error) {
+      logger.error('[AUTH] sendSignupOtp failed:', error);
+      next(error);
+    }
+  }
+
   static async sendLoginOtp(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { email } = req.body;
