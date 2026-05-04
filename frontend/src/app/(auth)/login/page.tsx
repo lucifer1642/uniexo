@@ -38,38 +38,60 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     setLoading(true);
+    setError('');
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       
       if (user && user.email) {
-        // Check if user exists in Supabase
-        // Note: In a real app, you'd use a backend endpoint to verify and get a JWT
-        // For now, we'll try to find the profile and if not found, redirect to signup
+        // 1. Get ID Token from Firebase
+        const idToken = await user.getIdToken();
+
+        // 2. Log into Supabase using the ID Token
+        const { data: authData, error: authError } = await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: idToken,
+        });
+
+        if (authError) throw authError;
+        if (!authData.user || !authData.session) throw new Error('Supabase authentication failed');
+
+        // 3. Check if profile exists
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
-          .eq('email', user.email)
+          .eq('id', authData.user.id)
           .single();
 
         if (profile) {
-          // User exists, but we don't have a Supabase session for them yet via Firebase.
-          // Ideally, use Supabase OAuth. 
-          // For now, we'll guide them or implement a bridge.
-          toast.success(`Welcome back, ${profile.name}! Logging you in...`);
-          // Implementation of login via existing profile would go here
-          // For now, we'll assume the user might need to use their password if not linked.
-          setError('Google account found! Please use your UniExo password to complete the link.');
+          // USER EXISTS - Direct Login
+          const role = (profile.role as UserRole) || 'user';
+          const userData = {
+            id: profile.id,
+            name: profile.name,
+            email: profile.email,
+            phone: profile.phone,
+            role,
+            avatar: profile.avatar_url || user.photoURL || undefined,
+          };
+
+          login(userData, authData.session.access_token);
+          toast.success(`Welcome back, ${profile.name}!`, { icon: '🚀' });
+          
+          const urlParams = new URLSearchParams(window.location.search);
+          const redirectUrl = urlParams.get('redirect');
+          router.push(redirectUrl || (role === 'admin' ? '/admin' : '/dashboard'));
         } else {
-          // New user, redirect to signup with pre-filled info
-          toast.info("No UniExo account found with this Google email. Redirecting to setup...");
+          // NEW USER - Redirect to profile setup (signup flow)
+          toast.info("Clearing final clearance. Redirecting to profile setup...");
           router.push(`/signup?email=${encodeURIComponent(user.email)}&name=${encodeURIComponent(user.displayName || '')}`);
         }
       }
     } catch (err: any) {
       console.error('Google login error:', err);
       if (err.code !== 'auth/popup-closed-by-user') {
-        toast.error('Google Login failed: ' + err.message);
+        setError(err.message || 'Google Login failed. Please try again.');
+        toast.error('Authentication Error: ' + err.message);
       }
     } finally {
       setLoading(false);
