@@ -126,24 +126,25 @@ export default function SignupPage() {
 
       if (!authUser) throw new Error("Auth initialization failed");
 
-      // 2. Save Profile (Simple DB Operation)
-      const profileData = {
-        id: authUser.id,
-        email: authUser.email,
-        name: formData.name,
-        phone: formData.phone,
-        role: role,
-        university_id: role === 'user' ? formData.universityId : undefined,
-        business_name: role === 'vendor' ? formData.businessName : undefined,
-        service_type: role === 'vendor' ? formData.serviceType : undefined,
-        updated_at: new Date().toISOString()
-      };
+      // 2. Save Profile via Secure Server API (Bypasses RLS)
+      const registerRes = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: authUser.id,
+          email: authUser.email,
+          name: formData.name,
+          phone: formData.phone,
+          role: role,
+          university_id: role === 'user' ? formData.universityId : undefined,
+          business_name: role === 'vendor' ? formData.businessName : undefined,
+          service_type: role === 'vendor' ? formData.serviceType : undefined,
+        })
+      });
 
-      const { error: dbError } = await supabase.from('profiles').upsert(profileData);
-      if (dbError) {
-        console.warn("Profile upsert failed, but auth succeeded:", dbError.message);
-        // We don't crash here, because the user is already signed up in Auth.
-        // We'll try one more time or just log it.
+      const registerData = await registerRes.json();
+      if (!registerRes.ok) {
+        throw new Error(registerData.error || "Database sync failed");
       }
 
       // 3. Sync to Firebase (Optional Redundancy)
