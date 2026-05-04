@@ -127,7 +127,7 @@ export default function SignupPage() {
         metadata.serviceType = formData.serviceType;
         metadata.service_type = formData.serviceType;
         
-        if (formData.serviceType === 'LAUNDRY') {
+        if (formData.serviceType === 'laundry') {
           metadata.onsitePickup = onsitePickup;
           metadata.onStoreService = onStoreService;
           metadata.onsitePickupCharge = Number(onsitePickupCharge) || 0;
@@ -382,10 +382,9 @@ export default function SignupPage() {
                           onChange={handleChange}
                         >
                           <option value="" disabled className="bg-zinc-900 text-zinc-500">Select domain</option>
-                          <option value="CAR" className="bg-zinc-900 text-white">Car Rental</option>
-                          <option value="ROOM" className="bg-zinc-900 text-white">Room Rental (PG)</option>
-                          <option value="LAUNDRY" className="bg-zinc-900 text-white">Laundry Service</option>
-                          <option value="FOOD" className="bg-zinc-900 text-white">Food Service</option>
+                          <option value="vehicle" className="bg-zinc-900 text-white">Car Rental</option>
+                          <option value="house" className="bg-zinc-900 text-white">Room Rental (PG)</option>
+                          <option value="laundry" className="bg-zinc-900 text-white">Laundry Service</option>
                         </select>
                       </div>
                     )}

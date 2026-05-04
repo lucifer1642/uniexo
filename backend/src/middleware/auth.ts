@@ -70,6 +70,7 @@ export const authenticate = async (
          service_type: meta.service_type || meta.serviceType || null,
          university_id: meta.university_id || meta.universityId || null,
          location: meta.location || null,
+         kyc_status: 'none',
       };
       
       const { data: createdProfile, error: createError } = await supabase
