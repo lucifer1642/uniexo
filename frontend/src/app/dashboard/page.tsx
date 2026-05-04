@@ -342,6 +342,7 @@ function UserDashboard() {
 
 // ─── VENDOR DASHBOARD ───────────────────────────────────────────────
 function VendorDashboard() {
+  const { user } = useAuthStore();
   const [section, setSection] = useState('overview');
   const { data: vehiclesData, isLoading: loadingVehicles } = useVendorVehicles();
   const { data: housesData, isLoading: loadingHouses } = useVendorHouses();
