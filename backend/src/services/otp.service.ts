@@ -28,11 +28,13 @@ export class OTPService {
       expires_at: expiresAt,
     });
 
-    EmailService.sendOTP(email, otp, purpose).catch(err =>
-      logger.error(`Background OTP Email Failure for ${email}:`, err),
-    );
-
-    logger.info(`OTP sent for ${purpose} to ${email}`);
+    try {
+      await EmailService.sendOTP(email, otp, purpose);
+      logger.info(`OTP sent for ${purpose} to ${email}`);
+    } catch (err) {
+      logger.error(`OTP Email Failure for ${email}:`, err);
+      throw new Error('Failed to deliver OTP email. Please check your configuration.');
+    }
     if (process.env.NODE_ENV !== 'production') {
       console.log(`\n[OTP DEBUG] ${email} (${purpose}) -> ${otp}\n`);
     }
