@@ -212,4 +212,112 @@ export class MarketplaceRepository {
     if (error) throw error;
     return (data || []).map(r => mapOfferRow(r as Record<string, unknown>));
   }
+
+  // Messaging / Chat
+  async createMessage(data: { senderId: string; receiverId: string; itemId?: string; content: string }) {
+    const { data: msg, error } = await supabase
+      .from('messages')
+      .insert({
+        sender_id: data.senderId,
+        receiver_id: data.receiverId,
+        item_id: data.itemId,
+        content: data.content,
+        is_read: false,
+      })
+      .select('*, sender:sender_id(name, avatar), receiver:receiver_id(name, avatar)')
+      .single();
+
+    if (error) throw error;
+    return msg;
+  }
+
+  async getConversation(userId: string, otherUserId: string, itemId?: string, query?: PaginationQuery) {
+    const limit = query?.limit || 50;
+    let base = supabase
+      .from('messages')
+      .select('*, sender:sender_id(name, avatar), receiver:receiver_id(name, avatar)')
+      .or(`and(sender_id.eq.${userId},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${userId})`);
+
+    if (itemId) {
+      base = base.eq('item_id', itemId);
+    }
+
+    const { data, error } = await base
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return (data || []).reverse();
+  }
+
+  async getUserConversations(userId: string) {
+    // This is complex in Supabase/SQL to get "latest message per conversation".
+    // For now, get all unique partners.
+    const { data, error } = await supabase
+      .from('messages')
+      .select('sender_id, receiver_id, content, created_at, item_id, sender:sender_id(name, avatar), receiver:receiver_id(name, avatar)')
+      .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    
+    // Group by partner
+    const conversations = new Map();
+    (data || []).forEach(msg => {
+      const partnerId = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
+      if (!conversations.has(partnerId)) {
+        conversations.set(partnerId, {
+          partnerId,
+          partnerName: msg.sender_id === userId ? msg.receiver?.name : msg.sender?.name,
+          partnerAvatar: msg.sender_id === userId ? msg.receiver?.avatar : msg.sender?.avatar,
+          lastMessage: msg.content,
+          timestamp: msg.created_at,
+          itemId: msg.item_id
+        });
+      }
+    });
+
+    return Array.from(conversations.values());
+  }
+
+  async markMessagesAsRead(senderId: string, receiverId: string) {
+    await supabase
+      .from('messages')
+      .update({ is_read: true })
+      .eq('sender_id', senderId)
+      .eq('receiver_id', receiverId)
+      .eq('is_read', false);
+  }
+
+  // Reporting
+  async reportItem(itemId: string, reason: string) {
+    const { data: item } = await supabase.from('marketplace_items').select('report_count, report_reasons').eq('id', itemId).single();
+    const count = (item?.report_count || 0) + 1;
+    const reasons = [...(item?.report_reasons || []), reason];
+
+    await supabase
+      .from('marketplace_items')
+      .update({ 
+        report_count: count, 
+        report_reasons: reasons,
+        is_reported: true 
+      })
+      .eq('id', itemId);
+  }
+
+  // Aliases for Service compatibility
+  async createItem(data: any) { return this.create(data); }
+  async findItemById(id: string) { return this.findById(id); }
+  async updateItem(id: string, data: any) { return this.update(id, data); }
+  async softDeleteItem(id: string) { return this.softDelete(id); }
+  async findAllItems(filter: any, query: any) { return this.findAll(filter, query); }
+  async findItemsByUser(userId: string, query: any) { return this.findByVendor(userId, query); }
+  async findOffersByBuyer(userId: string, query: any) { return this.findOffersByUser(userId, 'buyer'); }
+  async findOffersBySeller(userId: string, query: any) { return this.findOffersByUser(userId, 'seller'); }
+  async findOffersForItem(itemId: string, query: any) { return this.findOffersByItem(itemId); }
+  async findOfferById(id: string) {
+    const { data, error } = await supabase.from('offers').select('*, buyerId:buyer_id(name, email), sellerId:seller_id(name, email), itemId:item_id(title)').eq('id', id).single();
+    if (error) return null;
+    return mapOfferRow(data as Record<string, unknown>);
+  }
 }

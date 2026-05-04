@@ -2,10 +2,10 @@ import { supabase } from '../../config/supabase';
 import { UserRole } from '../../types/enums';
 
 const PROFILE_SELECT_WITH_PASSWORD =
-  'id, name, email, phone, password, role, avatar, university_id, location, id_card_photo_url, kyc_status, bank_details, is_verified, created_at, is_deleted, is_suspended';
+  'id, name, email, phone, password, role, avatar, university_id, location, id_card_photo_url, kyc_status, bank_details, is_verified, created_at, is_deleted, is_suspended, business_name, service_type';
 
 const PROFILE_SELECT_PUBLIC =
-  'id, name, email, phone, role, avatar, university_id, location, id_card_photo_url, kyc_status, bank_details, is_verified, created_at, is_deleted, is_suspended';
+  'id, name, email, phone, role, avatar, university_id, location, id_card_photo_url, kyc_status, bank_details, is_verified, created_at, is_deleted, is_suspended, business_name, service_type';
 
 export interface ProfileDTO {
   _id: string;
@@ -25,6 +25,8 @@ export interface ProfileDTO {
   createdAt?: string;
   isDeleted?: boolean;
   isSuspended?: boolean;
+  businessName?: string;
+  serviceType?: string;
 }
 
 function mapRow(row: Record<string, unknown>): ProfileDTO {
@@ -46,6 +48,8 @@ function mapRow(row: Record<string, unknown>): ProfileDTO {
     createdAt: row.created_at as string | undefined,
     isDeleted: row.is_deleted === true,
     isSuspended: row.is_suspended === true,
+    businessName: (row.business_name as string) || undefined,
+    serviceType: (row.service_type as string) || undefined,
   };
 }
 

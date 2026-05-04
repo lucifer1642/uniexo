@@ -185,7 +185,7 @@ export class LaundryServiceModule {
     const allOrders = await this.laundryRepo.findOrdersForService(service.id);
     const statusCounts: Record<string, number> = {};
     for (const o of allOrders) {
-      const st = (o as { status: string }).status;
+      const st = (o as any).status;
       statusCounts[st] = (statusCounts[st] || 0) + 1;
     }
     const totalRevenue =
