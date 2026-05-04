@@ -28,7 +28,7 @@ import { toast } from 'sonner';
 // Elegant Color Scheme
 const BURGUNDY = '#8B004A';
 const MUTED_BURGUNDY = '#A93226';
-const CREAM = '#F2EFE7';
+const CREAM = '#f8fafc';
 const COLORS = [BURGUNDY, '#5B2C6F', MUTED_BURGUNDY, '#D2B4DE'];
 
 export function VendorAnalyticsDashboard() {
@@ -58,7 +58,7 @@ export function VendorAnalyticsDashboard() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 w-full bg-[#F2EFE7] text-slate-900 min-h-screen p-4 rounded-xl">
+    <div className="flex flex-col lg:flex-row gap-6 w-full bg-slate-50/50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 min-h-screen p-4 rounded-xl">
       {/* 🔔 Animated Due Alert Banner */}
       {dues?.totalDue > 0 && (
         <div className="fixed top-20 right-8 z-50 animate-bounce bg-red-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3">
@@ -79,7 +79,7 @@ export function VendorAnalyticsDashboard() {
               onClick={() => handleTabChange(item.id)}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${
                 section === item.id
-                  ? 'bg-[#8B004A] text-[#F2EFE7] shadow-lg shadow-[#8B004A]/30 scale-105'
+                  ? 'bg-[#8B004A] text-zinc-100 shadow-lg shadow-[#8B004A]/30 scale-105'
                   : 'text-slate-600 hover:bg-[#8B004A]/10 hover:text-[#8B004A]'
               }`}
             >
@@ -436,7 +436,7 @@ export function LedgerSection() {
                 const rowDate = new Date(row.bookingDate);
                 const formattedDate = `${rowDate.toLocaleDateString()} ${rowDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
                 return (
-                <tr key={row.id} className={`hover:bg-[#F2EFE7]/50 transition-colors
+                <tr key={row.id} className={`hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors
                   ${row.colorCode === 'green' ? 'bg-emerald-50' : ''}
                   ${row.colorCode === 'red' ? 'bg-red-50' : ''}
                   ${row.colorCode === 'amber' ? 'bg-amber-50' : ''}

@@ -386,7 +386,7 @@ function VendorDashboard() {
   });
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 bg-[#F2EFE7] text-slate-900 p-4 rounded-xl min-h-screen">
+    <div className="flex flex-col lg:flex-row gap-6 bg-slate-50/50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 p-4 rounded-xl min-h-screen">
       {/* Sidebar */}
       <aside className="lg:w-64 shrink-0">
         <nav className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 p-2 bg-white/40 backdrop-blur-sm rounded-2xl border border-white/50">
@@ -442,8 +442,8 @@ function VendorDashboard() {
                  <AddHouseDialog />
                </div>
              )}
-             <Button variant="outline" className="rounded-xl h-11 border-[#8B004A]/20 text-[#8B004A] hover:bg-[#8B004A] hover:text-white transition-all font-bold">
-                Profile Settings
+             <Button asChild variant="outline" className="rounded-xl h-11 border-[#8B004A]/20 text-[#8B004A] hover:bg-[#8B004A] hover:text-white transition-all font-bold">
+                <Link href="/profile">Profile Settings</Link>
              </Button>
           </div>
         </div>
