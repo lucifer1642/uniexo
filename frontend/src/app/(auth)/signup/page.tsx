@@ -35,7 +35,7 @@ export default function SignupPage() {
 
   const [googleUser, setGoogleUser] = useState<any>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState<'user' | 'vendor'>('user');
+  const [role, setRole] = useState<'user' | 'vendor' | 'admin'>('user');
 
   // Handle Input Changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
