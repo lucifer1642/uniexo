@@ -32,6 +32,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // Auto-confirm user email so they can log in immediately
+    await supabaseAdmin.auth.admin.updateUserById(id, { 
+      email_confirm: true 
+    });
+
     return NextResponse.json({ success: true, profile: data });
   } catch (err: any) {
     console.error('[API-REGISTER] Unhandled error:', err);

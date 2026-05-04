@@ -173,13 +173,22 @@ export default function SignupPage() {
       } catch (f) { console.error("RTDB sync skipped"); }
 
       // 4. Log in and redirect
-      if (session) {
+      let finalSession = session;
+      if (!finalSession) {
+        const { data: signInData } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password,
+        });
+        finalSession = signInData.session;
+      }
+
+      if (finalSession) {
         useAuthStore.getState().login({
           id: authUser.id,
           name: registerData.profile.name,
           email: authUser.email!,
           role: role
-        }, session.access_token);
+        }, finalSession.access_token);
         
         toast.success("Welcome to UniExo!");
         router.push(role === 'admin' ? '/admin' : '/dashboard');
