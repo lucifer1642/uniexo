@@ -145,9 +145,11 @@ export class MarketplaceService {
   }
 
   async updateOfferStatus(offerId: string, sellerId: string, status: 'accepted' | 'rejected') {
-    const offer = await this.marketplaceRepo.findOfferById(offerId);
+    const offer = await this.marketplaceRepo.findOfferById(offerId) as any;
     if (!offer) throw new NotFoundError('Offer not found');
-    if (offer.sellerId._id.toString() !== sellerId && offer.sellerId.toString() !== sellerId) {
+    
+    const offerSellerId = offer.sellerId?._id || offer.sellerId;
+    if (String(offerSellerId) !== String(sellerId)) {
       throw new ForbiddenError('Only the seller can update the offer status');
     }
     if (offer.status !== 'pending') {

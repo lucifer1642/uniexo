@@ -23,6 +23,7 @@ function mapOfferRow(row: Record<string, unknown>) {
     buyerId: row.buyer_id,
     sellerId: row.seller_id,
     offeredPrice: row.offered_price || (row as any).amount,
+    status: row.status,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -268,8 +269,8 @@ export class MarketplaceRepository {
       if (!conversations.has(partnerId)) {
         conversations.set(partnerId, {
           partnerId,
-          partnerName: msg.sender_id === userId ? msg.receiver?.name : msg.sender?.name,
-          partnerAvatar: msg.sender_id === userId ? msg.receiver?.avatar : msg.sender?.avatar,
+          partnerName: msg.sender_id === userId ? (msg.receiver as any)?.name : (msg.sender as any)?.name,
+          partnerAvatar: msg.sender_id === userId ? (msg.receiver as any)?.avatar : (msg.sender as any)?.avatar,
           lastMessage: msg.content,
           timestamp: msg.created_at,
           itemId: msg.item_id
