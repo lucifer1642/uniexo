@@ -269,34 +269,71 @@ export default function SignupPage() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className="py-10 text-center"
+                    className="space-y-8"
                   >
-                    <div className="mb-12">
-                      <div className="w-20 h-20 bg-lime-400/10 rounded-3xl flex items-center justify-center mx-auto mb-6 ring-1 ring-lime-400/20 shadow-2xl">
-                         <Sparkles className="w-10 h-10 text-lime-400" />
-                      </div>
-                      <h3 className="text-2xl font-black text-white tracking-tight mb-3 uppercase">Start Your Journey</h3>
-                      <p className="text-zinc-500 text-sm font-medium px-4">The fastest way to join the UniExo Nexus. Secure and instantaneous.</p>
+                    <div className="text-center mb-8">
+                       <p className="text-lime-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Protocol 01</p>
+                       <h3 className="text-3xl font-black text-white tracking-tighter uppercase">Identity Access</h3>
                     </div>
 
                     <Button
                       type="button"
                       onClick={handleFirebaseFetch}
                       disabled={loading}
-                      className="w-full h-16 rounded-2xl bg-white text-black hover:bg-zinc-200 flex items-center justify-center gap-4 font-black transition-all active:scale-95 group"
+                      className="w-full h-16 rounded-2xl bg-white text-black hover:bg-zinc-200 flex items-center justify-center gap-4 font-black transition-all active:scale-95 group shadow-[0_0_30px_rgba(255,255,255,0.05)]"
                     >
                       <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-6 h-6" alt="Google" />
-                      <span className="tracking-widest">SIGN IN WITH GOOGLE</span>
+                      <span className="tracking-widest text-sm">CONTINUE WITH GOOGLE</span>
                     </Button>
 
-                    <div className="mt-8">
-                       <button 
-                         onClick={() => setStep(1)} 
-                         className="text-zinc-600 hover:text-zinc-400 text-xs font-bold uppercase tracking-widest transition-colors underline underline-offset-4"
-                       >
-                         Or register manually
-                       </button>
+                    <div className="relative flex items-center gap-4 py-2">
+                      <div className="h-[1px] flex-1 bg-white/5" />
+                      <span className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em]">or manual entry</span>
+                      <div className="h-[1px] flex-1 bg-white/5" />
                     </div>
+
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest ml-1">Terminal ID (Email)</Label>
+                        <Input
+                          name="email"
+                          type="email"
+                          className="h-14 bg-white/[0.02] border-white/5 text-white placeholder:text-zinc-700 focus:border-lime-500/50 rounded-2xl transition-all"
+                          placeholder="name@university.edu"
+                          value={formData.email}
+                          onChange={handleChange}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest ml-1">Access Key (Password)</Label>
+                        <div className="relative">
+                          <Input
+                            name="password"
+                            type={showPassword ? 'text' : 'password'}
+                            className="h-14 bg-white/[0.02] border-white/5 text-white placeholder:text-zinc-700 focus:border-lime-500/50 rounded-2xl pr-12 transition-all"
+                            placeholder="••••••••"
+                            value={formData.password}
+                            onChange={handleChange}
+                          />
+                          <button type="button" className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-white transition-colors" onClick={() => setShowPassword(!showPassword)}>
+                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Button 
+                      onClick={() => {
+                        if (!formData.email || !formData.password) {
+                          toast.error("Please provide email and password or use Google.");
+                          return;
+                        }
+                        setStep(1);
+                      }}
+                      className="w-full h-14 bg-zinc-800 text-white font-black text-sm rounded-2xl hover:bg-zinc-700 transition-all uppercase tracking-widest"
+                    >
+                       Initialize Setup
+                    </Button>
                   </motion.div>
                 )}
 
@@ -307,11 +344,9 @@ export default function SignupPage() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
                   >
-                    <div className="mb-8 flex justify-between items-end">
-                       <div>
-                          <p className="text-lime-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Step 01</p>
-                          <h3 className="text-2xl font-black text-white tracking-tight">Identity Role</h3>
-                       </div>
+                    <div className="text-center mb-10">
+                       <p className="text-lime-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Protocol 02</p>
+                       <h3 className="text-3xl font-black text-white tracking-tighter uppercase">Role Definition</h3>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
@@ -320,15 +355,14 @@ export default function SignupPage() {
                         onClick={() => handleRoleChange('user')}
                         className={`group relative flex flex-col items-center justify-center p-8 rounded-3xl border transition-all duration-300 ${
                           role === 'user' 
-                            ? 'border-lime-500/50 bg-lime-500/5 text-lime-400 ring-4 ring-lime-500/10 shadow-[0_0_30px_rgba(163,230,53,0.05)]' 
-                            : 'border-white/5 bg-white/[0.01] text-zinc-600 hover:border-white/10 hover:text-zinc-400'
+                            ? 'border-lime-500/50 bg-lime-500/5 text-lime-400 ring-4 ring-lime-500/10' 
+                            : 'border-white/5 bg-white/[0.01] text-zinc-600 hover:border-white/10'
                         }`}
                       >
-                        <div className={`p-4 rounded-2xl mb-4 transition-all duration-500 ${role === 'user' ? 'bg-lime-500/20 scale-110' : 'bg-white/5 group-hover:bg-white/10'}`}>
+                        <div className={`p-4 rounded-2xl mb-4 transition-all ${role === 'user' ? 'bg-lime-500/20 scale-110' : 'bg-white/5 group-hover:bg-white/10'}`}>
                           <Sparkles className="w-8 h-8" />
                         </div>
                         <span className="font-black text-xl tracking-tight">General</span>
-                        <span className="text-[10px] mt-1 opacity-60 font-bold uppercase tracking-widest">Customer</span>
                         {role === 'user' && (
                           <motion.div layoutId="role-check" className="absolute -top-2 -right-2 bg-lime-400 text-black p-1.5 rounded-full shadow-xl">
                             <CheckCircle2 className="w-4 h-4" />
@@ -341,15 +375,14 @@ export default function SignupPage() {
                         onClick={() => handleRoleChange('vendor')}
                         className={`group relative flex flex-col items-center justify-center p-8 rounded-3xl border transition-all duration-300 ${
                           role === 'vendor' 
-                            ? 'border-lime-500/50 bg-lime-500/5 text-lime-400 ring-4 ring-lime-500/10 shadow-[0_0_30px_rgba(163,230,53,0.05)]' 
-                            : 'border-white/5 bg-white/[0.01] text-zinc-600 hover:border-white/10 hover:text-zinc-400'
+                            ? 'border-lime-500/50 bg-lime-500/5 text-lime-400 ring-4 ring-lime-500/10' 
+                            : 'border-white/5 bg-white/[0.01] text-zinc-600 hover:border-white/10'
                         }`}
                       >
-                        <div className={`p-4 rounded-2xl mb-4 transition-all duration-500 ${role === 'vendor' ? 'bg-lime-500/20 scale-110' : 'bg-white/5 group-hover:bg-white/10'}`}>
+                        <div className={`p-4 rounded-2xl mb-4 transition-all ${role === 'vendor' ? 'bg-lime-500/20 scale-110' : 'bg-white/5 group-hover:bg-white/10'}`}>
                            <Store className="w-8 h-8" />
                         </div>
                         <span className="font-black text-xl tracking-tight">Vendor</span>
-                        <span className="text-[10px] mt-1 opacity-60 font-bold uppercase tracking-widest">Business</span>
                         {role === 'vendor' && (
                           <motion.div layoutId="role-check" className="absolute -top-2 -right-2 bg-lime-400 text-black p-1.5 rounded-full shadow-xl">
                             <CheckCircle2 className="w-4 h-4" />
@@ -358,12 +391,10 @@ export default function SignupPage() {
                       </button>
                     </div>
 
-                    <Button 
-                      onClick={() => setStep(2)}
-                      className="w-full h-14 bg-lime-400 text-black font-black text-lg rounded-2xl hover:bg-lime-300 transition-all active:scale-95"
-                    >
-                       CONTINUE TO DETAILS
-                    </Button>
+                    <div className="flex gap-4">
+                      <Button onClick={() => setStep(0)} variant="outline" className="flex-1 h-14 border-white/10 bg-transparent text-zinc-500 hover:text-white font-black rounded-2xl">BACK</Button>
+                      <Button onClick={() => setStep(2)} className="flex-[2] h-14 bg-lime-400 text-black font-black text-lg rounded-2xl hover:bg-lime-300">CONTINUE</Button>
+                    </div>
                   </motion.div>
                 )}
 
@@ -373,12 +404,9 @@ export default function SignupPage() {
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                   >
-                    <div className="mb-10 flex justify-between items-end">
-                       <div>
-                          <p className="text-lime-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Step 02</p>
-                          <h3 className="text-2xl font-black text-white tracking-tight">Final Specification</h3>
-                       </div>
-                       <button onClick={() => setStep(1)} className="text-zinc-600 hover:text-white text-[10px] font-bold uppercase underline">Back</button>
+                    <div className="text-center mb-10">
+                       <p className="text-lime-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Protocol 03</p>
+                       <h3 className="text-3xl font-black text-white tracking-tighter uppercase">Profile Specification</h3>
                     </div>
 
                     <form className="grid grid-cols-1 sm:grid-cols-2 gap-6" onSubmit={handleInitialSubmit} autoComplete="off">
@@ -580,10 +608,13 @@ export default function SignupPage() {
                       )}
 
                       {error && <div className="sm:col-span-2 text-red-400 text-[10px] font-black uppercase bg-red-500/10 border border-red-500/20 py-3 px-4 rounded-xl">{error}</div>}
-
-                      <Button type="submit" className="sm:col-span-2 w-full h-14 text-black bg-lime-400 hover:bg-lime-300 font-black text-lg rounded-2xl transition-all shadow-xl shadow-lime-500/20 active:scale-[0.99] mt-2" disabled={loading}>
-                        {loading ? 'SYNCING...' : 'FINALIZE REGISTRATION'}
-                      </Button>
+                      
+                      <div className="sm:col-span-2 flex gap-4 mt-4">
+                        <Button type="button" onClick={() => setStep(1)} variant="outline" className="flex-1 h-14 border-white/10 bg-transparent text-zinc-500 hover:text-white font-black rounded-2xl">BACK</Button>
+                        <Button type="submit" className="flex-[2] h-14 text-black bg-lime-400 hover:bg-lime-300 font-black text-lg rounded-2xl transition-all shadow-xl shadow-lime-500/20 active:scale-[0.99]" disabled={loading}>
+                          {loading ? 'SYNCING...' : 'FINALIZE'}
+                        </Button>
+                      </div>
                     </form>
                   </motion.div>
                 )}
