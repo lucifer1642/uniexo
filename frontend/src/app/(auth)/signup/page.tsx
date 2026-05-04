@@ -21,6 +21,7 @@ export default function SignupPage() {
   const [role, setRole] = useState<'user' | 'vendor'>('user');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [step, setStep] = useState(0); // 0: Entry, 1: Role Selection, 2: Final Details
 
   const [formData, setFormData] = useState({
     name: '',
@@ -112,7 +113,8 @@ export default function SignupPage() {
           name: user.displayName || prev.name,
           email: user.email || prev.email,
         }));
-        toast.success(`Signed in as ${user.displayName}!`, { 
+        setStep(1); // Move to Role Selection
+        toast.success(`Welcome ${user.displayName}! Let's set up your profile.`, { 
           icon: '✨',
           style: { background: '#000', color: '#4ade80', border: '1px solid #4ade8033' }
         });
@@ -244,281 +246,298 @@ export default function SignupPage() {
             </p>
           </div>
 
-          <div className="backdrop-blur-3xl bg-white/[0.02] border border-white/10 shadow-2xl rounded-[2.5rem] p-8 sm:p-12">
-            {/* Firebase Google Sign In Option */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <Button
-                type="button"
-                onClick={handleFirebaseFetch}
-                variant="outline"
-                disabled={loading}
-                className="w-full mb-10 h-14 rounded-2xl border-lime-500/30 bg-lime-500/5 hover:bg-lime-500/10 text-lime-400 flex items-center justify-center gap-3 font-black group overflow-hidden relative shadow-[0_0_20px_rgba(163,230,53,0.1)]"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-lime-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5 relative z-10" alt="Google" />
-                <span className="relative z-10 tracking-widest uppercase text-sm">SIGN IN WITH GOOGLE</span>
-                <Sparkles className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity relative z-10" />
-              </Button>
-            </motion.div>
-
+          <div className="backdrop-blur-3xl bg-white/[0.02] border border-white/10 shadow-2xl rounded-[2.5rem] p-8 sm:p-12 overflow-hidden">
             <AnimatePresence mode="wait">
-                <motion.div
-                  key="form"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                >
-                  <div className="mb-10 flex flex-col sm:flex-row gap-4">
-                    <button
+                {step === 0 && (
+                  <motion.div
+                    key="step0"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="py-10 text-center"
+                  >
+                    <div className="mb-12">
+                      <div className="w-20 h-20 bg-lime-400/10 rounded-3xl flex items-center justify-center mx-auto mb-6 ring-1 ring-lime-400/20 shadow-2xl">
+                         <Sparkles className="w-10 h-10 text-lime-400" />
+                      </div>
+                      <h3 className="text-2xl font-black text-white tracking-tight mb-3 uppercase">Start Your Journey</h3>
+                      <p className="text-zinc-500 text-sm font-medium px-4">The fastest way to join the UniExo Nexus. Secure and instantaneous.</p>
+                    </div>
+
+                    <Button
                       type="button"
-                      onClick={() => handleRoleChange('user')}
-                      className={`flex-1 group relative flex flex-col items-center justify-center p-6 rounded-2xl border transition-all duration-300 ${
-                        role === 'user' 
-                          ? 'border-lime-500/50 bg-lime-500/5 text-lime-400 ring-4 ring-lime-500/10' 
-                          : 'border-white/5 bg-white/[0.02] text-zinc-500 hover:border-white/10'
-                      }`}
+                      onClick={handleFirebaseFetch}
+                      disabled={loading}
+                      className="w-full h-16 rounded-2xl bg-white text-black hover:bg-zinc-200 flex items-center justify-center gap-4 font-black transition-all active:scale-95 group"
                     >
-                      <div className={`p-3 rounded-xl mb-3 transition-colors ${role === 'user' ? 'bg-lime-500/20' : 'bg-white/5 group-hover:bg-white/10'}`}>
-                        <Sparkles className="w-6 h-6" />
-                      </div>
-                      <span className="font-bold text-lg">General User</span>
-                      <span className="text-xs mt-1 opacity-60">Rent & Buy Easily</span>
-                      {role === 'user' && (
-                        <motion.div layoutId="role-active" className="absolute -top-2 -right-2 bg-lime-400 text-black p-1 rounded-full shadow-lg">
-                          <CheckCircle2 className="w-4 h-4" />
-                        </motion.div>
-                      )}
-                    </button>
-                    
-                    <button
-                      type="button"
-                      onClick={() => handleRoleChange('vendor')}
-                      className={`flex-1 group relative flex flex-col items-center justify-center p-6 rounded-2xl border transition-all duration-300 ${
-                        role === 'vendor' 
-                          ? 'border-lime-500/50 bg-lime-500/5 text-lime-400 ring-4 ring-lime-500/10' 
-                          : 'border-white/5 bg-white/[0.02] text-zinc-500 hover:border-white/10'
-                      }`}
-                    >
-                      <div className={`p-3 rounded-xl mb-3 transition-colors ${role === 'vendor' ? 'bg-lime-500/20' : 'bg-white/5 group-hover:bg-white/10'}`}>
-                        <div className="flex -space-x-1">
-                          <Car className="w-5 h-5" />
-                          <Building className="w-5 h-5" />
-                        </div>
-                      </div>
-                      <span className="font-bold text-lg">Vendor</span>
-                      <span className="text-xs mt-1 opacity-60">List & Scale Business</span>
-                      {role === 'vendor' && (
-                        <motion.div layoutId="role-active" className="absolute -top-2 -right-2 bg-lime-400 text-black p-1 rounded-full shadow-lg">
-                          <CheckCircle2 className="w-4 h-4" />
-                        </motion.div>
-                      )}
-                    </button>
-                  </div>
-
-                  <form className="grid grid-cols-1 sm:grid-cols-2 gap-6" onSubmit={handleInitialSubmit} autoComplete="off">
-                    <div className="space-y-2">
-                      <Label htmlFor="name" className="text-zinc-400 text-sm font-medium ml-1">Full Name</Label>
-                      <Input
-                        id="name"
-                        name="name"
-                        type="text"
-                        required
-                        className="h-12 bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 focus:border-lime-500/50 focus:ring-lime-500/20 rounded-xl"
-                        placeholder="John Doe"
-                        autoComplete="off"
-                        value={formData.name}
-                        onChange={handleChange}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="text-zinc-400 text-sm font-medium ml-1">Email</Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        required
-                        className="h-12 bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 focus:border-lime-500/50 focus:ring-lime-500/20 rounded-xl"
-                        placeholder="john@uniexo.in"
-                        autoComplete="off"
-                        value={formData.email}
-                        onChange={handleChange}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="phone" className="text-zinc-400 text-sm font-medium ml-1">Phone Number</Label>
-                      <Input
-                        id="phone"
-                        name="phone"
-                        type="tel"
-                        required
-                        className="h-12 bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 focus:border-lime-500/50 focus:ring-lime-500/20 rounded-xl"
-                        placeholder="+91 98765 43210"
-                        value={formData.phone}
-                        onChange={handleChange}
-                      />
-                    </div>
-
-                    {role === 'user' ? (
-                      <div className="space-y-2">
-                        <Label htmlFor="universityId" className="text-zinc-400 text-sm font-medium ml-1">University ID</Label>
-                        <Input
-                          id="universityId"
-                          name="universityId"
-                          type="text"
-                          required
-                          className="h-12 bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 focus:border-lime-500/50 focus:ring-lime-500/20 rounded-xl"
-                          placeholder="E.g. 21BCE102"
-                          value={formData.universityId}
-                          onChange={handleChange}
-                        />
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <Label htmlFor="businessName" className="text-zinc-400 text-sm font-medium ml-1">Business Name</Label>
-                        <Input
-                          id="businessName"
-                          name="businessName"
-                          type="text"
-                          required
-                          className="h-12 bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 focus:border-lime-500/50 focus:ring-lime-500/20 rounded-xl"
-                          placeholder="Enter Business Name"
-                          value={formData.businessName}
-                          onChange={handleChange}
-                        />
-                      </div>
-                    )}
-
-                    {role === 'user' ? (
-                      <div className="space-y-2 sm:col-span-2">
-                        <div className="flex justify-between items-center ml-1">
-                          <Label htmlFor="location" className="text-zinc-400 text-sm font-medium">Current Location</Label>
-                          <Button 
-                            type="button" 
-                            variant="ghost" 
-                            onClick={fetchLocation}
-                            className="h-auto p-0 text-lime-400 hover:text-lime-300 hover:bg-transparent text-xs font-bold"
-                          >
-                            <LocateFixed className="w-3 h-3 mr-1" />
-                            Auto-detect
-                          </Button>
-                        </div>
-                        <Input
-                          id="location"
-                          name="location"
-                          type="text"
-                          required
-                          className="h-12 bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 focus:border-lime-500/50 focus:ring-lime-500/20 rounded-xl"
-                          placeholder="Enter location or auto-detect"
-                          value={formData.location}
-                          onChange={handleChange}
-                        />
-                      </div>
-                    ) : (
-                      <div className="space-y-2 sm:col-span-2">
-                        <Label htmlFor="serviceType" className="text-zinc-400 text-sm font-medium ml-1">Service Domain</Label>
-                        <select
-                          id="serviceType"
-                          name="serviceType"
-                          required
-                          className="flex h-12 w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-1 text-white shadow-sm transition-colors focus:border-lime-500/50 focus:outline-none focus:ring-1 focus:ring-lime-500/20"
-                          value={formData.serviceType}
-                          onChange={handleChange}
-                        >
-                          <option value="" disabled className="bg-zinc-900 text-zinc-500">Select domain</option>
-                          <option value="vehicle" className="bg-zinc-900 text-white">Car Rental</option>
-                          <option value="house" className="bg-zinc-900 text-white">Room Rental (PG)</option>
-                          <option value="laundry" className="bg-zinc-900 text-white">Laundry Service</option>
-                        </select>
-                      </div>
-                    )}
-
-                    {role === 'vendor' && formData.serviceType === 'LAUNDRY' && (
-                      <div className="sm:col-span-2 space-y-4 p-4 rounded-2xl border border-lime-500/20 bg-lime-500/[0.03]">
-                        <p className="text-xs font-bold text-lime-400 uppercase tracking-wider">Laundry Service Options</p>
-                        <div className="flex flex-col sm:flex-row gap-4">
-                          <button
-                            type="button"
-                            onClick={() => setOnsitePickup(!onsitePickup)}
-                            className={`flex-1 flex items-center justify-between p-3 rounded-xl border transition-all ${onsitePickup ? 'border-lime-500/50 bg-lime-500/10 text-lime-400' : 'border-white/10 bg-white/[0.02] text-zinc-500'}`}
-                          >
-                            <span className="text-sm font-medium">Onsite Pickup</span>
-                            <div className={`w-10 h-6 rounded-full transition-colors flex items-center ${onsitePickup ? 'bg-lime-500 justify-end' : 'bg-zinc-700 justify-start'}`}>
-                              <div className="w-4 h-4 rounded-full bg-white mx-1 transition-all" />
-                            </div>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setOnStoreService(!onStoreService)}
-                            className={`flex-1 flex items-center justify-between p-3 rounded-xl border transition-all ${onStoreService ? 'border-lime-500/50 bg-lime-500/10 text-lime-400' : 'border-white/10 bg-white/[0.02] text-zinc-500'}`}
-                          >
-                            <span className="text-sm font-medium">On Store Service</span>
-                            <div className={`w-10 h-6 rounded-full transition-colors flex items-center ${onStoreService ? 'bg-lime-500 justify-end' : 'bg-zinc-700 justify-start'}`}>
-                              <div className="w-4 h-4 rounded-full bg-white mx-1 transition-all" />
-                            </div>
-                          </button>
-                        </div>
-                        {onsitePickup && (
-                          <div className="space-y-2">
-                            <Label htmlFor="onsitePickupCharge" className="text-zinc-400 text-sm font-medium ml-1">Onsite Pickup Charge (₹)</Label>
-                            <Input id="onsitePickupCharge" type="number" min="0" className="h-12 bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 focus:border-lime-500/50 focus:ring-lime-500/20 rounded-xl" placeholder="e.g. 50" value={onsitePickupCharge} onChange={(e) => setOnsitePickupCharge(e.target.value)} />
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="space-y-2">
-                      <Label htmlFor="password" title="Password" className="text-zinc-400 text-sm font-medium ml-1">Password</Label>
-                      <div className="relative">
-                        <Input
-                          id="password"
-                          name="password"
-                          type={showPassword ? 'text' : 'password'}
-                          required
-                          className="h-12 bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 focus:border-lime-500/50 focus:ring-lime-500/20 rounded-xl pr-10"
-                          placeholder="••••••••"
-                          autoComplete="new-password"
-                          value={formData.password}
-                          onChange={handleChange}
-                        />
-                        <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors" onClick={() => setShowPassword(!showPassword)}>
-                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="confirmPassword" title="Confirm Password" className="text-zinc-400 text-sm font-medium ml-1">Confirm Password</Label>
-                      <div className="relative">
-                        <Input
-                          id="confirmPassword"
-                          name="confirmPassword"
-                          type={showConfirmPassword ? 'text' : 'password'}
-                          required
-                          className="h-12 bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 focus:border-lime-500/50 focus:ring-lime-500/20 rounded-xl pr-10"
-                          placeholder="••••••••"
-                          autoComplete="new-password"
-                          value={formData.confirmPassword}
-                          onChange={handleChange}
-                        />
-                        <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
-                          {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                        </button>
-                      </div>
-                    </div>
-
-                    {error && <div className="sm:col-span-2 text-red-400 text-xs font-medium bg-red-500/10 border border-red-500/20 py-2.5 px-4 rounded-xl">{error}</div>}
-
-                    <Button type="submit" className="sm:col-span-2 w-full h-14 text-black bg-lime-400 hover:bg-lime-300 font-black text-lg rounded-2xl transition-all shadow-xl shadow-lime-500/20 active:scale-[0.99] mt-2" disabled={loading}>
-                      {loading ? 'Processing...' : 'CREATE ACCOUNT'}
+                      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-6 h-6" alt="Google" />
+                      <span className="tracking-widest">SIGN IN WITH GOOGLE</span>
                     </Button>
-                  </form>
-                </motion.div>
+
+                    <div className="mt-8">
+                       <button 
+                         onClick={() => setStep(1)} 
+                         className="text-zinc-600 hover:text-zinc-400 text-xs font-bold uppercase tracking-widest transition-colors underline underline-offset-4"
+                       >
+                         Or register manually
+                       </button>
+                    </div>
+                  </motion.div>
+                )}
+
+                {step === 1 && (
+                  <motion.div
+                    key="step1"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                  >
+                    <div className="mb-8 flex justify-between items-end">
+                       <div>
+                          <p className="text-lime-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Step 01</p>
+                          <h3 className="text-2xl font-black text-white tracking-tight">Identity Role</h3>
+                       </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+                      <button
+                        type="button"
+                        onClick={() => handleRoleChange('user')}
+                        className={`group relative flex flex-col items-center justify-center p-8 rounded-3xl border transition-all duration-300 ${
+                          role === 'user' 
+                            ? 'border-lime-500/50 bg-lime-500/5 text-lime-400 ring-4 ring-lime-500/10 shadow-[0_0_30px_rgba(163,230,53,0.05)]' 
+                            : 'border-white/5 bg-white/[0.01] text-zinc-600 hover:border-white/10 hover:text-zinc-400'
+                        }`}
+                      >
+                        <div className={`p-4 rounded-2xl mb-4 transition-all duration-500 ${role === 'user' ? 'bg-lime-500/20 scale-110' : 'bg-white/5 group-hover:bg-white/10'}`}>
+                          <Sparkles className="w-8 h-8" />
+                        </div>
+                        <span className="font-black text-xl tracking-tight">General</span>
+                        <span className="text-[10px] mt-1 opacity-60 font-bold uppercase tracking-widest">Customer</span>
+                        {role === 'user' && (
+                          <motion.div layoutId="role-check" className="absolute -top-2 -right-2 bg-lime-400 text-black p-1.5 rounded-full shadow-xl">
+                            <CheckCircle2 className="w-4 h-4" />
+                          </motion.div>
+                        )}
+                      </button>
+                      
+                      <button
+                        type="button"
+                        onClick={() => handleRoleChange('vendor')}
+                        className={`group relative flex flex-col items-center justify-center p-8 rounded-3xl border transition-all duration-300 ${
+                          role === 'vendor' 
+                            ? 'border-lime-500/50 bg-lime-500/5 text-lime-400 ring-4 ring-lime-500/10 shadow-[0_0_30px_rgba(163,230,53,0.05)]' 
+                            : 'border-white/5 bg-white/[0.01] text-zinc-600 hover:border-white/10 hover:text-zinc-400'
+                        }`}
+                      >
+                        <div className={`p-4 rounded-2xl mb-4 transition-all duration-500 ${role === 'vendor' ? 'bg-lime-500/20 scale-110' : 'bg-white/5 group-hover:bg-white/10'}`}>
+                           <Store className="w-8 h-8" />
+                        </div>
+                        <span className="font-black text-xl tracking-tight">Vendor</span>
+                        <span className="text-[10px] mt-1 opacity-60 font-bold uppercase tracking-widest">Business</span>
+                        {role === 'vendor' && (
+                          <motion.div layoutId="role-check" className="absolute -top-2 -right-2 bg-lime-400 text-black p-1.5 rounded-full shadow-xl">
+                            <CheckCircle2 className="w-4 h-4" />
+                          </motion.div>
+                        )}
+                      </button>
+                    </div>
+
+                    <Button 
+                      onClick={() => setStep(2)}
+                      className="w-full h-14 bg-lime-400 text-black font-black text-lg rounded-2xl hover:bg-lime-300 transition-all active:scale-95"
+                    >
+                       CONTINUE TO DETAILS
+                    </Button>
+                  </motion.div>
+                )}
+
+                {step === 2 && (
+                  <motion.div
+                    key="step2"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                  >
+                    <div className="mb-10 flex justify-between items-end">
+                       <div>
+                          <p className="text-lime-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Step 02</p>
+                          <h3 className="text-2xl font-black text-white tracking-tight">Final Specification</h3>
+                       </div>
+                       <button onClick={() => setStep(1)} className="text-zinc-600 hover:text-white text-[10px] font-bold uppercase underline">Back</button>
+                    </div>
+
+                    <form className="grid grid-cols-1 sm:grid-cols-2 gap-6" onSubmit={handleInitialSubmit} autoComplete="off">
+                      {/* Identity Details (Only show if not already set or if manual) */}
+                      {!formData.name && (
+                        <div className="space-y-2">
+                          <Label htmlFor="name" className="text-zinc-500 text-[10px] font-black uppercase tracking-widest ml-1">Full Name</Label>
+                          <Input
+                            id="name"
+                            name="name"
+                            type="text"
+                            required
+                            className="h-12 bg-white/[0.03] border-white/10 text-white placeholder:text-zinc-700 focus:border-lime-500/50 rounded-xl"
+                            placeholder="John Doe"
+                            value={formData.name}
+                            onChange={handleChange}
+                          />
+                        </div>
+                      )}
+
+                      {!formData.email && (
+                        <div className="space-y-2">
+                          <Label htmlFor="email" className="text-zinc-500 text-[10px] font-black uppercase tracking-widest ml-1">Email</Label>
+                          <Input
+                            id="email"
+                            name="email"
+                            type="email"
+                            required
+                            className="h-12 bg-white/[0.03] border-white/10 text-white placeholder:text-zinc-700 focus:border-lime-500/50 rounded-xl"
+                            placeholder="john@uniexo.in"
+                            value={formData.email}
+                            onChange={handleChange}
+                          />
+                        </div>
+                      )}
+
+                      <div className="space-y-2">
+                        <Label htmlFor="phone" className="text-zinc-500 text-[10px] font-black uppercase tracking-widest ml-1">Phone Number</Label>
+                        <Input
+                          id="phone"
+                          name="phone"
+                          type="tel"
+                          required
+                          className="h-12 bg-white/[0.03] border-white/10 text-white placeholder:text-zinc-700 focus:border-lime-500/50 rounded-xl"
+                          placeholder="+91 98765 43210"
+                          value={formData.phone}
+                          onChange={handleChange}
+                        />
+                      </div>
+
+                      {role === 'user' ? (
+                        <div className="space-y-2">
+                          <Label htmlFor="universityId" className="text-zinc-500 text-[10px] font-black uppercase tracking-widest ml-1">University ID</Label>
+                          <Input
+                            id="universityId"
+                            name="universityId"
+                            type="text"
+                            required
+                            className="h-12 bg-white/[0.03] border-white/10 text-white placeholder:text-zinc-700 focus:border-lime-500/50 rounded-xl"
+                            placeholder="E.g. 21BCE102"
+                            value={formData.universityId}
+                            onChange={handleChange}
+                          />
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <Label htmlFor="businessName" className="text-zinc-500 text-[10px] font-black uppercase tracking-widest ml-1">Business Name</Label>
+                          <Input
+                            id="businessName"
+                            name="businessName"
+                            type="text"
+                            required
+                            className="h-12 bg-white/[0.03] border-white/10 text-white placeholder:text-zinc-700 focus:border-lime-500/50 rounded-xl"
+                            placeholder="Enter Business Name"
+                            value={formData.businessName}
+                            onChange={handleChange}
+                          />
+                        </div>
+                      )}
+
+                      {role === 'user' ? (
+                        <div className="space-y-2 sm:col-span-2">
+                          <div className="flex justify-between items-center ml-1">
+                            <Label htmlFor="location" className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Current Location</Label>
+                            <Button 
+                              type="button" 
+                              variant="ghost" 
+                              onClick={fetchLocation}
+                              className="h-auto p-0 text-lime-400 hover:text-lime-300 hover:bg-transparent text-[10px] font-black uppercase"
+                            >
+                              <LocateFixed className="w-3 h-3 mr-1" />
+                              Auto-detect
+                            </Button>
+                          </div>
+                          <Input
+                            id="location"
+                            name="location"
+                            type="text"
+                            required
+                            className="h-12 bg-white/[0.03] border-white/10 text-white placeholder:text-zinc-700 focus:border-lime-500/50 rounded-xl"
+                            placeholder="Enter location or auto-detect"
+                            value={formData.location}
+                            onChange={handleChange}
+                          />
+                        </div>
+                      ) : (
+                        <div className="space-y-2 sm:col-span-2">
+                          <Label htmlFor="serviceType" className="text-zinc-500 text-[10px] font-black uppercase tracking-widest ml-1">Service Domain</Label>
+                          <select
+                            id="serviceType"
+                            name="serviceType"
+                            required
+                            className="flex h-12 w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-1 text-white shadow-sm transition-colors focus:border-lime-500/50 focus:outline-none focus:ring-1 focus:ring-lime-500/20"
+                            value={formData.serviceType}
+                            onChange={handleChange}
+                          >
+                            <option value="" disabled className="bg-zinc-900 text-zinc-500">Select domain</option>
+                            <option value="vehicle" className="bg-zinc-900 text-white">Car Rental</option>
+                            <option value="house" className="bg-zinc-900 text-white">Room Rental (PG)</option>
+                            <option value="laundry" className="bg-zinc-900 text-white">Laundry Service</option>
+                          </select>
+                        </div>
+                      )}
+
+                      {!formData.password && (
+                        <>
+                          <div className="space-y-2">
+                            <Label htmlFor="password" title="Password" className="text-zinc-500 text-[10px] font-black uppercase tracking-widest ml-1">Password</Label>
+                            <div className="relative">
+                              <Input
+                                id="password"
+                                name="password"
+                                type={showPassword ? 'text' : 'password'}
+                                required
+                                className="h-12 bg-white/[0.03] border-white/10 text-white placeholder:text-zinc-700 focus:border-lime-500/50 rounded-xl pr-10"
+                                placeholder="••••••••"
+                                value={formData.password}
+                                onChange={handleChange}
+                              />
+                              <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors" onClick={() => setShowPassword(!showPassword)}>
+                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="confirmPassword" title="Confirm Password" className="text-zinc-500 text-[10px] font-black uppercase tracking-widest ml-1">Confirm Password</Label>
+                            <div className="relative">
+                              <Input
+                                id="confirmPassword"
+                                name="confirmPassword"
+                                type={showConfirmPassword ? 'text' : 'password'}
+                                required
+                                className="h-12 bg-white/[0.03] border-white/10 text-white placeholder:text-zinc-700 focus:border-lime-500/50 rounded-xl pr-10"
+                                placeholder="••••••••"
+                                value={formData.confirmPassword}
+                                onChange={handleChange}
+                              />
+                              <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
+                                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                              </button>
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {error && <div className="sm:col-span-2 text-red-400 text-[10px] font-black uppercase bg-red-500/10 border border-red-500/20 py-3 px-4 rounded-xl">{error}</div>}
+
+                      <Button type="submit" className="sm:col-span-2 w-full h-14 text-black bg-lime-400 hover:bg-lime-300 font-black text-lg rounded-2xl transition-all shadow-xl shadow-lime-500/20 active:scale-[0.99] mt-2" disabled={loading}>
+                        {loading ? 'SYNCING...' : 'FINALIZE REGISTRATION'}
+                      </Button>
+                    </form>
+                  </motion.div>
+                )}
             </AnimatePresence>
 
             <div className="mt-8 pt-6 border-t border-white/5 text-center">
