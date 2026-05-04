@@ -207,7 +207,7 @@ export default function SignupPage() {
             email: formData.email,
             lastUpdated: new Date().toISOString()
           });
-          logger.info(`[SIGNUP] Firebase sync successful for ${data.user.id}`);
+          console.log(`[SIGNUP] Firebase sync successful for ${data.user.id}`);
         }
       } catch (fbError) {
         console.error('Firebase dual-sync failed:', fbError);
