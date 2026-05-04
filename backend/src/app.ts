@@ -139,6 +139,16 @@ const startServer = async () => {
     // Initialize Nexus Real-time Engine
     NexusSocketService.getInstance().init(server);
 
+    // Test Supabase Connection
+    const { supabase } = await import('./config/supabase');
+    const { data: testData, error: testError } = await supabase.from('profiles').select('id').limit(1);
+    if (testError) {
+      logger.error('❌ Supabase connection test failed:', testError.message);
+      // We don't exit here to allow failover to Firebase if implemented, but we warn loudly
+    } else {
+      logger.info('✅ Supabase connection verified successfully');
+    }
+
     if (!process.env.VERCEL) {
       server.listen(env.PORT, () => {
         logger.info(`🚀 Server running on port ${env.PORT} in ${env.NODE_ENV} mode`);

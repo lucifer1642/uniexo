@@ -50,7 +50,7 @@ const envSchema = z.object({
 
   CLIENT_URL: z.string().url().default('http://localhost:3000'),
 
-  SUPABASE_URL: z.string().url(),
+  SUPABASE_URL: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
 
   FIREBASE_PROJECT_ID: z.string().optional().default('uniexo'),
