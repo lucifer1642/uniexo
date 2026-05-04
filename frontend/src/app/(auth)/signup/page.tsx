@@ -98,7 +98,7 @@ export default function SignupPage() {
     }
   };
 
-  const handleInitialSubmit = async (e: React.FormEvent) => कराते
+  const handleInitialSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
@@ -167,84 +167,6 @@ export default function SignupPage() {
     }
   };
 
-  const handleOtpVerifyAndSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (otp.length < 6) return;
-    setLoading(true);
-    setError('');
-
-    try {
-      const isProd = process.env.NODE_ENV === 'production';
-      const apiUrl = isProd ? '/api/v1' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1');
-
-      // 1. Verify OTP with backend (unified endpoint)
-      const verifyRes = await fetch(`${apiUrl}/auth/verify-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email, otp, purpose: 'signup' })
-      });
-
-      if (!verifyRes.ok) {
-        const errData = await verifyRes.json().catch(() => ({}));
-        throw new Error(errData.message || 'Invalid verification code');
-      }
-
-      // 2. Perform Supabase Signup
-      const metadata: any = {
-        name: formData.name,
-        phone: formData.phone,
-        role,
-      };
-
-      if (role === 'user') {
-        metadata.universityId = formData.universityId;
-        metadata.location = formData.location;
-      } else if (role === 'vendor') {
-        metadata.businessName = formData.businessName;
-        metadata.serviceType = formData.serviceType;
-        if (formData.serviceType === 'LAUNDRY') {
-          metadata.onsitePickup = onsitePickup;
-          metadata.onStoreService = onStoreService;
-          metadata.onsitePickupCharge = Number(onsitePickupCharge) || 0;
-        }
-      }
-
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: metadata,
-        }
-      });
-
-      if (signUpError) throw signUpError;
-
-      if (data.session && data.user) {
-        const { login } = useAuthStore.getState();
-        login(
-          {
-            id: data.user.id,
-            name: metadata.name,
-            email: formData.email,
-            phone: metadata.phone,
-            role: metadata.role || 'user',
-            avatar: data.user.user_metadata?.avatar,
-            kycStatus: 'none',
-          },
-          data.session.access_token
-        );
-        toast.success('Welcome to UniExo! 🎉', { icon: '✨' });
-        router.push('/');
-      } else {
-        toast.success('Account created successfully!', { icon: '✅' });
-        router.push('/login');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Signup failed');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <AuthRedirectWrapper>
@@ -540,7 +462,6 @@ export default function SignupPage() {
                       {loading ? 'Processing...' : 'CREATE ACCOUNT'}
                     </Button>
                   </form>
-                </motion.div>
                 </motion.div>
             </AnimatePresence>
 
