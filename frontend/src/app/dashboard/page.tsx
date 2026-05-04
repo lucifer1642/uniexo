@@ -75,6 +75,7 @@ function StatusBadge({ status }: { status: string }) {
 // ─── USER DASHBOARD ─────────────────────────────────────────────────
 function UserDashboard() {
   const [section, setSection] = useState('overview');
+  const { user } = useAuthStore();
   const { data: bookingsData, isLoading: loadingBookings } = useUserBookings();
   const { data: wallet, isLoading: loadingWallet } = useWallet();
   const { data: laundryData, isLoading: loadingLaundry } = useUserLaundryOrders();
