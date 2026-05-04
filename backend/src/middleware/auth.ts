@@ -75,13 +75,17 @@ export const authenticate = async (
       
       const { data: createdProfile, error: createError } = await supabase
          .from('profiles')
-         .insert(newProfile)
+         .upsert(newProfile, { onConflict: 'id' })
          .select('id, email, role, name, is_deleted, is_suspended')
          .single();
          
       if (createError || !createdProfile) {
-         logger.error(`[AUTH] Auto-create profile failed for ${user.id}`, { error: createError });
-         throw new UnauthorizedError('Authenticated but profile not found. Please complete your registration.');
+         logger.error(`[AUTH] Auto-create profile failed for ${user.id}`, { 
+           error: createError?.message || createError,
+           details: createError?.details,
+           hint: createError?.hint
+         });
+         throw new UnauthorizedError('Database error: Unable to create your profile. Please contact support.');
       }
       profile = createdProfile;
     }

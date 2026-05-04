@@ -160,6 +160,7 @@ export default function SignupPage() {
         name: formData.name,
         phone: formData.phone,
         role,
+        kyc_status: 'none',
       };
 
       if (role === 'user') {
@@ -501,6 +502,40 @@ export default function SignupPage() {
                           </select>
                         </div>
                       )}
+
+                    {role === 'vendor' && formData.serviceType === 'laundry' && (
+                      <div className="sm:col-span-2 space-y-4 p-4 rounded-2xl border border-lime-500/20 bg-lime-500/[0.03]">
+                        <p className="text-[10px] font-black text-lime-400 uppercase tracking-[0.2em]">Laundry Service Options</p>
+                        <div className="flex flex-col sm:flex-row gap-4">
+                          <button
+                            type="button"
+                            onClick={() => setOnsitePickup(!onsitePickup)}
+                            className={`flex-1 flex items-center justify-between p-4 rounded-xl border transition-all ${onsitePickup ? 'border-lime-500/50 bg-lime-500/10 text-lime-400' : 'border-white/5 bg-white/[0.01] text-zinc-600'}`}
+                          >
+                            <span className="text-sm font-bold uppercase tracking-tight">Onsite Pickup</span>
+                            <div className={`w-8 h-4 rounded-full transition-colors flex items-center ${onsitePickup ? 'bg-lime-500 justify-end' : 'bg-zinc-800 justify-start'}`}>
+                              <div className="w-3 h-3 rounded-full bg-white mx-0.5" />
+                            </div>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setOnStoreService(!onStoreService)}
+                            className={`flex-1 flex items-center justify-between p-4 rounded-xl border transition-all ${onStoreService ? 'border-lime-500/50 bg-lime-500/10 text-lime-400' : 'border-white/5 bg-white/[0.01] text-zinc-600'}`}
+                          >
+                            <span className="text-sm font-bold uppercase tracking-tight">On Store Service</span>
+                            <div className={`w-8 h-4 rounded-full transition-colors flex items-center ${onStoreService ? 'bg-lime-500 justify-end' : 'bg-zinc-800 justify-start'}`}>
+                              <div className="w-3 h-3 rounded-full bg-white mx-0.5" />
+                            </div>
+                          </button>
+                        </div>
+                        {onsitePickup && (
+                          <div className="space-y-2">
+                            <Label htmlFor="onsitePickupCharge" className="text-zinc-500 text-[10px] font-black uppercase tracking-widest ml-1">Onsite Pickup Charge (₹)</Label>
+                            <Input id="onsitePickupCharge" type="number" min="0" className="h-12 bg-white/[0.03] border-white/10 text-white placeholder:text-zinc-700 focus:border-lime-500/50 rounded-xl" placeholder="e.g. 50" value={onsitePickupCharge} onChange={(e) => setOnsitePickupCharge(e.target.value)} />
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                       {!formData.password && (
                         <>
