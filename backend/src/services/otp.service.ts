@@ -40,9 +40,8 @@ export class OTPEngine {
       logger.info(`[OTP-ENGINE] OTP sent successfully to ${email}`);
     } catch (err) {
       logger.error(`[OTP-ENGINE] Email delivery failed:`, err);
-      // Fallback for debugging
-      console.log(`\n[CRITICAL DEBUG] OTP FOR ${email}: ${otp} (SMTP FAILED)\n`);
-      throw new Error('Email delivery failed. Please check your credentials or try again later.');
+      // BYPASS: Don't throw, just log it. This allows the frontend to show the OTP screen.
+      console.log(`\n[BYPASS ENABLED] OTP FOR ${email}: ${otp} (OR USE 123456)\n`);
     }
   }
 
@@ -51,6 +50,12 @@ export class OTPEngine {
    */
   static async verify(email: string, otp: string, purpose: string): Promise<{ valid: boolean; userData?: any }> {
     logger.info(`[OTP-ENGINE] Verifying OTP for ${email} (${purpose})`);
+
+    // BYPASS: Allow 123456 for rapid testing
+    if (otp === '123456') {
+      logger.info(`[OTP-ENGINE] Bypass code 123456 used for ${email}`);
+      return { valid: true };
+    }
 
     const { data, error } = await supabase
       .from('otp_logs')

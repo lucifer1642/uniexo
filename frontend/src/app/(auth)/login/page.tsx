@@ -23,6 +23,13 @@ export default function LoginPage() {
     password: '',
   });
 
+  useEffect(() => {
+    // FORCE CLEAR CACHE: Ensure clean state on login
+    localStorage.removeItem('auth-storage');
+    useAuthStore.getState().logout();
+    console.log('Auth cache cleared for fresh session');
+  }, []);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setError('');
