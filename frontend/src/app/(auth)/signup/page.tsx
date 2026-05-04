@@ -1,13 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Car, Building, CheckCircle2, Eye, EyeOff, LocateFixed, Sparkles } from 'lucide-react';
+import { Car, Building, CheckCircle2, Eye, EyeOff, LocateFixed, Sparkles, Store } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { AuthRedirectWrapper } from '@/components/auth-redirect-wrapper';
@@ -46,6 +46,20 @@ export default function SignupPage() {
     title: '',
     content: null
   });
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const email = searchParams.get('email');
+    const name = searchParams.get('name');
+    if (email || name) {
+      setFormData(prev => ({
+        ...prev,
+        email: email || prev.email,
+        name: name || prev.name,
+      }));
+      setStep(1); // Auto-advance to role selection
+    }
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

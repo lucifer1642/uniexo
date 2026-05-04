@@ -8,6 +8,8 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { UserRole } from '@/types';
 import { AuthRedirectWrapper } from '@/components/auth-redirect-wrapper';
+import { auth, googleProvider } from '@/lib/firebase';
+import { signInWithPopup } from 'firebase/auth';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -31,6 +33,46 @@ export default function LoginPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setError('');
+  };
+
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      
+      if (user && user.email) {
+        // Check if user exists in Supabase
+        // Note: In a real app, you'd use a backend endpoint to verify and get a JWT
+        // For now, we'll try to find the profile and if not found, redirect to signup
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('email', user.email)
+          .single();
+
+        if (profile) {
+          // User exists, but we don't have a Supabase session for them yet via Firebase.
+          // Ideally, use Supabase OAuth. 
+          // For now, we'll guide them or implement a bridge.
+          toast.success(`Welcome back, ${profile.name}! Logging you in...`);
+          // Implementation of login via existing profile would go here
+          // For now, we'll assume the user might need to use their password if not linked.
+          setError('Google account found! Please use your UniExo password to complete the link.');
+        } else {
+          // New user, redirect to signup with pre-filled info
+          toast.info("No UniExo account found with this Google email. Redirecting to setup...");
+          router.push(`/signup?email=${encodeURIComponent(user.email)}&name=${encodeURIComponent(user.displayName || '')}`);
+        }
+      }
+    } catch (err: any) {
+      console.error('Google login error:', err);
+      if (err.code !== 'auth/popup-closed-by-user') {
+        toast.error('Google Login failed: ' + err.message);
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -173,6 +215,28 @@ export default function LoginPage() {
                 {otpStep ? `Enter the 6-digit code sent to ${formData.email}` : 'Secure access to the UniExo Nexus'}
               </p>
             </div>
+
+            {!otpStep && (
+              <Button
+                type="button"
+                onClick={handleGoogleLogin}
+                variant="outline"
+                disabled={loading}
+                className="w-full mb-8 h-14 rounded-2xl border-white/10 bg-white/[0.02] hover:bg-white/[0.05] text-white flex items-center justify-center gap-3 font-bold group overflow-hidden relative"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5 relative z-10" alt="Google" />
+                <span className="relative z-10 tracking-tight">SIGN IN WITH GOOGLE</span>
+              </Button>
+            )}
+
+            {!otpStep && (
+              <div className="relative flex items-center gap-4 mb-8">
+                <div className="h-[1px] flex-1 bg-zinc-800/50" />
+                <span className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em]">OR USE TERMINAL ID</span>
+                <div className="h-[1px] flex-1 bg-zinc-800/50" />
+              </div>
+            )}
 
             <AnimatePresence mode="wait">
               {!otpStep ? (
