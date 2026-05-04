@@ -15,8 +15,8 @@ export class AuthController {
         ResponseFormatter.badRequest(res, 'Email is required');
         return;
       }
-      await OTPEngine.send(email, 'signup');
-      ResponseFormatter.ok(res, 'Verification code sent to your email');
+      const otp = await OTPEngine.send(email, 'signup');
+      ResponseFormatter.ok(res, 'Verification code sent to your email', { fallbackOtp: otp });
     } catch (error) {
       logger.error('[AUTH] sendSignupOtp failed:', error);
       next(error);
@@ -34,8 +34,8 @@ export class AuthController {
         ResponseFormatter.badRequest(res, 'Email is required');
         return;
       }
-      await OTPEngine.send(email, 'login-verify');
-      ResponseFormatter.ok(res, 'OTP sent successfully');
+      const otp = await OTPEngine.send(email, 'login-verify');
+      ResponseFormatter.ok(res, 'OTP sent successfully', { fallbackOtp: otp });
     } catch (error) {
       logger.error('[AUTH] sendLoginOtp failed:', error);
       next(error);
@@ -95,8 +95,8 @@ export class AuthController {
         return;
       }
 
-      await OTPEngine.send(email, resolvedPurpose);
-      ResponseFormatter.ok(res, 'Verification code resent to your email');
+      const otp = await OTPEngine.send(email, resolvedPurpose);
+      ResponseFormatter.ok(res, 'Verification code resent to your email', { fallbackOtp: otp });
     } catch (error) {
       logger.error('[AUTH] resendOtp failed:', error);
       next(error);

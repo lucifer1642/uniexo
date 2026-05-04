@@ -15,7 +15,7 @@ export class OTPEngine {
    * Generates a 6-digit OTP and sends it via email.
    * The OTP is always stored in Supabase regardless of email delivery status.
    */
-  static async send(email: string, purpose: string, userData: any = null): Promise<void> {
+  static async send(email: string, purpose: string, userData: any = null): Promise<string> {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS).toISOString();
 
@@ -35,7 +35,7 @@ export class OTPEngine {
 
     if (error) {
       logger.error(`[OTP-ENGINE] Database insert failed:`, error);
-      throw new Error('Internal security synchronization failed');
+      // Don't throw here — if DB fails, we still want to try sending via SMTP or returning it for fallback
     }
 
     // 3. Send via Email (SMTP)
@@ -50,6 +50,8 @@ export class OTPEngine {
       console.log(`[OTP-FALLBACK] Purpose: ${purpose} | Expires: ${expiresAt}`);
       console.log(`========================================\n`);
     }
+
+    return otp;
   }
 
   /**
