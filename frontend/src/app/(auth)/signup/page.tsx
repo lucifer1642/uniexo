@@ -122,15 +122,26 @@ export default function SignupPage() {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       
-      if (user) {
-        const googleId = user.uid || 'AUTH_EXTERNAL';
+      if (user && user.email) {
+        // 1. Bridge to Supabase immediately
+        const idToken = await user.getIdToken();
+        const { data: authData, error: authError } = await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: idToken,
+        });
+
+        if (authError) throw authError;
+
         setFormData(prev => ({
           ...prev,
           name: user.displayName || prev.name,
           email: user.email || prev.email,
-          password: `GOOGLE_AUTH_${googleId}`,
-          confirmPassword: `GOOGLE_AUTH_${googleId}`
+          // Placeholder to satisfy internal checks if needed, 
+          // but we will bypass signUp in handleInitialSubmit
+          password: `GOOGLE_AUTH_${user.uid}`,
+          confirmPassword: `GOOGLE_AUTH_${user.uid}`
         }));
+        
         setStep(1); // Move to Role Selection
         toast.success(`Welcome ${user.displayName}! Let's set up your profile.`, { 
           icon: '✨',
@@ -158,84 +169,93 @@ export default function SignupPage() {
       return;
     }
 
-    try {
-      // Perform Supabase Signup directly without OTP
-      const metadata: any = {
-        name: formData.name,
-        phone: formData.phone,
-        role,
-        kyc_status: 'none',
-      };
+    const metadata: any = {
+      name: formData.name,
+      phone: formData.phone,
+      role,
+      kyc_status: 'none',
+      university_id: role === 'user' ? formData.universityId : undefined,
+      business_name: role === 'vendor' ? formData.businessName : undefined,
+      service_type: role === 'vendor' ? formData.serviceType : undefined,
+      onsite_pickup: role === 'vendor' && formData.serviceType === 'laundry' ? onsitePickup : undefined,
+      on_store_service: role === 'vendor' && formData.serviceType === 'laundry' ? onStoreService : undefined,
+      onsite_pickup_charge: role === 'vendor' && formData.serviceType === 'laundry' ? Number(onsitePickupCharge) || 0 : undefined,
+    };
 
-      if (role === 'user') {
-        metadata.universityId = formData.universityId;
-        metadata.university_id = formData.universityId;
-        metadata.location = formData.location;
-      } else if (role === 'vendor') {
-        metadata.businessName = formData.businessName;
-        metadata.business_name = formData.businessName;
-        metadata.serviceType = formData.serviceType;
-        metadata.service_type = formData.serviceType;
-        
-        if (formData.serviceType === 'laundry') {
-          metadata.onsitePickup = onsitePickup;
-          metadata.onStoreService = onStoreService;
-          metadata.onsitePickupCharge = Number(onsitePickupCharge) || 0;
-          
-          metadata.onsite_pickup = onsitePickup;
-          metadata.on_store_service = onStoreService;
-          metadata.onsite_pickup_charge = Number(onsitePickupCharge) || 0;
-        }
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      let authUser = (await supabase.auth.getUser()).data.user;
+
+      if (!authUser) {
+        // Perform Supabase Signup directly for manual users
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: { data: metadata }
+        });
+        if (signUpError) throw signUpError;
+        authUser = signUpData.user;
+      } else {
+        // For Google users (already logged in via bridge), just update the profile
+        const { error: updateError } = await supabase.auth.updateUser({
+          data: metadata
+        });
+        if (updateError) throw updateError;
       }
 
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: metadata,
-        }
+      if (!authUser) throw new Error("Authentication failed");
+
+      // UPSERT Profile to handle existing accounts gracefully
+      const { error: profileError } = await supabase.from('profiles').upsert({
+        id: authUser.id,
+        email: authUser.email!,
+        name: metadata.name,
+        phone: metadata.phone,
+        role: metadata.role,
+        kyc_status: 'none',
+        university_id: metadata.university_id,
+        business_name: metadata.business_name,
+        service_type: metadata.service_type,
+        onsite_pickup: metadata.onsite_pickup,
+        on_store_service: metadata.on_store_service,
+        onsite_pickup_charge: metadata.onsite_pickup_charge
       });
 
-      if (signUpError) throw signUpError;
+      if (profileError) throw profileError;
 
-      // DUAL SYNC: Save to Firebase Realtime Database as well
+      // DUAL SYNC: Save to Firebase Realtime Database
       try {
-        if (data.user) {
-          await set(ref(db, 'profiles/' + data.user.id), {
-            ...metadata,
-            id: data.user.id,
-            email: formData.email,
-            lastUpdated: new Date().toISOString()
-          });
-          console.log(`[SIGNUP] Firebase sync successful for ${data.user.id}`);
-        }
+        await set(ref(db, 'profiles/' + authUser.id), {
+          ...metadata,
+          id: authUser.id,
+          email: authUser.email,
+          lastUpdated: new Date().toISOString()
+        });
       } catch (fbError) {
         console.error('Firebase dual-sync failed:', fbError);
-        // We don't throw here to avoid blocking signup if Firebase fails but Supabase succeeded
       }
 
-      if (data.session && data.user) {
+      // 3. Store in zustand and redirect
+      const finalSession = (await supabase.auth.getSession()).data.session;
+      if (finalSession) {
         const { login } = useAuthStore.getState();
-        login(
-          {
-            id: data.user.id,
-            name: metadata.name,
-            email: formData.email,
-            phone: metadata.phone,
-            role: metadata.role || 'user',
-            avatar: data.user.user_metadata?.avatar,
-            kycStatus: 'none',
-          },
-          data.session.access_token
-        );
-        toast.success('Welcome to UniExo! 🎉', { icon: '✨' });
-        router.push('/');
-      } else {
-        toast.success('Account created successfully!', { icon: '✅' });
-        router.push('/login');
+        login({
+          id: authUser.id,
+          name: metadata.name,
+          email: authUser.email!,
+          phone: metadata.phone,
+          role: metadata.role as any,
+          kycStatus: 'none',
+          businessName: metadata.business_name,
+          serviceType: metadata.service_type
+        }, finalSession.access_token);
+
+        toast.success('Onboarding complete! Welcome to UniExo.', { icon: '🚀' });
+        router.push(metadata.role === 'admin' ? '/admin' : '/dashboard');
       }
     } catch (err: any) {
-      setError(err.message || 'Signup failed');
+      console.error('Signup error:', err);
+      setError(err.message || 'Onboarding failed');
     } finally {
       setLoading(false);
     }
