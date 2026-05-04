@@ -13,6 +13,8 @@ import { useAuthStore } from '@/store/auth.store';
 import { AuthRedirectWrapper } from '@/components/auth-redirect-wrapper';
 import { toast } from 'sonner';
 import { LegalModal } from '@/components/legal-modal';
+import { auth, googleProvider } from '@/lib/firebase';
+import { signInWithPopup } from 'firebase/auth';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -95,6 +97,33 @@ export default function SignupPage() {
       );
     } else {
       setError('Geolocation is not supported by your browser');
+    }
+  };
+
+  const handleFirebaseFetch = async () => {
+    try {
+      setLoading(true);
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+      
+      if (user) {
+        setFormData(prev => ({
+          ...prev,
+          name: user.displayName || prev.name,
+          email: user.email || prev.email,
+        }));
+        toast.success(`Welcome ${user.displayName}! We've pre-filled your info.`, { 
+          icon: '✨',
+          style: { background: '#000', color: '#4ade80', border: '1px solid #4ade8033' }
+        });
+      }
+    } catch (err: any) {
+      console.error('Firebase error:', err);
+      if (err.code !== 'auth/popup-closed-by-user') {
+        toast.error('Failed to fetch from Google: ' + err.message);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -216,6 +245,26 @@ export default function SignupPage() {
           </div>
 
           <div className="backdrop-blur-3xl bg-white/[0.02] border border-white/10 shadow-2xl rounded-[2.5rem] p-8 sm:p-12">
+            {/* Firebase Fetch Button */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <Button
+                type="button"
+                onClick={handleFirebaseFetch}
+                variant="outline"
+                disabled={loading}
+                className="w-full mb-10 h-14 rounded-2xl border-white/10 bg-white/[0.02] hover:bg-white/[0.05] text-white flex items-center justify-center gap-3 font-bold group overflow-hidden relative"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5 relative z-10" alt="Google" />
+                <span className="relative z-10 tracking-tight">PRE-FILL WITH GOOGLE</span>
+                <Sparkles className="w-4 h-4 text-lime-400 opacity-0 group-hover:opacity-100 transition-opacity relative z-10" />
+              </Button>
+            </motion.div>
+
             <AnimatePresence mode="wait">
                 <motion.div
                   key="form"
