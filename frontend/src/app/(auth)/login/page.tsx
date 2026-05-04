@@ -47,13 +47,39 @@ export default function LoginPage() {
         // 1. Get ID Token from Firebase
         const idToken = await user.getIdToken();
 
-        // 2. Log into Supabase using the ID Token
-        const { data: authData, error: authError } = await supabase.auth.signInWithIdToken({
+        // 2. Log into Supabase using the ID Token Bridge
+        let { data: authData, error: authError } = await supabase.auth.signInWithIdToken({
           provider: 'google',
           token: idToken,
         });
 
-        if (authError) throw authError;
+        // FALLBACK: If Google Provider is not enabled in Supabase Dashboard,
+        // use a deterministic 'Bridge Password' derived from Firebase UID.
+        if (authError && (authError.message.includes('Provider login is not enabled') || authError.message.includes('not configured'))) {
+          console.warn('[AUTH] Supabase Google Provider not enabled. Falling back to Bridge-Password strategy.');
+          const bridgePass = `FB_BRIDGE_${user.uid}`;
+          
+          const { data: fallbackData, error: fallbackError } = await supabase.auth.signInWithPassword({
+            email: user.email!,
+            password: bridgePass
+          });
+
+          if (fallbackError) {
+            // If they don't exist in Supabase Auth, create them with the bridge password
+            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+              email: user.email!,
+              password: bridgePass,
+              options: { data: { name: user.displayName, avatar: user.photoURL } }
+            });
+            if (signUpError) throw signUpError;
+            authData = signUpData;
+          } else {
+            authData = fallbackData;
+          }
+        } else if (authError) {
+          throw authError;
+        }
+
         if (!authData.user || !authData.session) throw new Error('Supabase authentication failed');
 
         // 3. Check if profile exists

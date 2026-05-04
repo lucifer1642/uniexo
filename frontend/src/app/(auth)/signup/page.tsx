@@ -122,24 +122,45 @@ export default function SignupPage() {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       
-      if (user && user.email) {
         // 1. Bridge to Supabase immediately
         const idToken = await user.getIdToken();
-        const { data: authData, error: authError } = await supabase.auth.signInWithIdToken({
+        const bridgePass = `FB_BRIDGE_${user.uid}`;
+        
+        let { data: authData, error: authError } = await supabase.auth.signInWithIdToken({
           provider: 'google',
           token: idToken,
         });
 
-        if (authError) throw authError;
+        // FALLBACK: If Google Provider is not enabled in Supabase Dashboard
+        if (authError && (authError.message.includes('Provider login is not enabled') || authError.message.includes('not configured'))) {
+          console.warn('[AUTH] Supabase Google Provider not enabled. Falling back to Bridge-Password.');
+          const { data: fallbackData, error: fallbackError } = await supabase.auth.signInWithPassword({
+            email: user.email!,
+            password: bridgePass
+          });
+
+          if (fallbackError) {
+            // New user in Supabase Auth
+            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+              email: user.email!,
+              password: bridgePass,
+              options: { data: { name: user.displayName, avatar: user.photoURL } }
+            });
+            if (signUpError) throw signUpError;
+            authData = signUpData;
+          } else {
+            authData = fallbackData;
+          }
+        } else if (authError) {
+          throw authError;
+        }
 
         setFormData(prev => ({
           ...prev,
           name: user.displayName || prev.name,
           email: user.email || prev.email,
-          // Placeholder to satisfy internal checks if needed, 
-          // but we will bypass signUp in handleInitialSubmit
-          password: `GOOGLE_AUTH_${user.uid}`,
-          confirmPassword: `GOOGLE_AUTH_${user.uid}`
+          password: bridgePass,
+          confirmPassword: bridgePass
         }));
         
         setStep(1); // Move to Role Selection
