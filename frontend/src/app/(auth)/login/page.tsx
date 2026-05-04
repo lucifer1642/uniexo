@@ -5,9 +5,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
 import { supabase } from '@/lib/supabase';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { UserRole } from '@/types';
-import AuthRedirectWrapper from '@/components/auth/AuthRedirectWrapper';
+import { AuthRedirectWrapper } from '@/components/auth-redirect-wrapper';
 
 export default function LoginPage() {
   const router = useRouter();

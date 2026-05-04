@@ -11,7 +11,7 @@ import { Car, Building, CheckCircle2, Eye, EyeOff, LocateFixed, Sparkles } from 
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { AuthRedirectWrapper } from '@/components/auth-redirect-wrapper';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 import { LegalModal } from '@/components/legal-modal';
 
 export default function SignupPage() {
