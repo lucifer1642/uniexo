@@ -87,25 +87,26 @@ api.interceptors.response.use(
       original._retry = true;
       try {
         const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
-        if (refreshError || !session) throw new Error('Refresh failed');
+        if (refreshError || !session) {
+            // Session is truly dead — clean up state
+            cachedToken = null;
+            tokenExpiresAt = 0;
+            const store = useAuthStore.getState();
+            if (store.isAuthenticated) {
+              store.logout();
+              await supabase.auth.signOut();
+            }
+            throw new Error('Refresh failed');
+        }
 
         cachedToken = session.access_token;
         tokenExpiresAt = session.expires_at ? session.expires_at * 1000 : Date.now() + 3600000;
         useAuthStore.setState({ token: session.access_token });
         original.headers.Authorization = `Bearer ${session.access_token}`;
-        return api(original);
-      } catch {
-        // Session is truly dead — clean up state but DON'T do a hard redirect.
-        // The component layer (ProtectedRoute, etc.) handles navigation.
-        // A hard window.location.href here causes infinite reload loops.
-        cachedToken = null;
-        tokenExpiresAt = 0;
-        const store = useAuthStore.getState();
-        if (store.isAuthenticated) {
-          store.logout();
-          await supabase.auth.signOut();
-        }
-        // Let the error propagate — React components will handle the redirect
+        return await api(original);
+      } catch (retryError) {
+        // Just reject the error, do not automatically logout if the retry itself fails with 401
+        return Promise.reject(retryError);
       }
     }
 
