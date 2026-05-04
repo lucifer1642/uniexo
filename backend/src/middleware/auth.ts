@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthRequest } from '../types';
-import { UnauthorizedError } from '../utils/errors';
-import { logger } from '../config/logger';
+import { UnauthorizedError, ForbiddenError } from '../types/errors';
 import { supabase } from '../config/supabase';
+import { firebaseDb } from '../config/firebase';
+import { logger } from '../config/logger';
 
 /**
  * Authenticate middleware — verifies the Supabase JWT from the Authorization header
@@ -94,12 +95,13 @@ export const authenticate = async (
       profile = createdProfile;
 
       // SYNC SPECIALIZED OPTIONS (Laundy, PG, Bike etc.)
+      const serviceType = (meta.service_type || meta.serviceType || '').toLowerCase();
+      const specializedData: any = {};
+
       if (profile.role === 'vendor') {
-         const serviceType = (meta.service_type || meta.serviceType || '').toLowerCase();
-         
          if (serviceType === 'laundry') {
             logger.info(`[AUTH] Syncing Laundry options for vendor ${user.id}`);
-            await supabase.from('laundry_services').upsert({
+            const laundryData = {
                vendor_id: user.id,
                name: meta.business_name || meta.businessName || `${profile.name}'s Laundry`,
                onsite_pickup: meta.onsite_pickup ?? meta.onsitePickup ?? false,
@@ -107,14 +109,26 @@ export const authenticate = async (
                onsite_pickup_charge: Number(meta.onsite_pickup_charge ?? meta.onsitePickupCharge ?? 0),
                provider_name: meta.name || profile.name,
                provider_phone: meta.phone || null,
-            }, { onConflict: 'vendor_id' });
+            };
+            specializedData.laundry = laundryData;
+            await supabase.from('laundry_services').upsert(laundryData, { onConflict: 'vendor_id' });
          } else if (serviceType === 'house' || serviceType === 'house_rental') {
             logger.info(`[AUTH] Initializing PG options for vendor ${user.id}`);
-            // Logic for house/PG sync if needed
          } else if (serviceType === 'vehicle' || serviceType === 'bike_rental') {
             logger.info(`[AUTH] Initializing Vehicle options for vendor ${user.id}`);
-            // Logic for bike sync if needed
          }
+      }
+
+      // DUAL SYNC TO FIREBASE
+      try {
+         await firebaseDb.ref(`profiles/${user.id}`).set({
+            ...newProfile,
+            ...specializedData,
+            lastSynced: new Date().toISOString()
+         });
+         logger.info(`[AUTH] Dual-sync successful for ${user.id} to Firebase`);
+      } catch (fbError) {
+         logger.warn(`[AUTH] Firebase sync failed but Supabase succeeded for ${user.id}`, fbError);
       }
     }
 

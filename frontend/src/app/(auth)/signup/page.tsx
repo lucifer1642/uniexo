@@ -13,8 +13,9 @@ import { useAuthStore } from '@/store/auth.store';
 import { AuthRedirectWrapper } from '@/components/auth-redirect-wrapper';
 import { toast } from 'sonner';
 import { LegalModal } from '@/components/legal-modal';
-import { auth, googleProvider } from '@/lib/firebase';
+import { auth, googleProvider, db } from '@/lib/firebase';
 import { signInWithPopup } from 'firebase/auth';
+import { ref, set, get, child } from 'firebase/database';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -196,6 +197,22 @@ export default function SignupPage() {
       });
 
       if (signUpError) throw signUpError;
+
+      // DUAL SYNC: Save to Firebase Realtime Database as well
+      try {
+        if (data.user) {
+          await set(ref(db, 'profiles/' + data.user.id), {
+            ...metadata,
+            id: data.user.id,
+            email: formData.email,
+            lastUpdated: new Date().toISOString()
+          });
+          logger.info(`[SIGNUP] Firebase sync successful for ${data.user.id}`);
+        }
+      } catch (fbError) {
+        console.error('Firebase dual-sync failed:', fbError);
+        // We don't throw here to avoid blocking signup if Firebase fails but Supabase succeeded
+      }
 
       if (data.session && data.user) {
         const { login } = useAuthStore.getState();
