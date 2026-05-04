@@ -67,16 +67,36 @@ export function Navbar() {
       <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
         <div className="container mx-auto px-3 sm:px-6 lg:px-8">
           <div className="flex h-14 md:h-16 items-center justify-between">
-            {/* Logo */}
-            <Link href="/" className="flex items-center gap-2 tap-feedback">
-              <span className="text-xl md:text-2xl font-black tracking-tighter text-primary">
-                UNIEXO
-              </span>
-            </Link>
+            {/* Logo & Left Content */}
+            <div className="flex items-center gap-4 md:gap-8">
+              <Link href="/" className="flex items-center gap-2 tap-feedback">
+                <span className="text-xl md:text-2xl font-black tracking-tighter text-primary">
+                  UNIEXO
+                </span>
+              </Link>
 
-            {/* Desktop Nav Items */}
+              {isAuthenticated && user && (
+                <div className="hidden md:block">
+                  <Button 
+                    onClick={openProfileSidebar}
+                    variant="outline" 
+                    className="relative h-10 px-4 rounded-2xl gap-3 border-primary/10 hover:border-primary/30 bg-primary/5 hover:bg-primary/10 transition-all group overflow-hidden"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-lime-400/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="flex flex-col items-start relative z-10">
+                       <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1 group-hover:text-primary transition-colors">Command Center</span>
+                       <span className="text-xs font-black text-primary leading-none flex items-center gap-1">
+                         ACCESS NEXUS <Zap className="w-2.5 h-2.5" />
+                       </span>
+                    </div>
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Desktop Nav Items (Right) */}
             <div className="hidden md:flex items-center gap-4">
-              {isAuthenticated && pathname !== '/' && (
+              {isAuthenticated && pathname !== '/' && pathname !== '/dashboard' && (
                 <Button variant="ghost" asChild className="gap-2 text-muted-foreground hover:text-primary font-bold">
                   <Link href={user?.role === 'vendor' ? '/dashboard' : '/'}>
                     <ArrowLeft className="w-4 h-4" />
@@ -97,23 +117,13 @@ export function Navbar() {
               {isAuthenticated && user ? (
                 <div className="flex items-center gap-3">
                   <NotificationCenter />
-                  <Button 
+                  <Avatar 
                     onClick={openProfileSidebar}
-                    variant="outline" 
-                    className="relative h-11 px-4 rounded-2xl gap-3 border-primary/10 hover:border-primary/30 bg-primary/5 hover:bg-primary/10 transition-all group overflow-hidden"
+                    className="h-9 w-9 border-2 border-background hover:scale-110 transition-transform cursor-pointer shadow-xl"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-lime-400/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <div className="flex flex-col items-end relative z-10">
-                       <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1 group-hover:text-primary transition-colors">Command Center</span>
-                       <span className="text-xs font-black text-primary leading-none flex items-center gap-1">
-                         ACCESS NEXUS <Zap className="w-2.5 h-2.5" />
-                       </span>
-                    </div>
-                    <Avatar className="h-8 w-8 border-2 border-background group-hover:scale-110 transition-transform relative z-10 shadow-xl">
-                      <AvatarImage src={user.avatar} alt={user.name} />
-                      <AvatarFallback className="bg-primary text-white font-black text-[10px]">{user.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                  </Button>
+                    <AvatarImage src={user.avatar} alt={user.name} />
+                    <AvatarFallback className="bg-primary text-white font-black text-[10px]">{user.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">

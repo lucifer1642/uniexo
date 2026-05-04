@@ -183,9 +183,10 @@ export function GlobalProfileSidebar() {
                 if (user.role === 'admin') return true;
                 if (user.role === 'vendor') {
                   if (!user.serviceType) return true; // Show all if not yet set
-                  if (user.serviceType === 'CAR') return service.label === 'Vehicles';
-                  if (user.serviceType === 'ROOM') return service.label === 'Rooms';
-                  if (user.serviceType === 'LAUNDRY') return service.label === 'Laundry';
+                  const type = user.serviceType.toLowerCase();
+                  if (type === 'vehicle' || type === 'car') return service.label === 'Vehicles';
+                  if (type === 'house' || type === 'room' || type === 'pg') return service.label === 'Rooms';
+                  if (type === 'laundry') return service.label === 'Laundry';
                   return false; // Don't show others for specific vendors
                 }
                 return true; // regular users see all

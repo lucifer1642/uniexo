@@ -110,24 +110,28 @@ export function OverviewSection({ overview }: { overview: any }) {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white/40 p-8 rounded-[2.5rem] border border-white/60 shadow-inner">
         <div>
-          <h2 className="text-4xl font-black tracking-tighter text-slate-900">Analytics Engine</h2>
+          <h2 className="text-4xl font-black tracking-tighter text-slate-900 leading-none mb-2">
+            Analytics Engine <span className="text-[#8B004A]">v2.0</span>
+          </h2>
           <p className="text-slate-500 font-medium flex items-center gap-2">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
             </span>
-            Real-time performance synchronized
+            Real-time performance synchronized for your {overview.serviceType || 'business'}
           </p>
         </div>
-        <div className="flex gap-2">
-          <Badge className="bg-[#8B004A]/10 text-[#8B004A] border-[#8B004A]/20 px-4 py-1.5 rounded-full font-bold">
-            Today: {overview.bookingsToday || 0} New
+        <div className="flex items-center gap-3 bg-white/50 p-2 rounded-2xl border border-white/20">
+          <Badge className="bg-[#8B004A] text-white hover:bg-[#8B004A] border-0 px-4 py-2 rounded-xl font-black tracking-widest text-[10px]">
+            {overview.bookingsToday || 0} NEW BOOKINGS
           </Badge>
-          <Badge className="bg-blue-50 text-blue-700 border-blue-100 px-4 py-1.5 rounded-full font-bold">
-            Live Stream Active
-          </Badge>
+          <div className="h-8 w-px bg-slate-200 mx-1" />
+          <div className="flex flex-col items-end px-2">
+            <span className="text-[10px] font-black text-slate-400 uppercase leading-none mb-1">Status</span>
+            <span className="text-xs font-black text-green-600 leading-none">LIVE STREAM</span>
+          </div>
         </div>
       </div>
 

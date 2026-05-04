@@ -421,16 +421,29 @@ function VendorDashboard() {
       {/* Content */}
       <div className="flex-1 space-y-6">
         {/* Quick Actions Header */}
-        <div className="bg-white/50 backdrop-blur-md p-6 rounded-2xl border border-white/20 shadow-xl flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-black tracking-tight text-[#8B004A]">Command Center</h1>
-            <p className="text-sm text-slate-500 font-medium">Manage your empire in real-time.</p>
+        <div className="bg-white/50 backdrop-blur-md p-8 rounded-3xl border border-white/20 shadow-xl flex flex-wrap items-center justify-between gap-6">
+          <div className="space-y-1">
+            <h1 className="text-3xl font-black tracking-tighter text-[#8B004A]">
+              Welcome back, {user?.name?.split(' ')[0] || 'Vendor'} 👋
+            </h1>
+            <p className="text-sm text-slate-500 font-medium flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              Your command center is online and synchronized.
+            </p>
           </div>
           <div className="flex items-center gap-3">
-             {vendorProfile?.serviceType?.toLowerCase() === 'vehicle' && <AddVehicleDialog />}
-             {(vendorProfile?.serviceType?.toLowerCase() === 'house' || vendorProfile?.serviceType?.toLowerCase() === 'room' || vendorProfile?.serviceType?.toLowerCase() === 'pg') && <AddHouseDialog />}
-             <Button variant="outline" className="rounded-xl border-[#8B004A]/20 text-[#8B004A] hover:bg-[#8B004A]/5">
-                Update Profile
+             {vendorProfile?.serviceType?.toLowerCase() === 'vehicle' && (
+               <div className="p-1 rounded-2xl bg-[#8B004A]/5 border border-[#8B004A]/10">
+                 <AddVehicleDialog />
+               </div>
+             )}
+             {(vendorProfile?.serviceType?.toLowerCase() === 'house' || vendorProfile?.serviceType?.toLowerCase() === 'room' || vendorProfile?.serviceType?.toLowerCase() === 'pg') && (
+               <div className="p-1 rounded-2xl bg-[#8B004A]/5 border border-[#8B004A]/10">
+                 <AddHouseDialog />
+               </div>
+             )}
+             <Button variant="outline" className="rounded-xl h-11 border-[#8B004A]/20 text-[#8B004A] hover:bg-[#8B004A] hover:text-white transition-all font-bold">
+                Profile Settings
              </Button>
           </div>
         </div>
