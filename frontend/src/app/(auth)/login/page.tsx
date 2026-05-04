@@ -131,13 +131,13 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1">
               <Label className="text-zinc-500 text-[10px] font-black uppercase ml-1">Email Address</Label>
-              <Input name="email" type="email" required value={formData.email} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl" placeholder="name@domain.com" />
+              <Input name="email" type="email" required value={formData.email} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl text-white" placeholder="name@domain.com" />
             </div>
             
             <div className="space-y-1">
               <Label className="text-zinc-500 text-[10px] font-black uppercase ml-1">Access Key</Label>
               <div className="relative">
-                <Input name="password" type={showPassword ? "text" : "password"} required value={formData.password} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl" placeholder="••••••••" />
+                <Input name="password" type={showPassword ? "text" : "password"} required value={formData.password} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl text-white" placeholder="••••••••" />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600">
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>

@@ -193,14 +193,14 @@ export default function SignupPage() {
               </Button>
               <div className="text-zinc-700 text-center text-[10px] font-bold uppercase tracking-widest">or manual</div>
               <div className="space-y-4">
-                <Input name="email" type="email" placeholder="Email" value={formData.email} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl" />
+                <Input name="email" type="email" placeholder="Email" value={formData.email} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl text-white" />
                 <div className="relative">
-                  <Input name="password" type={showPassword ? "text" : "password"} placeholder="Password" value={formData.password} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl" />
+                  <Input name="password" type={showPassword ? "text" : "password"} placeholder="Password" value={formData.password} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl text-white" />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600">
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
-                <Input name="confirmPassword" type="password" placeholder="Confirm Password" value={formData.confirmPassword} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl" />
+                <Input name="confirmPassword" type="password" placeholder="Confirm Password" value={formData.confirmPassword} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl text-white" />
               </div>
               <Button onClick={proceedToRole} className="w-full h-12 bg-zinc-800 text-white font-bold rounded-xl">Next Step</Button>
             </motion.div>
@@ -227,14 +227,14 @@ export default function SignupPage() {
 
           {step === 2 && (
             <motion.div key="step2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-              <Input name="name" placeholder="Full Name" value={formData.name} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl" />
-              <Input name="phone" placeholder="Phone Number" value={formData.phone} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl" />
+              <Input name="name" placeholder="Full Name" value={formData.name} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl text-white" />
+              <Input name="phone" placeholder="Phone Number" value={formData.phone} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl text-white" />
               
               {role === 'user' ? (
-                <Input name="universityId" placeholder="University ID" value={formData.universityId} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl" />
+                <Input name="universityId" placeholder="University ID" value={formData.universityId} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl text-white" />
               ) : (
                 <>
-                  <Input name="businessName" placeholder="Business Name" value={formData.businessName} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl" />
+                  <Input name="businessName" placeholder="Business Name" value={formData.businessName} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl text-white" />
                   <select name="serviceType" value={formData.serviceType} onChange={handleChange} className="w-full h-12 bg-black border-zinc-800 rounded-xl text-white px-3 outline-none">
                     <option value="">Select Category</option>
                     <option value="vehicle">Car Rental</option>
