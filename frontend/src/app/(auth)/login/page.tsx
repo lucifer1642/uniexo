@@ -68,41 +68,7 @@ export default function LoginPage() {
         avatar: meta.avatar_url,
       };
 
-      if (role === 'admin' || role === 'vendor') {
-        setTempUserData(userData);
-        setTempToken(data.session.access_token);
-        
-        // Immediate UI transition
-        setOtpStep(true);
-        setLoading(false);
-        toast.info('Sending security code...', { icon: '🛡️' });
-        
-        const isProd = process.env.NODE_ENV === 'production';
-        const apiUrl = isProd ? '/api/v1' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1');
-        
-        console.log('Fetching OTP from:', `${apiUrl}/auth/send-login-otp`);
-        // Call backend to send OTP in background/parallel to UI
-        fetch(`${apiUrl}/auth/send-login-otp`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({ email: formData.email })
-        }).then(async (response) => {
-          console.log('OTP Response Status:', response.status);
-          if (!response.ok) {
-            const errData = await response.json().catch(() => ({}));
-            console.warn('Backend OTP sync failed, but proceeding for bypass:', errData);
-            toast.info('Network sync delayed, using backup verification channel.', { icon: '🛡️' });
-          } else {
-            toast.success('Security code delivered to your email', { icon: '📧' });
-          }
-        }).catch((err) => {
-          console.error('OTP Fetch Error:', err);
-          toast.info('Emergency bypass mode enabled. Use master code.', { icon: '🔑' });
-        });
-        
-        return;
-      }
+      // Removed OTP Step logic as requested. All roles will log in directly.
 
       // 3. Store in zustand and redirect for normal users
       login(userData, data.session.access_token);
@@ -110,7 +76,11 @@ export default function LoginPage() {
       
       const urlParams = new URLSearchParams(window.location.search);
       const redirectUrl = urlParams.get('redirect');
-      router.push(redirectUrl || '/');
+      if (redirectUrl) {
+         router.push(redirectUrl);
+      } else {
+         router.push(role === 'admin' ? '/admin' : '/dashboard');
+      }
 
     } catch (err: any) {
       console.error('Login error:', err);
@@ -214,6 +184,7 @@ export default function LoginPage() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                   onSubmit={handleSubmit}
+                  autoComplete="off"
                   className="space-y-4"
                 >
                   <div className="space-y-2">
@@ -224,6 +195,7 @@ export default function LoginPage() {
                       value={formData.email}
                       onChange={handleChange}
                       placeholder="name@university.edu"
+                      autoComplete="off"
                       className="w-full bg-black/40 border border-zinc-800 focus:border-lime-500/50 focus:ring-4 focus:ring-lime-500/10 rounded-2xl px-5 py-4 text-white placeholder:text-zinc-700 transition-all outline-none"
                     />
                   </div>
@@ -238,6 +210,7 @@ export default function LoginPage() {
                       value={formData.password}
                       onChange={handleChange}
                       placeholder="••••••••"
+                      autoComplete="new-password"
                       className="w-full bg-black/40 border border-zinc-800 focus:border-lime-500/50 focus:ring-4 focus:ring-lime-500/10 rounded-2xl px-5 py-4 text-white placeholder:text-zinc-700 transition-all outline-none"
                     />
                   </div>
