@@ -36,11 +36,8 @@ export function NexusProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Determine socket URL based on environment
-    const isProd = process.env.NODE_ENV === 'production';
-    const socketUrl = isProd 
-      ? window.location.origin // In prod, same origin via proxy/rewrite
-      : (process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:5000');
+    // Determine socket URL based on environment API URL
+    const socketUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:5000';
 
     const newSocket = io(socketUrl, {
       transports: ['websocket'],
