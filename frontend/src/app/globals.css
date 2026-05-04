@@ -4,39 +4,56 @@
 
 @layer base {
   :root {
-    --radius: 0.625rem;
-  --background: #f2efe7;
-  --foreground: #1e1e1e;
-  --card: #ffffff;
-  --card-foreground: #1e1e1e;
-  --popover: #ffffff;
-  --popover-foreground: #1e1e1e;
-  --primary: #8b004a;
-  --primary-foreground: #ffffff;
-  --secondary: #e6d3db;
-  --secondary-foreground: #8b004a;
-  --muted: #e6e4dc;
-  --muted-foreground: #6b6a67;
-  --accent: #a93226;
-  --accent-foreground: #ffffff;
-  --destructive: #ef4444;
-  --border: #d4cfc1;
-  --input: #d4cfc1;
-  --ring: #8b004a;
-  --chart-1: #8b004a;
-  --chart-2: #5b2c6f;
-  --chart-3: #a93226;
-  --chart-4: #d2b4de;
-  --chart-5: #1e1e1e;
-  --sidebar: #f2efe7;
-  --sidebar-foreground: #1e1e1e;
-  --sidebar-primary: #8b004a;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e6d3db;
-  --sidebar-accent-foreground: #8b004a;
-  --sidebar-border: #d4cfc1;
-  --sidebar-ring: #8b004a;
+    --radius: 1rem;
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 328 100% 27%; /* Default: Burgundy #8b004a */
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 328 100% 27%;
   }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 328 100% 27%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 328 100% 27%;
+  }
+
+  /* ── Color Variations ──────────────────────── */
+  [data-color='blue'] { --primary: 221.2 83.2% 53.3%; --ring: 221.2 83.2% 53.3%; }
+  [data-color='green'] { --primary: 142.1 76.2% 36.3%; --ring: 142.1 76.2% 36.3%; }
+  [data-color='gold'] { --primary: 47.9 95.8% 44.1%; --ring: 47.9 95.8% 44.1%; }
+  [data-color='lime'] { --primary: 84 81% 44%; --ring: 84 81% 44%; }
+  [data-color='pink'] { --primary: 322 81% 54%; --ring: 322 81% 54%; }
 }
 
 @layer base {
@@ -44,127 +61,24 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground transition-colors duration-300;
     -webkit-tap-highlight-color: transparent;
   }
 }
 
 @layer utilities {
-  /* ── Scrollbar ─────────────────────────────── */
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  
+  .glass { @apply bg-white/40 backdrop-blur-md border border-white/20 shadow-xl; }
+  .glass-dark { @apply bg-slate-900/40 backdrop-blur-md border border-white/10 shadow-xl; }
 
-  /* ── Glass Effects ─────────────────────────── */
-  .glass {
-    @apply bg-white/40 backdrop-blur-md border border-white/20 shadow-xl;
-  }
+  .tap-feedback { @apply active:scale-[0.97] transition-transform duration-100; }
+  
+  .snap-x-mandatory { scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+  .snap-center { scroll-snap-align: center; }
 
-  .glass-dark {
-    @apply bg-slate-900/40 backdrop-blur-md border border-white/10 shadow-xl;
-  }
-
-  /* ── Mesh Gradient ─────────────────────────── */
-  .mesh-gradient {
-    background-color: #f2efe7;
-    background-image: 
-      radial-gradient(at 0% 0%, hsla(328, 100%, 95%, 1) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, hsla(48, 29%, 95%, 1) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, hsla(328, 100%, 90%, 1) 0px, transparent 50%),
-      radial-gradient(at 0% 100%, hsla(48, 29%, 90%, 1) 0px, transparent 50%);
-  }
-
-  .parallax {
-    transform: translateY(var(--parallax-offset, 0));
-    transition: transform 0.1s linear;
-  }
-
-  /* ── Mobile-First Animations ───────────────── */
-  @keyframes float {
-    0% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
-    100% { transform: translateY(0px); }
-  }
-  .animate-float {
-    animation: float 4s ease-in-out infinite;
-  }
-
-  @keyframes slide-up {
-    from { opacity: 0; transform: translateY(24px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .animate-slide-up {
-    animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-
-  @keyframes slide-down {
-    from { opacity: 0; transform: translateY(-16px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .animate-slide-down {
-    animation: slide-down 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-
-  @keyframes scale-in {
-    from { opacity: 0; transform: scale(0.92); }
-    to   { opacity: 1; transform: scale(1); }
-  }
-  .animate-scale-in {
-    animation: scale-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
-  }
-
-  @keyframes pulse-glow {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(163, 230, 53, 0); }
-    50%      { box-shadow: 0 0 20px 4px rgba(163, 230, 53, 0.15); }
-  }
-  .animate-pulse-glow {
-    animation: pulse-glow 2.5s ease-in-out infinite;
-  }
-
-  @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    20%      { transform: translateX(-6px); }
-    40%      { transform: translateX(6px); }
-    60%      { transform: translateX(-4px); }
-    80%      { transform: translateX(4px); }
-  }
-  .animate-shake {
-    animation: shake 0.4s ease-in-out;
-  }
-
-  /* ── Haptic Tap Feedback ───────────────────── */
-  .tap-feedback {
-    @apply active:scale-[0.97] transition-transform duration-100;
-  }
-
-  /* ── Mobile Snap Scroll ────────────────────── */
-  .snap-x-mandatory {
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-  }
-  .snap-center {
-    scroll-snap-align: center;
-  }
-
-  /* ── Safe Area (notched phones) ────────────── */
-  .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-  .mb-safe {
-    margin-bottom: env(safe-area-inset-bottom, 0px);
-  }
-
-  /* ── Mobile Bottom Nav Spacing ─────────────── */
-  .has-bottom-nav {
-    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
-  }
-
-  /* ── Drag Indicator ────────────────────────── */
-  .drag-indicator {
-    @apply w-10 h-1 bg-zinc-600 rounded-full mx-auto;
-  }
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .mb-safe { margin-bottom: env(safe-area-inset-bottom, 0px); }
+  .has-bottom-nav { padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px)); }
 }

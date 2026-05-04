@@ -19,10 +19,13 @@ import {
   WashingMachine,
   LayoutGrid,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { useUIStore } from '@/store/ui.store';
+import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -45,6 +48,23 @@ export function GlobalProfileSidebar() {
   const [isKycDialogOpen, setIsKycDialogOpen] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const { theme, setTheme } = useTheme();
+  const [activeColor, setActiveColor] = useState('burgundy');
+
+  useEffect(() => {
+    const savedColor = localStorage.getItem('nexus-color') || 'burgundy';
+    setActiveColor(savedColor);
+    document.documentElement.setAttribute('data-color', savedColor);
+  }, []);
+
+  const handleColorChange = (color: string) => {
+    setActiveColor(color);
+    document.documentElement.setAttribute('data-color', color);
+    localStorage.setItem('nexus-color', color);
+    toast.success(`${color.charAt(0).toUpperCase() + color.slice(1)} theme applied`, {
+      style: { border: '1px solid var(--primary)' }
+    });
+  };
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -244,6 +264,57 @@ export function GlobalProfileSidebar() {
               </div>
             </motion.div>
           ))}
+        </div>
+
+        {/* Appearance Customizer */}
+        <div className="mb-8 md:mb-12">
+          <div className="flex items-center gap-2 mb-4 md:mb-6 text-zinc-400">
+              <Settings className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              <h4 className="text-[10px] md:text-xs font-black uppercase tracking-widest">Appearance</h4>
+          </div>
+          <div className="space-y-6 p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+            {/* Mode Toggle */}
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Display Mode</span>
+              <div className="flex bg-black/40 rounded-lg p-1 border border-white/5">
+                {[
+                  { id: 'light', icon: Sun },
+                  { id: 'dark', icon: Moon },
+                  { id: 'system', icon: Zap }
+                ].map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => setTheme(m.id)}
+                    className={`p-1.5 rounded-md transition-all ${theme === m.id ? 'bg-white/10 text-primary' : 'text-zinc-600 hover:text-zinc-400'}`}
+                  >
+                    <m.icon className="w-3.5 h-3.5" />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Color Palette */}
+            <div className="space-y-3">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Color Palette</span>
+              <div className="grid grid-cols-5 gap-2">
+                {[
+                  { id: 'burgundy', color: 'bg-[#8b004a]' },
+                  { id: 'blue', color: 'bg-[#3b82f6]' },
+                  { id: 'green', color: 'bg-[#10b981]' },
+                  { id: 'gold', color: 'bg-[#f59e0b]' },
+                  { id: 'pink', color: 'bg-[#ec4899]' }
+                ].map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => handleColorChange(c.id)}
+                    className={`h-8 rounded-lg border-2 transition-all ${activeColor === c.id ? 'border-white scale-110 shadow-lg' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                  >
+                    <div className={`w-full h-full rounded-md ${c.color}`} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Recent Activity */}

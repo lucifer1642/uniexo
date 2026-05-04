@@ -109,7 +109,7 @@ function VendorGroup({ vendorName, rooms }: { vendorName: string, rooms: any[] }
         <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
         {rooms.map(room => (
           <HouseCard key={room.id} room={room} />
         ))}
