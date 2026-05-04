@@ -122,10 +122,13 @@ export default function SignupPage() {
       const user = result.user;
       
       if (user) {
+        const googleId = user.uid || 'AUTH_EXTERNAL';
         setFormData(prev => ({
           ...prev,
           name: user.displayName || prev.name,
           email: user.email || prev.email,
+          password: `GOOGLE_AUTH_${googleId}`,
+          confirmPassword: `GOOGLE_AUTH_${googleId}`
         }));
         setStep(1); // Move to Role Selection
         toast.success(`Welcome ${user.displayName}! Let's set up your profile.`, { 
