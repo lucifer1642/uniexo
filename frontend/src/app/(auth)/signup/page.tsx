@@ -121,7 +121,7 @@ export default function SignupPage() {
       setLoading(true);
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
-      
+      if (user && user.email) {
         // 1. Bridge to Supabase immediately
         const idToken = await user.getIdToken();
         const bridgePass = `FB_BRIDGE_${user.uid}`;
