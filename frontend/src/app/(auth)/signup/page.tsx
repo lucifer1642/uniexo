@@ -112,7 +112,7 @@ export default function SignupPage() {
           name: user.displayName || prev.name,
           email: user.email || prev.email,
         }));
-        toast.success(`Welcome ${user.displayName}! We've pre-filled your info.`, { 
+        toast.success(`Signed in as ${user.displayName}!`, { 
           icon: '✨',
           style: { background: '#000', color: '#4ade80', border: '1px solid #4ade8033' }
         });
@@ -245,7 +245,7 @@ export default function SignupPage() {
           </div>
 
           <div className="backdrop-blur-3xl bg-white/[0.02] border border-white/10 shadow-2xl rounded-[2.5rem] p-8 sm:p-12">
-            {/* Firebase Fetch Button */}
+            {/* Firebase Google Sign In Option */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -256,12 +256,12 @@ export default function SignupPage() {
                 onClick={handleFirebaseFetch}
                 variant="outline"
                 disabled={loading}
-                className="w-full mb-10 h-14 rounded-2xl border-white/10 bg-white/[0.02] hover:bg-white/[0.05] text-white flex items-center justify-center gap-3 font-bold group overflow-hidden relative"
+                className="w-full mb-10 h-14 rounded-2xl border-lime-500/30 bg-lime-500/5 hover:bg-lime-500/10 text-lime-400 flex items-center justify-center gap-3 font-black group overflow-hidden relative shadow-[0_0_20px_rgba(163,230,53,0.1)]"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute inset-0 bg-gradient-to-r from-lime-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5 relative z-10" alt="Google" />
-                <span className="relative z-10 tracking-tight">PRE-FILL WITH GOOGLE</span>
-                <Sparkles className="w-4 h-4 text-lime-400 opacity-0 group-hover:opacity-100 transition-opacity relative z-10" />
+                <span className="relative z-10 tracking-widest uppercase text-sm">SIGN IN WITH GOOGLE</span>
+                <Sparkles className="w-4 h-4 text-white opacity-0 group-hover:opacity-100 transition-opacity relative z-10" />
               </Button>
             </motion.div>
 
