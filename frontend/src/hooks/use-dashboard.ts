@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 
-const REALTIME_INTERVAL = 15000; // 15 seconds
-const REALTIME_STALE = 10000;   // 10 seconds
+const REALTIME_INTERVAL = 8000; // 8 seconds
+const REALTIME_STALE = 5000;    // 5 seconds
 
 // User bookings
 export const useUserBookings = (page = 1, limit = 10) => {
