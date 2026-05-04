@@ -147,9 +147,9 @@ export default function SignupPage() {
               options: { data: { name: user.displayName, avatar: user.photoURL } }
             });
             if (signUpError) throw signUpError;
-            authData = signUpData;
+            authData = signUpData as any;
           } else {
-            authData = fallbackData;
+            authData = fallbackData as any;
           }
         } else if (authError) {
           throw authError;
