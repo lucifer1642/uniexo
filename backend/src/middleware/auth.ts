@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthRequest } from '../types';
-import { UnauthorizedError, ForbiddenError } from '../types/errors';
+import { UnauthorizedError, ForbiddenError } from '../utils/errors';
 import { supabase } from '../config/supabase';
 import { firebaseDb } from '../config/firebase';
 import { logger } from '../config/logger';
