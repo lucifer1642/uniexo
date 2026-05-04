@@ -130,7 +130,19 @@ export class VendorService {
 
   async getDashboardStats(userId: string) {
     const kpis = await this.vendorRepo.getKPIs(userId);
-    if (!kpis) throw new NotFoundError('Vendor analytics not found');
+    
+    if (!kpis) {
+      return {
+        totalOrders: 0,
+        pendingOrders: 0,
+        completedOrders: 0,
+        revenue: 0,
+        traffic: 0,
+        totalVehicles: 0,
+        totalHouses: 0,
+        status: 'pending',
+      };
+    }
 
     return {
       totalOrders: kpis.total_bookings,
@@ -146,7 +158,24 @@ export class VendorService {
 
   async getAnalyticsOverview(userId: string) {
     const kpis = await this.vendorRepo.getKPIs(userId);
-    if (!kpis) throw new NotFoundError('Vendor analytics not found');
+    
+    if (!kpis) {
+      return {
+        totalRevenue: 0,
+        netEarnings: 0,
+        totalBookings: 0,
+        confirmedBookings: 0,
+        completedBookings: 0,
+        pendingBookings: 0,
+        totalVehicles: 0,
+        totalHouses: 0,
+        vendorStatus: 'pending',
+        momGrowth: 0,
+        conversionRate: 0,
+        avgBookingValue: 0,
+        totalCommission: 0,
+      };
+    }
 
     return {
       totalRevenue: kpis.gross_revenue,

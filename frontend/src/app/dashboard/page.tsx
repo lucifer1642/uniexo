@@ -375,24 +375,32 @@ function VendorDashboard() {
     });
   };
 
-  const filteredSections = vendorSections.filter(s => !s.serviceType || s.serviceType === vendorProfile?.serviceType);
+  const filteredSections = vendorSections.filter(s => {
+    if (!s.serviceType) return true;
+    const userType = vendorProfile?.serviceType?.toLowerCase();
+    const sectionType = s.serviceType?.toLowerCase();
+    if (userType === sectionType) return true;
+    // Map room/pg to house features
+    if ((userType === 'room' || userType === 'pg') && sectionType === 'house') return true;
+    return false;
+  });
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 bg-[#F2EFE7] text-slate-900 p-4 rounded-xl min-h-screen">
       {/* Sidebar */}
       <aside className="lg:w-64 shrink-0">
-        <nav className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0">
+        <nav className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 p-2 bg-white/40 backdrop-blur-sm rounded-2xl border border-white/50">
           {filteredSections.map((s) => (
             <button
               key={s.id}
               onClick={() => handleTabChange(s.id)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-300 group ${
                 section === s.id
-                  ? 'bg-[#8B004A] text-[#F2EFE7] shadow-lg shadow-[#8B004A]/30 scale-105'
-                  : 'text-slate-600 hover:bg-[#8B004A]/10 hover:text-[#8B004A]'
+                  ? 'bg-[#8B004A] text-white shadow-xl shadow-[#8B004A]/20 scale-[1.02]'
+                  : 'text-slate-500 hover:bg-white hover:text-[#8B004A] hover:shadow-md'
               }`}
             >
-              <s.icon className="w-4 h-4" />
+              <s.icon className={`w-4 h-4 transition-transform duration-500 ${section === s.id ? 'scale-110' : 'group-hover:rotate-12'}`} />
               {s.label}
             </button>
           ))}
@@ -412,6 +420,21 @@ function VendorDashboard() {
 
       {/* Content */}
       <div className="flex-1 space-y-6">
+        {/* Quick Actions Header */}
+        <div className="bg-white/50 backdrop-blur-md p-6 rounded-2xl border border-white/20 shadow-xl flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-black tracking-tight text-[#8B004A]">Command Center</h1>
+            <p className="text-sm text-slate-500 font-medium">Manage your empire in real-time.</p>
+          </div>
+          <div className="flex items-center gap-3">
+             {vendorProfile?.serviceType?.toLowerCase() === 'vehicle' && <AddVehicleDialog />}
+             {(vendorProfile?.serviceType?.toLowerCase() === 'house' || vendorProfile?.serviceType?.toLowerCase() === 'room' || vendorProfile?.serviceType?.toLowerCase() === 'pg') && <AddHouseDialog />}
+             <Button variant="outline" className="rounded-xl border-[#8B004A]/20 text-[#8B004A] hover:bg-[#8B004A]/5">
+                Update Profile
+             </Button>
+          </div>
+        </div>
+
         {section === 'overview' && overview && <OverviewSection overview={overview} />}
         {section === 'revenue' && <RevenueSection />}
         {section === 'ledger' && <LedgerSection />}

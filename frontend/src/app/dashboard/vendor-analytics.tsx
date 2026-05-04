@@ -106,75 +106,208 @@ export function VendorAnalyticsDashboard() {
 // ─── OVERVIEW SECTION ──────────────────────────────────────────────────
 export function OverviewSection({ overview }: { overview: any }) {
   const { data: trends } = useVendorBookingTrends(30);
+  const { data: ledger } = useVendorLedger(1, 5); // Fetch recent 5 for activity feed
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-end">
+    <div className="space-y-8 animate-in fade-in duration-700">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
-          <h2 className="text-3xl font-extrabold tracking-tight">Command Center</h2>
-          <p className="text-muted-foreground mt-1">Real-time performance metrics</p>
+          <h2 className="text-4xl font-black tracking-tighter text-slate-900">Analytics Engine</h2>
+          <p className="text-slate-500 font-medium flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+            </span>
+            Real-time performance synchronized
+          </p>
         </div>
-        <Badge variant="secondary" className="px-4 py-1.5 text-sm">
-          Today: {overview.bookingsToday} new bookings
-        </Badge>
+        <div className="flex gap-2">
+          <Badge className="bg-[#8B004A]/10 text-[#8B004A] border-[#8B004A]/20 px-4 py-1.5 rounded-full font-bold">
+            Today: {overview.bookingsToday || 0} New
+          </Badge>
+          <Badge className="bg-blue-50 text-blue-700 border-blue-100 px-4 py-1.5 rounded-full font-bold">
+            Live Stream Active
+          </Badge>
+        </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <KPICard title="Net Earnings" value={`₹${overview.netEarnings.toLocaleString()}`} icon={Wallet} trend={`${overview.momGrowth}%`} trendLabel="vs last month" color="text-green-600" />
-        <KPICard title="Total Revenue" value={`₹${overview.totalRevenue.toLocaleString()}`} icon={TrendingUp} subtitle={`Comm: ₹${overview.totalCommission.toLocaleString()}`} />
-        <KPICard title="Conversion Rate" value={`${overview.conversionRate}%`} icon={CheckCircle} />
-        <KPICard title="Total Bookings" value={overview.totalBookings} icon={LayoutDashboard} subtitle={`${overview.confirmedBookings} confirmed`} />
-        <KPICard title="Avg Booking Value" value={`₹${overview.avgBookingValue.toLocaleString()}`} icon={BarChart3} />
-        {(!overview.serviceType || overview.serviceType === 'vehicle' || overview.serviceType === 'house') && (
-          <KPICard title="Fleet/Inventory" value={overview.totalVehicles + overview.totalHouses} icon={Car} subtitle={`${overview.availableVehicles} available items`} />
-        )}
+      {/* KPI Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <KPICard 
+          title="Net Earnings" 
+          value={`₹${(overview.netEarnings || 0).toLocaleString()}`} 
+          icon={Wallet} 
+          trend={`${overview.momGrowth || 0}%`} 
+          trendLabel="MoM Growth"
+          description="Net after commission"
+          gradient="from-[#8B004A] to-[#5B2C6F]"
+        />
+        <KPICard 
+          title="Conversion" 
+          value={`${overview.conversionRate || 0}%`} 
+          icon={CheckCircle} 
+          description="Booking completion rate"
+          gradient="from-emerald-600 to-teal-600"
+        />
+        <KPICard 
+          title="Total Volume" 
+          value={overview.totalBookings || 0} 
+          icon={TrendingUp} 
+          subtitle={`${overview.confirmedBookings || 0} Confirmed`}
+          description="All-time booking volume"
+          gradient="from-blue-600 to-indigo-600"
+        />
+        <KPICard 
+          title="Avg Order" 
+          value={`₹${(overview.avgBookingValue || 0).toLocaleString()}`} 
+          icon={BarChart3} 
+          description="Average transaction value"
+          gradient="from-amber-500 to-orange-600"
+        />
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        <Card className="shadow-lg border-0 bg-gradient-to-br from-card to-muted/20">
-          <CardHeader>
-            <CardTitle>30-Day Booking Trends</CardTitle>
+      {/* Charts & Activity Grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        {/* Main Chart */}
+        <Card className="xl:col-span-2 border-0 shadow-2xl bg-white/80 backdrop-blur-xl rounded-3xl overflow-hidden">
+          <CardHeader className="border-b border-slate-100">
+            <div className="flex justify-between items-center">
+               <CardTitle className="text-xl font-bold flex items-center gap-2">
+                 <TrendingUp className="w-5 h-5 text-[#8B004A]" />
+                 30-Day Booking Velocity
+               </CardTitle>
+               <select className="text-xs font-bold bg-slate-50 border-0 rounded-lg px-2 py-1 outline-none">
+                 <option>Last 30 Days</option>
+                 <option>Last 7 Days</option>
+               </select>
+            </div>
           </CardHeader>
-          <CardContent className="h-[300px]">
+          <CardContent className="pt-8 h-[350px]">
             {trends ? (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={trends}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <RechartsTooltip />
-                  <Line type="monotone" dataKey="bookings" stroke="#8B004A" strokeWidth={3} dot={false} />
-                  <Line type="monotone" dataKey="confirmed" stroke="#D2B4DE" strokeWidth={3} dot={false} />
+                  <defs>
+                    <linearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#8B004A" stopOpacity={0.1}/>
+                      <stop offset="95%" stopColor="#8B004A" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis 
+                    dataKey="date" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{fill: '#64748b', fontSize: 12}}
+                    dy={10}
+                  />
+                  <YAxis 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{fill: '#64748b', fontSize: 12}}
+                  />
+                  <RechartsTooltip content={<CustomTooltip />} />
+                  <Line 
+                    type="monotone" 
+                    dataKey="bookings" 
+                    stroke="#8B004A" 
+                    strokeWidth={4} 
+                    dot={{ r: 4, fill: '#8B004A', strokeWidth: 2, stroke: '#fff' }}
+                    activeDot={{ r: 6, strokeWidth: 0 }}
+                  />
                 </LineChart>
               </ResponsiveContainer>
-            ) : <div className="animate-pulse bg-[#8B004A]/10 w-full h-full rounded-xl"></div>}
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#8B004A]"></div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        <Card className="shadow-lg border-0 bg-white">
-          <CardHeader>
-            <CardTitle className="text-[#8B004A]">Booking Status Split</CardTitle>
+        {/* Recent Activity Feed */}
+        <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-xl rounded-3xl">
+          <CardHeader className="border-b border-slate-100">
+            <CardTitle className="text-xl font-bold flex items-center gap-2">
+              <Clock className="w-5 h-5 text-blue-600" />
+              Recent Activity
+            </CardTitle>
           </CardHeader>
-          <CardContent className="h-[300px] flex justify-center items-center">
+          <CardContent className="pt-6">
+            <div className="space-y-6">
+              {ledger?.entries?.slice(0, 5).map((entry: any, i: number) => (
+                <div key={entry.id} className="flex items-start gap-4 animate-in slide-in-from-right duration-500" style={{ animationDelay: `${i * 100}ms` }}>
+                  <div className={`p-2 rounded-xl shrink-0 ${
+                    entry.paymentStatus === 'completed' ? 'bg-green-100 text-green-600' : 
+                    entry.paymentStatus === 'pending' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'
+                  }`}>
+                    {entry.serviceType === 'vehicle' ? <Car className="w-4 h-4" /> : <Home className="w-4 h-4" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-slate-900 truncate">{entry.customerName}</p>
+                    <p className="text-xs text-slate-500">{new Date(entry.bookingDate).toLocaleDateString()} · {entry.serviceType}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-black text-[#8B004A]">₹{entry.totalAmount}</p>
+                    <p className="text-[10px] font-bold uppercase text-slate-400">{entry.paymentStatus}</p>
+                  </div>
+                </div>
+              ))}
+              {(!ledger?.entries || ledger.entries.length === 0) && (
+                <div className="text-center py-12 text-slate-400 font-medium">
+                  No recent activity found.
+                </div>
+              )}
+            </div>
+            <Button variant="ghost" className="w-full mt-6 text-[#8B004A] font-bold hover:bg-[#8B004A]/5" onClick={() => window.dispatchEvent(new CustomEvent('changeTab', { detail: 'ledger' }))}>
+              View Full Ledger
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Secondary Metrics */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <Card className="border-0 shadow-2xl bg-white rounded-3xl overflow-hidden">
+          <CardHeader className="bg-slate-50/50 border-b border-slate-100">
+            <CardTitle className="text-lg">Volume Breakdown</CardTitle>
+          </CardHeader>
+          <CardContent className="h-[300px] flex justify-center items-center pt-6">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={[
-                    { name: 'Completed', value: overview.completedBookings },
-                    { name: 'Pending', value: overview.pendingBookings },
-                    { name: 'Cancelled', value: overview.cancelledBookings },
+                    { name: 'Completed', value: overview.completedBookings || 0 },
+                    { name: 'Pending', value: overview.pendingBookings || 0 },
+                    { name: 'Cancelled', value: overview.cancelledBookings || 0 },
                   ]}
-                  cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={5} dataKey="value"
+                  cx="50%" cy="50%" innerRadius={70} outerRadius={100} paddingAngle={8} dataKey="value"
                 >
-                  <Cell fill="#8B004A" />
-                  <Cell fill="#D2B4DE" />
-                  <Cell fill="#A93226" />
+                  <Cell fill="#8B004A" strokeWidth={0} />
+                  <Cell fill="#D2B4DE" strokeWidth={0} />
+                  <Cell fill="#f1f5f9" strokeWidth={0} />
                 </Pie>
-                <RechartsTooltip />
+                <RechartsTooltip content={<CustomTooltip />} />
               </PieChart>
             </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-2xl bg-[#8B004A] text-white rounded-3xl overflow-hidden relative">
+          <div className="absolute top-0 right-0 p-8 opacity-10">
+            <Wallet className="w-32 h-32" />
+          </div>
+          <CardHeader>
+            <CardTitle className="text-white/80 font-medium uppercase tracking-widest text-xs">Wallet Status</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4 space-y-8">
+            <div>
+              <p className="text-5xl font-black">₹{(overview.netEarnings || 0).toLocaleString()}</p>
+              <p className="text-white/60 text-sm mt-2 font-medium">Available for immediate withdrawal</p>
+            </div>
+            <div className="flex gap-4">
+              <Button className="bg-white text-[#8B004A] hover:bg-white/90 font-bold px-8 rounded-2xl">Withdraw Funds</Button>
+              <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 font-bold px-8 rounded-2xl">Statements</Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -182,25 +315,50 @@ export function OverviewSection({ overview }: { overview: any }) {
   );
 }
 
-function KPICard({ title, value, icon: Icon, trend, trendLabel, subtitle, color = "text-blue-600" }: any) {
+function CustomTooltip({ active, payload, label }: any) {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-slate-900 text-white p-3 rounded-2xl shadow-2xl border border-slate-800 text-xs font-bold animate-in zoom-in duration-200">
+        <p className="mb-1 text-slate-400">{label}</p>
+        {payload.map((entry: any, index: number) => (
+          <p key={index} style={{ color: entry.color }}>
+            {entry.name}: {entry.value}
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+}
+
+function KPICard({ title, value, icon: Icon, trend, trendLabel, subtitle, description, gradient }: any) {
   return (
-    <Card className="shadow-sm hover:shadow-md transition-shadow">
-      <CardContent className="p-6">
-        <div className="flex justify-between items-start">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-3xl font-bold">{value}</p>
+    <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-xl rounded-3xl overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-1 group">
+      <CardContent className="p-0">
+        <div className={`h-1.5 w-full bg-gradient-to-r ${gradient}`} />
+        <div className="p-6">
+          <div className="flex justify-between items-start mb-4">
+            <div className={`p-3 rounded-2xl bg-slate-50 group-hover:scale-110 transition-transform duration-500`}>
+              <Icon className="w-6 h-6 text-slate-600" />
+            </div>
+            {trend && (
+              <div className="flex items-center gap-1 bg-green-50 text-green-600 px-2.5 py-1 rounded-full text-xs font-black">
+                <TrendingUp className="w-3 h-3" />
+                {trend}
+              </div>
+            )}
           </div>
-          <div className={`p-3 rounded-xl bg-muted/50 ${color}`}>
-            <Icon className="w-6 h-6" />
+          <div className="space-y-1">
+            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">{title}</p>
+            <p className="text-3xl font-black text-slate-900 tracking-tighter">{value}</p>
           </div>
+          {description && (
+            <p className="text-[10px] text-slate-500 font-bold mt-4 uppercase tracking-tighter">{description}</p>
+          )}
+          {subtitle && (
+            <p className="text-xs text-slate-400 font-bold mt-2">{subtitle}</p>
+          )}
         </div>
-        {(trend || subtitle) && (
-          <div className="mt-4 flex items-center text-sm">
-            {trend && <span className="text-green-600 font-semibold bg-green-100 px-2 py-0.5 rounded mr-2">{trend}</span>}
-            <span className="text-muted-foreground">{trendLabel || subtitle}</span>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
