@@ -41,7 +41,7 @@ export interface ApiResponse<T = unknown> {
 export interface OTPData {
   otp: string;
   email: string;
-  purpose: 'signup' | 'password-reset' | 'email-verify';
+  purpose: 'signup' | 'password-reset' | 'email-verify' | 'login-verify';
   userData?: {
     name: string;
     email: string;

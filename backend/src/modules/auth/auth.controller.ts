@@ -10,7 +10,7 @@ export class AuthController {
         ResponseFormatter.badRequest(res, 'Email is required');
         return;
       }
-      await OTPService.generateAndSend(email, 'login-verification');
+      await OTPService.generateAndSend(email, 'login-verify');
       ResponseFormatter.ok(res, 'OTP sent successfully');
     } catch (error) {
       next(error);
@@ -25,7 +25,7 @@ export class AuthController {
         return;
       }
       
-      const { valid } = await OTPService.verify(email, otp, 'login-verification');
+      const { valid } = await OTPService.verify(email, otp, 'login-verify');
       if (!valid) {
         ResponseFormatter.badRequest(res, 'Invalid or expired OTP');
         return;

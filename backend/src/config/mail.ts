@@ -9,10 +9,13 @@ export const mailTransporter = nodemailer.createTransport({
     user: env.SMTP_USER,
     pass: env.SMTP_PASS,
   },
+  tls: {
+    rejectUnauthorized: false,
+  },
 });
 
 mailTransporter.verify().then(() => {
-  // Mail server ready
-}).catch(() => {
-  // Mail server not available – non-critical in dev
+  logger.info(`📧 Mail server connected successfully (${env.SMTP_USER})`);
+}).catch((error) => {
+  logger.error('❌ Mail server connection failed:', error);
 });
