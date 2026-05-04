@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ProtectedRoute } from '@/components/protected-route';
 import { LayoutDashboard, Users, ShieldCheck, Settings, CalendarCheck, CreditCard, ArrowLeftRight, Flag, Trophy } from 'lucide-react';
+import { useAuthStore } from '@/store/auth.store';
 
 const ADMIN_NAV = [
   { href: '/admin', label: 'Overview', icon: LayoutDashboard },
