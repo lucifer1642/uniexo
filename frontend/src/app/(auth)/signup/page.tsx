@@ -517,15 +517,17 @@ export default function SignupPage() {
                   exit={{ opacity: 0, x: -20 }}
                   className="space-y-8"
                 >
-                  <div className="text-center">
-                    <div className="flex justify-center space-x-2">
+                  <div className="space-y-4">
+                    <p className="text-center text-xs font-black text-zinc-500 uppercase tracking-widest">Access Protocol (OTP)</p>
+                    <div className="flex justify-center">
                       <input
                         type="text"
                         maxLength={6}
+                        autoFocus
                         value={otp}
                         onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                        placeholder="000000"
-                        className="w-full bg-black/40 border border-zinc-800 focus:border-lime-500/50 focus:ring-4 focus:ring-lime-500/10 rounded-2xl px-5 py-4 text-center text-4xl font-black text-lime-500 tracking-[1em] placeholder:text-zinc-800 transition-all outline-none"
+                        placeholder="••••••"
+                        className="w-full bg-black/60 border-2 border-zinc-800 focus:border-lime-500 focus:ring-8 focus:ring-lime-500/10 rounded-3xl px-5 py-6 text-center text-5xl font-black text-lime-400 tracking-[0.5em] placeholder:text-zinc-800 transition-all outline-none"
                       />
                     </div>
                   </div>

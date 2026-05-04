@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { OTPService } from '../../services/otp.service';
+import { OTPEngine } from '../../services/otp.service';
 import { ResponseFormatter } from '../../utils/response';
 import { logger } from '../../config/logger';
 
@@ -12,7 +12,7 @@ export class AuthController {
         ResponseFormatter.badRequest(res, 'Email is required');
         return;
       }
-      await OTPService.generateAndSend(email, 'signup');
+      await OTPEngine.send(email, 'signup');
       ResponseFormatter.ok(res, 'Verification code sent to your email');
     } catch (error) {
       logger.error('[AUTH] sendSignupOtp failed:', error);
@@ -28,7 +28,7 @@ export class AuthController {
         ResponseFormatter.badRequest(res, 'Email is required');
         return;
       }
-      await OTPService.generateAndSend(email, 'login-verify');
+      await OTPEngine.send(email, 'login-verify');
       ResponseFormatter.ok(res, 'OTP sent successfully');
     } catch (error) {
       logger.error('[AUTH] sendLoginOtp failed:', error);
@@ -45,7 +45,7 @@ export class AuthController {
         return;
       }
       
-      const { valid, userData } = await OTPService.verify(email, otp, 'login-verify');
+      const { valid, userData } = await OTPEngine.verify(email, otp, 'login-verify');
       if (!valid) {
         ResponseFormatter.badRequest(res, 'Invalid or expired OTP');
         return;
