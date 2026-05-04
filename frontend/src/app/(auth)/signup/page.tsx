@@ -184,7 +184,7 @@ export default function SignupPage() {
     setLoading(true);
     setError('');
 
-    if (formData.password !== formData.confirmPassword) {
+    if (formData.password && formData.confirmPassword && formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       setLoading(false);
       return;
@@ -388,6 +388,10 @@ export default function SignupPage() {
                         if (!formData.email || !formData.password) {
                           toast.error("Please provide email and password or use Google.");
                           return;
+                        }
+                        // For manual entry, we'll use the password for both to avoid mismatch errors in step 2
+                        if (!formData.confirmPassword) {
+                           setFormData(prev => ({ ...prev, confirmPassword: prev.password }));
                         }
                         setStep(1);
                       }}
