@@ -17,13 +17,13 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
+const db = getDatabase(app);
+
 // Analytics is only supported in browser
 const analyticsPromise =
   typeof window !== "undefined"
     ? isSupported().then((supported) => (supported ? getAnalytics(app) : null))
     : Promise.resolve(null);
 
-export { app, auth, googleProvider, analyticsPromise };
-}
-
-export { app, auth, googleProvider, analytics, db };
+export { app, auth, googleProvider, db, analyticsPromise };
