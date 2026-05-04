@@ -14,6 +14,8 @@ export interface User {
     location?: string;
     idCardPhotoUrl?: string;
     kycStatus?: 'pending' | 'approved' | 'rejected' | 'none';
+    businessName?: string;
+    serviceType?: string;
 }
 
 interface AuthState {
