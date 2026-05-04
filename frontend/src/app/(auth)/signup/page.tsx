@@ -41,6 +41,7 @@ export default function SignupPage() {
   const [onsitePickup, setOnsitePickup] = useState(false);
   const [onStoreService, setOnStoreService] = useState(true);
   const [onsitePickupCharge, setOnsitePickupCharge] = useState('');
+  const [googleToken, setGoogleToken] = useState<string | null>(null);
 
   const [legalModal, setLegalModal] = useState<{ open: boolean, title: string, content: React.ReactNode }>({
     open: false,
@@ -122,39 +123,11 @@ export default function SignupPage() {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       if (user && user.email) {
-        // 1. Bridge to Supabase immediately
+        // 1. Capture token but DELAY Supabase creation until final step
         const idToken = await user.getIdToken();
         const bridgePass = `FB_BRIDGE_${user.uid}`;
         
-        let { data: authData, error: authError } = await supabase.auth.signInWithIdToken({
-          provider: 'google',
-          token: idToken,
-        });
-
-        // FALLBACK: If Google Provider is not enabled in Supabase Dashboard
-        if (authError && (authError.message.includes('Provider login is not enabled') || authError.message.includes('not configured'))) {
-          console.warn('[AUTH] Supabase Google Provider not enabled. Falling back to Bridge-Password.');
-          const { data: fallbackData, error: fallbackError } = await supabase.auth.signInWithPassword({
-            email: user.email!,
-            password: bridgePass
-          });
-
-          if (fallbackError) {
-            // New user in Supabase Auth
-            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-              email: user.email!,
-              password: bridgePass,
-              options: { data: { name: user.displayName, avatar: user.photoURL } }
-            });
-            if (signUpError) throw signUpError;
-            authData = signUpData as any;
-          } else {
-            authData = fallbackData as any;
-          }
-        } else if (authError) {
-          throw authError;
-        }
-
+        setGoogleToken(idToken);
         setFormData(prev => ({
           ...prev,
           name: user.displayName || prev.name,
@@ -164,8 +137,8 @@ export default function SignupPage() {
         }));
         
         setStep(1); // Move to Role Selection
-        toast.success(`Welcome ${user.displayName}! Let's set up your profile.`, { 
-          icon: '✨',
+        toast.success(`Identity Verified: ${user.displayName}!`, { 
+          icon: '🛡️',
           style: { background: '#000', color: '#4ade80', border: '1px solid #4ade8033' }
         });
       }
@@ -201,11 +174,41 @@ export default function SignupPage() {
     };
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      let authUser = (await supabase.auth.getUser()).data.user;
+      let authUser: any = null;
+      let finalSession: any = null;
 
-      if (!authUser) {
-        // Perform Supabase Signup directly for manual users
+      if (googleToken) {
+        // GOOGLE CASE: Perform Supabase Bridge NOW at final click
+        let { data: authData, error: authError } = await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: googleToken,
+        });
+
+        if (authError && (authError.message.includes('Provider login is not enabled') || authError.message.includes('not configured'))) {
+          // Fallback to Bridge-Password
+          const { data: fallbackData, error: fallbackError } = await supabase.auth.signInWithPassword({
+            email: formData.email,
+            password: formData.password
+          });
+
+          if (fallbackError) {
+             const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+                email: formData.email,
+                password: formData.password,
+                options: { data: metadata }
+             });
+             if (signUpError) throw signUpError;
+             authData = signUpData as any;
+          } else {
+             authData = fallbackData as any;
+          }
+        } else if (authError) {
+          throw authError;
+        }
+        authUser = authData.user;
+        finalSession = authData.session;
+      } else {
+        // MANUAL CASE: Perform Supabase Signup directly
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
@@ -213,12 +216,7 @@ export default function SignupPage() {
         });
         if (signUpError) throw signUpError;
         authUser = signUpData.user;
-      } else {
-        // For Google users (already logged in via bridge), just update the profile
-        const { error: updateError } = await supabase.auth.updateUser({
-          data: metadata
-        });
-        if (updateError) throw updateError;
+        finalSession = signUpData.session;
       }
 
       if (!authUser) throw new Error("Authentication failed");
@@ -254,7 +252,12 @@ export default function SignupPage() {
       }
 
       // 3. Store in zustand and redirect
-      const finalSession = (await supabase.auth.getSession()).data.session;
+      if (!finalSession) {
+         // Try to get fresh session
+         const { data: sessionData } = await supabase.auth.getSession();
+         finalSession = sessionData.session;
+      }
+
       if (finalSession) {
         const { login } = useAuthStore.getState();
         login({
@@ -268,8 +271,12 @@ export default function SignupPage() {
           serviceType: metadata.service_type
         }, finalSession.access_token);
 
-        toast.success('Onboarding complete! Welcome to UniExo.', { icon: '🚀' });
+        toast.success('Registration Successful! Welcome to UniExo.', { icon: '🚀' });
         router.push(metadata.role === 'admin' ? '/admin' : '/dashboard');
+      } else {
+        // If email confirmation is required, session might be null
+        toast.success('Account created! Please verify your email to log in.', { icon: '📧' });
+        router.push('/login');
       }
     } catch (err: any) {
       console.error('Signup error:', err);
