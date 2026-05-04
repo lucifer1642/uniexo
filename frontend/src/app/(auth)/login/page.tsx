@@ -78,18 +78,29 @@ export default function LoginPage() {
         setTempUserData(userData);
         setTempToken(data.session.access_token);
         
-        // Call backend to send OTP
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/auth/send-login-otp`, {
+        // Immediate UI transition
+        setOtpStep(true);
+        setLoading(false);
+        toast.info('Sending security code...', { icon: '🛡️' });
+        
+        // Call backend to send OTP in background/parallel to UI
+        fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/auth/send-login-otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: formData.email })
+        }).then(async (response) => {
+          if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            toast.error(errData.message || 'Failed to deliver OTP. Please try again.');
+            setOtpStep(false);
+          } else {
+            toast.success('Security code delivered to your email', { icon: '📧' });
+          }
+        }).catch(() => {
+          toast.error('Network error while sending OTP');
+          setOtpStep(false);
         });
         
-        if (!response.ok) throw new Error('Failed to send OTP');
-        
-        setOtpStep(true);
-        toast.success('OTP sent to your email');
-        setLoading(false);
         return;
       }
 
