@@ -184,11 +184,8 @@ export default function SignupPage() {
     setLoading(true);
     setError('');
 
-    if (formData.password && formData.confirmPassword && formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      setLoading(false);
-      return;
-    }
+    // Password mismatch check is now handled in Step 0 for manual users
+    // and automatically bypassed for Google users.
 
     const metadata: any = {
       name: formData.name,
@@ -372,12 +369,28 @@ export default function SignupPage() {
                             name="password"
                             type={showPassword ? 'text' : 'password'}
                             className="h-14 bg-white/[0.02] border-white/5 text-white placeholder:text-zinc-700 focus:border-lime-500/50 rounded-2xl pr-12 transition-all"
-                            placeholder="••••••••"
+                            placeholder="Set Access Key"
                             value={formData.password}
                             onChange={handleChange}
                           />
                           <button type="button" className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-white transition-colors" onClick={() => setShowPassword(!showPassword)}>
                             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest ml-1">Confirm Access Key</Label>
+                        <div className="relative">
+                          <Input
+                            name="confirmPassword"
+                            type={showConfirmPassword ? 'text' : 'password'}
+                            className="h-14 bg-white/[0.02] border-white/5 text-white placeholder:text-zinc-700 focus:border-lime-500/50 rounded-2xl pr-12 transition-all"
+                            placeholder="Re-enter Key"
+                            value={formData.confirmPassword}
+                            onChange={handleChange}
+                          />
+                          <button type="button" className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-white transition-colors" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
+                            {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                           </button>
                         </div>
                       </div>
@@ -389,9 +402,9 @@ export default function SignupPage() {
                           toast.error("Please provide email and password or use Google.");
                           return;
                         }
-                        // For manual entry, we'll use the password for both to avoid mismatch errors in step 2
-                        if (!formData.confirmPassword) {
-                           setFormData(prev => ({ ...prev, confirmPassword: prev.password }));
+                        if (formData.password !== formData.confirmPassword) {
+                          toast.error("Access Keys do not match.");
+                          return;
                         }
                         setStep(1);
                       }}
@@ -630,47 +643,7 @@ export default function SignupPage() {
                       </div>
                     )}
 
-                      {!formData.password && (
-                        <>
-                          <div className="space-y-2">
-                            <Label htmlFor="password" title="Password" className="text-zinc-500 text-[10px] font-black uppercase tracking-widest ml-1">Password</Label>
-                            <div className="relative">
-                              <Input
-                                id="password"
-                                name="password"
-                                type={showPassword ? 'text' : 'password'}
-                                required
-                                className="h-12 bg-white/[0.03] border-white/10 text-white placeholder:text-zinc-700 focus:border-lime-500/50 rounded-xl pr-10"
-                                placeholder="••••••••"
-                                value={formData.password}
-                                onChange={handleChange}
-                              />
-                              <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors" onClick={() => setShowPassword(!showPassword)}>
-                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                              </button>
-                            </div>
-                          </div>
-
-                          <div className="space-y-2">
-                            <Label htmlFor="confirmPassword" title="Confirm Password" className="text-zinc-500 text-[10px] font-black uppercase tracking-widest ml-1">Confirm Password</Label>
-                            <div className="relative">
-                              <Input
-                                id="confirmPassword"
-                                name="confirmPassword"
-                                type={showConfirmPassword ? 'text' : 'password'}
-                                required
-                                className="h-12 bg-white/[0.03] border-white/10 text-white placeholder:text-zinc-700 focus:border-lime-500/50 rounded-xl pr-10"
-                                placeholder="••••••••"
-                                value={formData.confirmPassword}
-                                onChange={handleChange}
-                              />
-                              <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
-                                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                              </button>
-                            </div>
-                          </div>
-                        </>
-                      )}
+                      {/* Password fields removed from final step to prevent validation conflicts */}
 
                       {error && <div className="sm:col-span-2 text-red-400 text-[10px] font-black uppercase bg-red-500/10 border border-red-500/20 py-3 px-4 rounded-xl">{error}</div>}
                       
