@@ -44,7 +44,9 @@ export function NexusDashboard() {
     queryFn: async () => {
       const res = await api.get('/admin/analytics/kpi');
       return res.data.data;
-    }
+    },
+    refetchInterval: 3000,
+    staleTime: 2000,
   });
 
   // Fetch Revenue Trends
@@ -53,7 +55,9 @@ export function NexusDashboard() {
     queryFn: async () => {
       const res = await api.get('/admin/analytics/revenue');
       return res.data.data;
-    }
+    },
+    refetchInterval: 3000,
+    staleTime: 2000,
   });
 
   // Fetch Module Insights
@@ -62,7 +66,9 @@ export function NexusDashboard() {
     queryFn: async () => {
       const res = await api.get('/admin/analytics/modules');
       return res.data.data;
-    }
+    },
+    refetchInterval: 3000,
+    staleTime: 2000,
   });
 
   // Fetch Conversion Funnel
@@ -71,7 +77,9 @@ export function NexusDashboard() {
     queryFn: async () => {
       const res = await api.get('/admin/analytics/conversion');
       return res.data.data;
-    }
+    },
+    refetchInterval: 3000,
+    staleTime: 2000,
   });
 
   return (

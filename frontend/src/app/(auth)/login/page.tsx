@@ -134,11 +134,11 @@ export default function LoginPage() {
       const isProd = process.env.NODE_ENV === 'production';
       const apiUrl = isProd ? '/api/v1' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1');
       
-      const response = await fetch(`${apiUrl}/auth/verify-login-otp`, {
+      const response = await fetch(`${apiUrl}/auth/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ email: formData.email, otp })
+        body: JSON.stringify({ email: formData.email, otp, purpose: 'login-verify' })
       });
       
       if (!response.ok) {

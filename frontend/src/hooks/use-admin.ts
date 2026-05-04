@@ -12,6 +12,9 @@ import type {
     AdminSetting,
 } from '@/types';
 
+const REALTIME_INTERVAL = 3000; // 3-second DB refresh
+const REALTIME_STALE = 2000;
+
 // ==================== Dashboard ====================
 
 export function useAdminDashboard() {
@@ -21,6 +24,8 @@ export function useAdminDashboard() {
             const res = await api.get('/admin/dashboard');
             return res.data.data;
         },
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 }
 
@@ -36,6 +41,8 @@ export function useAdminUsers(page = 1, limit = 20, role?: string, search?: stri
             const res = await api.get('/admin/users', { params });
             return res.data.data;
         },
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 }
 
@@ -61,6 +68,8 @@ export function useVendorsList() {
             const res = await api.get('/vendors', { params: { limit: 100 } });
             return res.data.data;
         },
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 }
 
@@ -96,6 +105,8 @@ export function useAdminBookings(page = 1, limit = 20, status?: string) {
             const res = await api.get('/bookings', { params });
             return res.data.data;
         },
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 }
 
@@ -108,6 +119,8 @@ export function useAdminPayments(page = 1, limit = 20) {
             const res = await api.get('/payments', { params: { page, limit } });
             return res.data.data;
         },
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 }
 
@@ -120,6 +133,8 @@ export function useAdminTransactions(page = 1, limit = 20) {
             const res = await api.get('/admin/transactions', { params: { page, limit } });
             return res.data.data;
         },
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 }
 
@@ -132,6 +147,8 @@ export function useAdminReportedItems(page = 1, limit = 10) {
             const res = await api.get('/admin/reports', { params: { page, limit } });
             return res.data.data;
         },
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 }
 
@@ -158,6 +175,8 @@ export function useAdminSettings() {
             const res = await api.get('/admin/settings');
             return res.data.data;
         },
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 }
 
@@ -206,6 +225,8 @@ export function useVendorsByCategory(category: string) {
             return res.data.data;
         },
         enabled: !!category,
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 }
 

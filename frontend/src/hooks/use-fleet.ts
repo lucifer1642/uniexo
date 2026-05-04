@@ -9,7 +9,7 @@ export const useVehicleFleet = () => {
             const { data } = await api.get('/vehicles/vendor/fleet');
             return data.data;
         },
-        refetchInterval: 15000, // Real-time 15s refresh
+        refetchInterval: 3000, // Real-time 3s DB refresh
     });
 };
 

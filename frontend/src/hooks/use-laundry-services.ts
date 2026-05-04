@@ -32,6 +32,8 @@ export const useLaundryServices = (filters: any = {}) => {
             const result = data.data;
             return (result?.data || result || []) as LaundryService[];
         },
+        refetchInterval: 3000,
+        staleTime: 2000,
     });
 };
 
@@ -43,6 +45,8 @@ export const useLaundryService = (id: string, options?: { enabled?: boolean }) =
             return data.data as LaundryService;
         },
         enabled: !!id && (options?.enabled ?? true),
+        refetchInterval: 3000,
+        staleTime: 2000,
     });
 };
 
@@ -111,7 +115,7 @@ export const useVendorLaundryOrders = (page = 1, limit = 20, status?: string) =>
             const { data } = await api.get('/laundry/vendor/orders', { params });
             return data.data;
         },
-        refetchInterval: 30000,
+        refetchInterval: 3000,
     });
 };
 

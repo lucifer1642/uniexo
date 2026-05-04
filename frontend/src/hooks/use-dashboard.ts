@@ -1,6 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 
+const REALTIME_INTERVAL = 3000;
+const REALTIME_STALE = 2000;
+
 // User bookings
 export const useUserBookings = (page = 1, limit = 10) => {
     return useQuery({
@@ -10,6 +13,8 @@ export const useUserBookings = (page = 1, limit = 10) => {
             const result = data.data;
             return { bookings: result?.data || result || [], pagination: result?.pagination };
         },
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 };
 
@@ -22,6 +27,8 @@ export const useVendorBookings = (page = 1, limit = 10) => {
             const result = data.data;
             return { bookings: result?.data || result || [], pagination: result?.pagination };
         },
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 };
 
@@ -33,6 +40,8 @@ export const useWallet = () => {
             const { data } = await api.get('/wallet');
             return data.data;
         },
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 };
 
@@ -45,6 +54,8 @@ export const useWalletTransactions = (page = 1, limit = 10) => {
             const result = data.data;
             return { transactions: result?.data || result || [], pagination: result?.pagination };
         },
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 };
 
@@ -57,6 +68,8 @@ export const useVendorVehicles = (page = 1, limit = 10) => {
             const result = data.data;
             return { vehicles: result?.data || result || [], pagination: result?.pagination };
         },
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 };
 
@@ -69,6 +82,8 @@ export const useVendorHouses = (page = 1, limit = 10) => {
             const result = data.data;
             return { houses: result?.data || result || [], pagination: result?.pagination };
         },
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 };
 
@@ -81,6 +96,8 @@ export const useUserLaundryOrders = (page = 1, limit = 10) => {
             const result = data.data;
             return { orders: result?.data || result || [], pagination: result?.pagination };
         },
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 };
 
@@ -93,6 +110,8 @@ export const useUserMarketplaceItems = (page = 1, limit = 10) => {
             const result = data.data;
             return { items: result?.data || result || [], pagination: result?.pagination };
         },
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 };
 
@@ -104,6 +123,8 @@ export const useVendorProfile = () => {
             const { data } = await api.get('/vendors/profile');
             return data.data;
         },
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 };
 
@@ -115,10 +136,12 @@ export const useVendorDashboardStats = () => {
             const { data } = await api.get('/vendors/dashboard/stats');
             return data.data;
         },
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 };
 
-// ─── NEW ANALYTICS HOOKS ──────────────────────────────────────────────
+// ─── ANALYTICS HOOKS ──────────────────────────────────────────────
 
 export const useVendorAnalyticsOverview = () => {
     return useQuery({
@@ -127,8 +150,8 @@ export const useVendorAnalyticsOverview = () => {
             const { data } = await api.get('/vendors/analytics/overview');
             return data.data;
         },
-        refetchInterval: 30000,
-        staleTime: 60000,
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 };
 
@@ -139,6 +162,8 @@ export const useVendorSalesBreakdown = (period: 'week' | 'month' | 'year' = 'mon
             const { data } = await api.get('/vendors/analytics/sales', { params: { period } });
             return data.data;
         },
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 };
 
@@ -149,7 +174,8 @@ export const useVendorLedger = (page = 1, limit = 20) => {
             const { data } = await api.get('/vendors/analytics/ledger', { params: { page, limit } });
             return data.data;
         },
-        staleTime: 60000,
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 };
 
@@ -160,7 +186,8 @@ export const useVendorDues = () => {
             const { data } = await api.get('/vendors/analytics/dues');
             return data.data;
         },
-        refetchInterval: 60000,
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 };
 
@@ -171,6 +198,8 @@ export const useVendorBookingTrends = (days = 30) => {
             const { data } = await api.get('/vendors/analytics/trends', { params: { days } });
             return data.data;
         },
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 };
 
@@ -181,6 +210,8 @@ export const useVendorRevenueTimeSeries = (days = 30) => {
             const { data } = await api.get('/vendors/analytics/revenue-series', { params: { days } });
             return data.data;
         },
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 };
 
@@ -191,6 +222,7 @@ export const useVendorRoomOccupancy = () => {
             const { data } = await api.get('/vendors/analytics/room-occupancy');
             return data.data;
         },
-        refetchInterval: 60000,
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 };

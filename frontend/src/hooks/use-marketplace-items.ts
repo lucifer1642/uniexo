@@ -1,6 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 
+const REALTIME_INTERVAL = 3000;
+const REALTIME_STALE = 2000;
+
 export interface MarketplaceItem {
     _id: string;
     sellerId: any;
@@ -24,6 +27,8 @@ export const useMarketplaceItems = (filters: any = {}) => {
             const result = data.data;
             return (result?.data || result || []) as MarketplaceItem[];
         },
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 };
 
@@ -35,5 +40,7 @@ export const useMarketplaceItem = (id: string, options?: { enabled?: boolean }) 
             return data.data as MarketplaceItem;
         },
         enabled: !!id && (options?.enabled ?? true),
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 };

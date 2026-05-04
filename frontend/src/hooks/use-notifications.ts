@@ -22,7 +22,7 @@ export function useNotifications() {
       const response = await api.get('/users/notifications');
       return response.data.data;
     },
-    refetchInterval: 60000,
+    refetchInterval: 3000,
     // CRITICAL: Only fetch when user is logged in — otherwise it fires 401s
     // which trigger the redirect interceptor → infinite reload loop
     enabled: isAuthenticated,

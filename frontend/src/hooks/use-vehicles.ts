@@ -1,6 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 
+const REALTIME_INTERVAL = 3000;
+const REALTIME_STALE = 2000;
+
 export interface Vehicle {
     _id: string;
     vendorId: any;
@@ -48,5 +51,7 @@ export const useVehicles = (filters: any = {}) => {
             const result = data.data;
             return (result?.data || result || []) as Vehicle[];
         },
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
     });
 };

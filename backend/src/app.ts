@@ -13,6 +13,7 @@ import cron from 'node-cron';
 import { ReminderJob } from './jobs/reminder.job';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 import { NexusSocketService } from './services/nexus.socket';
+import { OTPEngine } from './services/otp.service';
 
 const app = express();
 const server = createServer(app);
@@ -112,6 +113,13 @@ if (!process.env.VERCEL) {
 if (!process.env.VERCEL) {
   cron.schedule('0 0 * * *', () => {
     ReminderJob.run();
+  });
+
+  // Purge expired OTPs every 10 minutes
+  cron.schedule('*/10 * * * *', () => {
+    OTPEngine.cleanup().catch(err => {
+      logger.error('[CRON] OTP cleanup failed:', err);
+    });
   });
 }
 
