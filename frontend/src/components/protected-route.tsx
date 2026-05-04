@@ -16,11 +16,9 @@ export function ProtectedRoute({ children, allowedRoles }: { children: React.Rea
   useEffect(() => {
     if (!isClient) return;
 
-    if (!isAuthenticated) {
-      router.push('/login');
-    } else if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-      router.push('/');
-    }
+    // REMOVED: Automatic redirect to /login. 
+    // We stay on the page even if isAuthenticated is false, 
+    // but the UI will handle the state via the return null below.
   }, [isAuthenticated, isClient, router, allowedRoles, user]);
 
   if (!isClient) {

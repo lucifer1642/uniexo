@@ -36,9 +36,9 @@ export const useAuthStore = create<AuthState>()(
             login: (user, token) => set({ user, token, isAuthenticated: true }),
             logout: () => {
                 set({ user: null, token: null, isAuthenticated: false });
-                // Explicitly clear local storage to ensure "from cache and all" requirement
                 if (typeof window !== 'undefined') {
                     localStorage.removeItem('auth-storage');
+                    localStorage.removeItem('supabase.auth.token'); // Also clear supabase
                     sessionStorage.clear();
                 }
             },

@@ -24,10 +24,8 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    // FORCE CLEAR CACHE: Ensure clean state on login
-    localStorage.removeItem('auth-storage');
-    useAuthStore.getState().logout();
-    console.log('Auth cache cleared for fresh session');
+    // Removed automatic session clearing to prevent race conditions during hydration
+    console.log('Login page mounted');
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

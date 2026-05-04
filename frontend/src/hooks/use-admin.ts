@@ -12,8 +12,8 @@ import type {
     AdminSetting,
 } from '@/types';
 
-const REALTIME_INTERVAL = 3000; // 3-second DB refresh
-const REALTIME_STALE = 2000;
+const REALTIME_INTERVAL = 15000; // 15-second DB refresh
+const REALTIME_STALE = 10000;
 
 // ==================== Dashboard ====================
 

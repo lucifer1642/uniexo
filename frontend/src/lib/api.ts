@@ -88,14 +88,10 @@ api.interceptors.response.use(
       try {
         const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
         if (refreshError || !session) {
-            // Session is truly dead — clean up state
+            // Session is dead — clean up local cache but DON'T force logout the user.
+            // Let them stay on the page as requested.
             cachedToken = null;
             tokenExpiresAt = 0;
-            const store = useAuthStore.getState();
-            if (store.isAuthenticated) {
-              store.logout();
-              await supabase.auth.signOut();
-            }
             throw new Error('Refresh failed');
         }
 
