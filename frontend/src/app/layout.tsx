@@ -9,6 +9,7 @@ import { GlobalProfileSidebar } from "@/components/global-profile-sidebar";
 import { CacheManager } from "@/components/cache-manager";
 import { PushNotificationProvider } from "@/components/push-notification-provider";
 import { NexusProvider } from "@/components/providers/nexus-provider";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -60,6 +61,7 @@ export default function RootLayout({
             duration: 4000,
           }} 
         />
+        <SpeedInsights />
       </body>
     </html>
   );

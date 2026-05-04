@@ -19,8 +19,6 @@ export default function SignupPage() {
   const [role, setRole] = useState<'user' | 'vendor'>('user');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [otpStep, setOtpStep] = useState(false);
-  const [otp, setOtp] = useState('');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -100,7 +98,7 @@ export default function SignupPage() {
     }
   };
 
-  const handleInitialSubmit = async (e: React.FormEvent) => {
+  const handleInitialSubmit = async (e: React.FormEvent) => कराते
     e.preventDefault();
     setLoading(true);
     setError('');
@@ -112,31 +110,58 @@ export default function SignupPage() {
     }
 
     try {
-      const isProd = process.env.NODE_ENV === 'production';
-      const apiUrl = isProd ? '/api/v1' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1');
+      // Perform Supabase Signup directly without OTP
+      const metadata: any = {
+        name: formData.name,
+        phone: formData.phone,
+        role,
+      };
 
-      // 1. Trigger OTP in backend
-      const response = await fetch(`${apiUrl}/auth/send-signup-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email })
+      if (role === 'user') {
+        metadata.universityId = formData.universityId;
+        metadata.location = formData.location;
+      } else if (role === 'vendor') {
+        metadata.businessName = formData.businessName;
+        metadata.serviceType = formData.serviceType;
+        if (formData.serviceType === 'LAUNDRY') {
+          metadata.onsitePickup = onsitePickup;
+          metadata.onStoreService = onStoreService;
+          metadata.onsitePickupCharge = Number(onsitePickupCharge) || 0;
+        }
+      }
+
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: metadata,
+        }
       });
 
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        console.warn('Backend OTP sync failed, but proceeding for bypass:', errData);
-        toast.info('Network sync delayed, using backup verification channel.', { icon: '🛡️' });
-      }
+      if (signUpError) throw signUpError;
 
-      setOtpStep(true);
-      if (response.ok) {
-        toast.success('Verification code sent to your email');
+      if (data.session && data.user) {
+        const { login } = useAuthStore.getState();
+        login(
+          {
+            id: data.user.id,
+            name: metadata.name,
+            email: formData.email,
+            phone: metadata.phone,
+            role: metadata.role || 'user',
+            avatar: data.user.user_metadata?.avatar,
+            kycStatus: 'none',
+          },
+          data.session.access_token
+        );
+        toast.success('Welcome to UniExo! 🎉', { icon: '✨' });
+        router.push('/');
+      } else {
+        toast.success('Account created successfully!', { icon: '✅' });
+        router.push('/login');
       }
     } catch (err: any) {
-      console.error('OTP Send Error:', err);
-      // Even on network error, allow entering bypass code
-      setOtpStep(true);
-      toast.info('Emergency bypass mode enabled. Use master code.', { icon: '🔑' });
+      setError(err.message || 'Signup failed');
     } finally {
       setLoading(false);
     }
@@ -253,18 +278,15 @@ export default function SignupPage() {
         >
           <div className="text-center mb-10">
             <h2 className="text-4xl sm:text-5xl font-black tracking-tighter text-white">
-              {otpStep ? 'VERIFY EMAIL' : <><span className="text-lime-400">Account</span> Creation</>}
+              <><span className="text-lime-400">Account</span> Creation</>
             </h2>
             <p className="mt-4 text-zinc-400 font-medium">
-              {otpStep ? `Enter code sent to ${formData.email}` : (
                 <>Already with us? <Link href="/login" className="text-lime-400 hover:text-lime-300 transition-colors font-bold">Log in here</Link></>
-              )}
             </p>
           </div>
 
           <div className="backdrop-blur-3xl bg-white/[0.02] border border-white/10 shadow-2xl rounded-[2.5rem] p-8 sm:p-12">
             <AnimatePresence mode="wait">
-              {!otpStep ? (
                 <motion.div
                   key="form"
                   initial={{ opacity: 0, x: -20 }}
@@ -318,7 +340,7 @@ export default function SignupPage() {
                     </button>
                   </div>
 
-                  <form className="grid grid-cols-1 sm:grid-cols-2 gap-6" onSubmit={handleInitialSubmit}>
+                  <form className="grid grid-cols-1 sm:grid-cols-2 gap-6" onSubmit={handleInitialSubmit} autoComplete="off">
                     <div className="space-y-2">
                       <Label htmlFor="name" className="text-zinc-400 text-sm font-medium ml-1">Full Name</Label>
                       <Input
@@ -328,6 +350,7 @@ export default function SignupPage() {
                         required
                         className="h-12 bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 focus:border-lime-500/50 focus:ring-lime-500/20 rounded-xl"
                         placeholder="John Doe"
+                        autoComplete="off"
                         value={formData.name}
                         onChange={handleChange}
                       />
@@ -342,6 +365,7 @@ export default function SignupPage() {
                         required
                         className="h-12 bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 focus:border-lime-500/50 focus:ring-lime-500/20 rounded-xl"
                         placeholder="john@uniexo.in"
+                        autoComplete="off"
                         value={formData.email}
                         onChange={handleChange}
                       />
@@ -480,6 +504,7 @@ export default function SignupPage() {
                           required
                           className="h-12 bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 focus:border-lime-500/50 focus:ring-lime-500/20 rounded-xl pr-10"
                           placeholder="••••••••"
+                          autoComplete="new-password"
                           value={formData.password}
                           onChange={handleChange}
                         />
@@ -499,6 +524,7 @@ export default function SignupPage() {
                           required
                           className="h-12 bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 focus:border-lime-500/50 focus:ring-lime-500/20 rounded-xl pr-10"
                           placeholder="••••••••"
+                          autoComplete="new-password"
                           value={formData.confirmPassword}
                           onChange={handleChange}
                         />
@@ -511,45 +537,11 @@ export default function SignupPage() {
                     {error && <div className="sm:col-span-2 text-red-400 text-xs font-medium bg-red-500/10 border border-red-500/20 py-2.5 px-4 rounded-xl">{error}</div>}
 
                     <Button type="submit" className="sm:col-span-2 w-full h-14 text-black bg-lime-400 hover:bg-lime-300 font-black text-lg rounded-2xl transition-all shadow-xl shadow-lime-500/20 active:scale-[0.99] mt-2" disabled={loading}>
-                      {loading ? 'Processing...' : 'SEND VERIFICATION CODE'}
+                      {loading ? 'Processing...' : 'CREATE ACCOUNT'}
                     </Button>
                   </form>
                 </motion.div>
-              ) : (
-                <motion.div
-                  key="otp"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="space-y-8"
-                >
-                  <div className="space-y-4">
-                    <p className="text-center text-xs font-black text-zinc-500 uppercase tracking-widest">Access Protocol (OTP)</p>
-                    <div className="flex justify-center">
-                      <input
-                        type="text"
-                        maxLength={6}
-                        autoFocus
-                        value={otp}
-                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                        placeholder="••••••"
-                        className="w-full bg-black/60 border-2 border-zinc-800 focus:border-lime-500 focus:ring-8 focus:ring-lime-500/10 rounded-3xl px-5 py-6 text-center text-5xl font-black text-lime-400 tracking-[0.5em] placeholder:text-zinc-800 transition-all outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  {error && <div className="text-red-400 text-xs font-medium bg-red-500/10 border border-red-500/20 py-2.5 px-4 rounded-xl text-center">{error}</div>}
-
-                  <div className="flex flex-col space-y-3">
-                    <Button onClick={handleOtpVerifyAndSignup} className="h-14 text-black bg-lime-400 hover:bg-lime-300 font-black text-lg rounded-2xl transition-all shadow-xl shadow-lime-500/20" disabled={loading || otp.length < 6}>
-                      {loading ? 'Finalizing...' : 'VERIFY & CREATE ACCOUNT'}
-                    </Button>
-                    <button type="button" onClick={() => setOtpStep(false)} className="text-zinc-500 font-bold text-xs hover:text-white transition-colors">
-                      BACK TO FORM
-                    </button>
-                  </div>
                 </motion.div>
-              )}
             </AnimatePresence>
 
             <div className="mt-8 pt-6 border-t border-white/5 text-center">
