@@ -20,13 +20,18 @@ export class OTPService {
     const otp = generateOTP(6);
     const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS).toISOString();
 
-    await supabase.from('otp_logs').insert({
+    const { error } = await supabase.from('otp_logs').insert({
       email: email.toLowerCase(),
       otp,
       purpose,
       user_data: userData ?? null,
       expires_at: expiresAt,
     });
+
+    if (error) {
+      logger.error(`[OTP] Supabase insert failed for ${email}:`, error);
+      throw error;
+    }
 
     // Send email in background for maximum speed
     EmailService.sendOTP(email, otp, purpose).catch(err =>
@@ -48,13 +53,18 @@ export class OTPService {
     const otp = generateOTP(6);
     const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS).toISOString();
 
-    await supabase.from('otp_logs').insert({
+    const { error } = await supabase.from('otp_logs').insert({
       email: email.toLowerCase(),
       otp,
       purpose,
       user_data: userData ?? null,
       expires_at: expiresAt,
     });
+
+    if (error) {
+      logger.error(`[OTP] Supabase insert failed for ${email}:`, error);
+      throw error;
+    }
 
     logger.info(`OTP generated for ${email} (${purpose})`);
     return otp;
