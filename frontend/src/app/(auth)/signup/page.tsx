@@ -57,8 +57,8 @@ export default function SignupPage() {
           ...prev,
           name: user.displayName || '',
           email: user.email || '',
-          password: `GOOGLE_${user.uid}`, // Deterministic bridge pass
-          confirmPassword: `GOOGLE_${user.uid}`
+          password: `GOOGLE_BRIDGE_${user.uid}`, // Deterministic bridge pass
+          confirmPassword: `GOOGLE_BRIDGE_${user.uid}`
         }));
         setStep(1);
         toast.success("Identity Verified!");

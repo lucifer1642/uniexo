@@ -49,7 +49,7 @@ export default function LoginPage() {
         if (authError && authError.message.includes('not enabled')) {
           const { data: fallbackData, error: fallbackError } = await supabase.auth.signInWithPassword({
             email: user.email!,
-            password: `FB_BRIDGE_${user.uid}`
+            password: `GOOGLE_BRIDGE_${user.uid}`
           });
           if (fallbackError) throw new Error("No UniExo account linked to this Google ID.");
           data = fallbackData;
