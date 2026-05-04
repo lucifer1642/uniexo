@@ -119,14 +119,22 @@ export default function SignupPage() {
 
       if (role === 'user') {
         metadata.universityId = formData.universityId;
+        metadata.university_id = formData.universityId;
         metadata.location = formData.location;
       } else if (role === 'vendor') {
         metadata.businessName = formData.businessName;
+        metadata.business_name = formData.businessName;
         metadata.serviceType = formData.serviceType;
+        metadata.service_type = formData.serviceType;
+        
         if (formData.serviceType === 'LAUNDRY') {
           metadata.onsitePickup = onsitePickup;
           metadata.onStoreService = onStoreService;
           metadata.onsitePickupCharge = Number(onsitePickupCharge) || 0;
+          
+          metadata.onsite_pickup = onsitePickup;
+          metadata.on_store_service = onStoreService;
+          metadata.onsite_pickup_charge = Number(onsitePickupCharge) || 0;
         }
       }
 
