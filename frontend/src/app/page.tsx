@@ -947,7 +947,6 @@ export default function Home() {
 
   if (!isClient) return null;
 
-  // If admin or vendor, we already started redirecting in useEffect, but to avoid flash:
   if (isAuthenticated && (user?.role === 'admin' || user?.role === 'vendor')) return null;
 
   return isAuthenticated ? <Dashboard /> : <Landing />;

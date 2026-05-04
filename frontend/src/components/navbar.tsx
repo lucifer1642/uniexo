@@ -78,7 +78,7 @@ export function Navbar() {
             <div className="hidden md:flex items-center gap-4">
               {isAuthenticated && pathname !== '/' && (
                 <Button variant="ghost" asChild className="gap-2 text-muted-foreground hover:text-primary font-bold">
-                  <Link href="/">
+                  <Link href={user?.role === 'vendor' ? '/dashboard' : '/'}>
                     <ArrowLeft className="w-4 h-4" />
                     Back to Dashboard
                   </Link>
