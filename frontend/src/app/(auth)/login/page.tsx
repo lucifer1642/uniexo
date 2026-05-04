@@ -64,11 +64,6 @@ export default function LoginPage() {
 
       // 2. Build user object for zustand store from Supabase metadata
       const meta = data.user.user_metadata || {};
-      const userData = {
-        id: data.user.id,
-        name: meta.name || data.user.email?.split('@')[0] || 'User',
-        email: data.user.email!,
-        phone: meta.phone,
       const role = (meta.role as UserRole) || 'user';
       const userData = {
         id: data.user.id,
