@@ -18,5 +18,5 @@ try {
   logger.error('[FIREBASE] Admin SDK Initialization failed', error);
 }
 
-export const firebaseDb = admin.database();
-export const firebaseAuth = admin.auth();
+export const firebaseDb: admin.database.Database = admin.database();
+export const firebaseAuth: admin.auth.Auth = admin.auth();
