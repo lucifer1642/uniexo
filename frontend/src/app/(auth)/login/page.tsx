@@ -217,24 +217,23 @@ export default function LoginPage() {
             </div>
 
             {!otpStep && (
-              <Button
-                type="button"
-                onClick={handleGoogleLogin}
-                variant="outline"
-                disabled={loading}
-                className="w-full mb-8 h-14 rounded-2xl border-white/10 bg-white/[0.02] hover:bg-white/[0.05] text-white flex items-center justify-center gap-3 font-bold group overflow-hidden relative"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5 relative z-10" alt="Google" />
-                <span className="relative z-10 tracking-tight">SIGN IN WITH GOOGLE</span>
-              </Button>
-            )}
+              <div className="space-y-6 mb-8">
+                <Button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  variant="outline"
+                  disabled={loading}
+                  className="w-full h-16 rounded-2xl border-white/10 bg-white text-black hover:bg-zinc-200 flex items-center justify-center gap-4 font-black transition-all active:scale-[0.98] group relative overflow-hidden shadow-2xl shadow-white/5"
+                >
+                  <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-6 h-6" alt="Google" />
+                  <span className="tracking-[0.1em] text-sm">ONE-TAP GOOGLE ACCESS</span>
+                </Button>
 
-            {!otpStep && (
-              <div className="relative flex items-center gap-4 mb-8">
-                <div className="h-[1px] flex-1 bg-zinc-800/50" />
-                <span className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em]">OR USE TERMINAL ID</span>
-                <div className="h-[1px] flex-1 bg-zinc-800/50" />
+                <div className="relative flex items-center gap-4">
+                  <div className="h-[1px] flex-1 bg-zinc-800/50" />
+                  <span className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.3em]">OR USE TERMINAL ID</span>
+                  <div className="h-[1px] flex-1 bg-zinc-800/50" />
+                </div>
               </div>
             )}
 

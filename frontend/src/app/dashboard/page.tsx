@@ -111,72 +111,84 @@ function UserDashboard() {
       {/* Content */}
       <div className="flex-1 space-y-6">
         {section === 'overview' && (
-          <>
-            <h2 className="text-2xl font-bold tracking-tight">Overview</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Active Bookings</CardTitle>
-                  <CalendarCheck className="h-4 w-4 text-blue-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {loadingBookings ? '...' : bookings.filter((b: any) => b.status === 'confirmed' || b.status === 'pending').length}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Vehicle & Room rentals</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Laundry Orders</CardTitle>
-                  <Shirt className="h-4 w-4 text-purple-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {loadingLaundry ? '...' : laundryOrders.length}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Total orders placed</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Marketplace Listings</CardTitle>
-                  <Store className="h-4 w-4 text-amber-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {loadingMarketplace ? '...' : marketplaceItems.length}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Items listed for sale</p>
-                </CardContent>
-              </Card>
+          <div className="max-w-2xl mx-auto space-y-12 py-8">
+            {/* Profile Header */}
+            <div className="text-center space-y-4">
+              <div className="w-24 h-24 bg-gradient-to-tr from-lime-400 to-green-500 rounded-full mx-auto flex items-center justify-center text-3xl font-black text-black shadow-2xl shadow-lime-500/20">
+                {user?.name?.[0]?.toUpperCase() || 'U'}
+              </div>
+              <div>
+                <h1 className="text-3xl font-black text-white tracking-tighter uppercase">{user?.name || 'UniExo User'}</h1>
+                <p className="text-zinc-500 font-medium text-sm">{user?.email}</p>
+              </div>
+              
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-black uppercase tracking-widest mx-auto">
+                <ShieldAlert className="w-3 h-3" />
+                Verification Required
+              </div>
             </div>
 
-            {/* Recent Bookings */}
-            {bookings.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Recent Bookings</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {bookings.slice(0, 5).map((b: any) => (
-                      <div key={b._id} className="flex items-center justify-between py-2 border-b last:border-0">
-                        <div>
-                          <p className="font-medium text-sm">{b.serviceType === 'vehicle' ? '🚗' : '🏠'} {b.serviceId?.name || b.serviceId?.title || 'Booking'}</p>
-                          <p className="text-xs text-muted-foreground">{new Date(b.startDate).toLocaleDateString()} - {new Date(b.endDate).toLocaleDateString()}</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="font-medium text-sm">₹{b.totalAmount}</span>
-                          <StatusBadge status={b.status} />
-                        </div>
-                      </div>
-                    ))}
+            {/* Service Grid */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 px-2">
+                 <LayoutDashboard className="w-5 h-5 text-zinc-500" />
+                 <h2 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em]">Access Services</h2>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Link href="/vehicles" className="group relative aspect-square bg-zinc-900/50 border border-white/5 rounded-[40px] flex flex-col items-center justify-center gap-4 transition-all hover:bg-zinc-800 hover:border-lime-500/30 hover:scale-[1.02]">
+                   <div className="p-4 rounded-2xl bg-white/5 group-hover:bg-lime-400/10 transition-colors">
+                      <Car className="w-8 h-8 text-zinc-400 group-hover:text-lime-400 transition-colors" />
+                   </div>
+                   <span className="text-[10px] font-black text-zinc-500 group-hover:text-white uppercase tracking-[0.2em] transition-colors">Vehicles</span>
+                </Link>
+
+                <Link href="/houses" className="group relative aspect-square bg-zinc-900/50 border border-white/5 rounded-[40px] flex flex-col items-center justify-center gap-4 transition-all hover:bg-zinc-800 hover:border-lime-500/30 hover:scale-[1.02]">
+                   <div className="p-4 rounded-2xl bg-white/5 group-hover:bg-lime-400/10 transition-colors">
+                      <Home className="w-8 h-8 text-zinc-400 group-hover:text-lime-400 transition-colors" />
+                   </div>
+                   <span className="text-[10px] font-black text-zinc-500 group-hover:text-white uppercase tracking-[0.2em] transition-colors">Rooms</span>
+                </Link>
+
+                <Link href="/marketplace" className="group relative aspect-square bg-zinc-900/50 border border-white/5 rounded-[40px] flex flex-col items-center justify-center gap-4 transition-all hover:bg-zinc-800 hover:border-lime-500/30 hover:scale-[1.02]">
+                   <div className="p-4 rounded-2xl bg-white/5 group-hover:bg-lime-400/10 transition-colors">
+                      <ShoppingBag className="w-8 h-8 text-zinc-400 group-hover:text-lime-400 transition-colors" />
+                   </div>
+                   <span className="text-[10px] font-black text-zinc-500 group-hover:text-white uppercase tracking-[0.2em] transition-colors">Used Items</span>
+                </Link>
+
+                <Link href="/laundry" className="group relative aspect-square bg-zinc-900/50 border border-white/5 rounded-[40px] flex flex-col items-center justify-center gap-4 transition-all hover:bg-zinc-800 hover:border-lime-500/30 hover:scale-[1.02]">
+                   <div className="p-4 rounded-2xl bg-white/5 group-hover:bg-lime-400/10 transition-colors">
+                      <WashingMachine className="w-8 h-8 text-zinc-400 group-hover:text-lime-400 transition-colors" />
+                   </div>
+                   <span className="text-[10px] font-black text-zinc-500 group-hover:text-white uppercase tracking-[0.2em] transition-colors">Laundry</span>
+                </Link>
+              </div>
+            </div>
+
+            {/* Secondary Nav */}
+            <div className="space-y-3">
+               <button onClick={() => setSection('bookings')} className="w-full h-16 bg-zinc-900/30 border border-white/5 rounded-3xl flex items-center justify-between px-6 hover:bg-zinc-800/50 transition-colors">
+                  <div className="flex items-center gap-4">
+                     <div className="p-2 rounded-xl bg-white/5 text-zinc-500">
+                        <ListOrdered className="w-4 h-4" />
+                     </div>
+                     <span className="font-bold text-zinc-300">My Activity & Orders</span>
                   </div>
-                </CardContent>
-              </Card>
-            )}
-          </>
+                  <Clock className="w-4 h-4 text-zinc-600" />
+               </button>
+               
+               <Link href="/profile" className="w-full h-16 bg-zinc-900/30 border border-white/5 rounded-3xl flex items-center justify-between px-6 hover:bg-zinc-800/50 transition-colors">
+                  <div className="flex items-center gap-4">
+                     <div className="p-2 rounded-xl bg-white/5 text-zinc-500">
+                        <LayoutDashboard className="w-4 h-4" />
+                     </div>
+                     <span className="font-bold text-zinc-300">Detailed Dashboard</span>
+                  </div>
+                  <Clock className="w-4 h-4 text-zinc-600" />
+               </Link>
+            </div>
+          </div>
         )}
 
         {section === 'bookings' && (

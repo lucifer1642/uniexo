@@ -60,6 +60,7 @@ export const authenticate = async (
     if (!profile) {
       logger.warn(`[AUTH] No profile found for user ${user.id} (${user.email}). Auto-creating...`);
       const meta = user.user_metadata || {};
+      
       const newProfile: any = {
          id: user.id,
          email: user.email,
@@ -73,21 +74,48 @@ export const authenticate = async (
          kyc_status: 'none',
       };
       
+      // Filter out nulls for a cleaner upsert
+      Object.keys(newProfile).forEach(key => (newProfile[key] === null) && delete newProfile[key]);
+      
       const { data: createdProfile, error: createError } = await supabase
          .from('profiles')
-         .upsert(newProfile, { onConflict: 'id' })
+         .upsert(newProfile, { onConflict: 'id', ignoreDuplicates: false })
          .select('id, email, role, name, is_deleted, is_suspended')
          .single();
          
       if (createError || !createdProfile) {
-         logger.error(`[AUTH] Auto-create profile failed for ${user.id}`, { 
+         logger.error(`[AUTH] Profile upsert failed for ${user.id}`, { 
            error: createError?.message || createError,
            details: createError?.details,
-           hint: createError?.hint
+           code: createError?.code
          });
-         throw new UnauthorizedError('Database error: Unable to create your profile. Please contact support.');
+         throw new UnauthorizedError(`Database synchronization failed: ${createError?.message || 'Check your registration details'}`);
       }
       profile = createdProfile;
+
+      // SYNC SPECIALIZED OPTIONS (Laundy, PG, Bike etc.)
+      if (profile.role === 'vendor') {
+         const serviceType = (meta.service_type || meta.serviceType || '').toLowerCase();
+         
+         if (serviceType === 'laundry') {
+            logger.info(`[AUTH] Syncing Laundry options for vendor ${user.id}`);
+            await supabase.from('laundry_services').upsert({
+               vendor_id: user.id,
+               name: meta.business_name || meta.businessName || `${profile.name}'s Laundry`,
+               onsite_pickup: meta.onsite_pickup ?? meta.onsitePickup ?? false,
+               on_store_service: meta.on_store_service ?? meta.onStoreService ?? true,
+               onsite_pickup_charge: Number(meta.onsite_pickup_charge ?? meta.onsitePickupCharge ?? 0),
+               provider_name: meta.name || profile.name,
+               provider_phone: meta.phone || null,
+            }, { onConflict: 'vendor_id' });
+         } else if (serviceType === 'house' || serviceType === 'house_rental') {
+            logger.info(`[AUTH] Initializing PG options for vendor ${user.id}`);
+            // Logic for house/PG sync if needed
+         } else if (serviceType === 'vehicle' || serviceType === 'bike_rental') {
+            logger.info(`[AUTH] Initializing Vehicle options for vendor ${user.id}`);
+            // Logic for bike sync if needed
+         }
+      }
     }
 
     if (profile.is_deleted) {
