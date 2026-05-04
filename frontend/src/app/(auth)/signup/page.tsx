@@ -106,6 +106,16 @@ export default function SignupPage() {
           const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
             email: formData.email,
             password: formData.password,
+            options: {
+              data: {
+                name: formData.name,
+                phone: formData.phone,
+                role,
+                universityId: role === 'user' ? formData.universityId : null,
+                businessName: role === 'vendor' ? formData.businessName : null,
+                serviceType: role === 'vendor' ? formData.serviceType : null,
+              },
+            },
           });
           if (signUpError) throw signUpError;
           authUser = signUpData.user;
@@ -118,6 +128,16 @@ export default function SignupPage() {
         const { data, error: signUpError } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
+          options: {
+            data: {
+              name: formData.name,
+              phone: formData.phone,
+              role,
+              universityId: role === 'user' ? formData.universityId : null,
+              businessName: role === 'vendor' ? formData.businessName : null,
+              serviceType: role === 'vendor' ? formData.serviceType : null,
+            },
+          },
         });
         if (signUpError) throw signUpError;
         authUser = data.user;
