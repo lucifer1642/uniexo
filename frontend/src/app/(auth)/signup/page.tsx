@@ -149,14 +149,14 @@ export default function SignupPage() {
 
       // 3. Sync to Firebase (Optional Redundancy)
       try {
-        await set(ref(db, 'profiles/' + authUser.id), profileData);
+        await set(ref(db, 'profiles/' + authUser.id), registerData.profile);
       } catch (f) { console.error("RTDB sync skipped"); }
 
       // 4. Log in and redirect
       if (session) {
         useAuthStore.getState().login({
           id: authUser.id,
-          name: profileData.name,
+          name: registerData.profile.name,
           email: authUser.email!,
           role: role
         }, session.access_token);
