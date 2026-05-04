@@ -1,7 +1,7 @@
 import { HouseRepository } from './house.repository';
 import { VendorRepository } from '../vendor/vendor.repository';
 import { CloudinaryService } from '../../services/cloudinary.service';
-import { IHouse } from '../../database/models';
+import { IHouse } from '../../types/models';
 import { ListingApprovalStatus, VendorApprovalStatus } from '../../types/enums';
 import { NotFoundError, ForbiddenError, BadRequestError } from '../../utils/errors';
 import { PaginationQuery } from '../../types';
@@ -88,7 +88,11 @@ export class HouseService {
     };
 
     if (query.city) filter.city = query.city;
+    if (query.state) filter.state = query.state;
     if (query.propertyType) filter.propertyType = query.propertyType;
+    if (query.bedrooms) filter.bedrooms = query.bedrooms;
+    if (query.minPrice) filter.minPrice = query.minPrice;
+    if (query.maxPrice) filter.maxPrice = query.maxPrice;
 
     return this.houseRepo.findAll(filter, {
       page: query.page,

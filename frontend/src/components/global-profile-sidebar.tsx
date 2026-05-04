@@ -159,7 +159,17 @@ export function GlobalProfileSidebar() {
               <h4 className="text-[10px] md:text-xs font-black uppercase tracking-widest">Access Services</h4>
           </div>
           <div className="grid grid-cols-4 md:grid-cols-2 gap-2 md:gap-3">
-              {SERVICE_LINKS.map((service) => (
+              {SERVICE_LINKS.filter(service => {
+                if (user.role === 'admin') return true;
+                if (user.role === 'vendor') {
+                  if (!user.serviceType) return true; // Show all if not yet set
+                  if (user.serviceType === 'CAR') return service.label === 'Vehicles';
+                  if (user.serviceType === 'ROOM') return service.label === 'Rooms';
+                  if (user.serviceType === 'LAUNDRY') return service.label === 'Laundry';
+                  return false; // Don't show others for specific vendors
+                }
+                return true; // regular users see all
+              }).map((service) => (
                 <Link 
                   key={service.href} 
                   href={service.href} 

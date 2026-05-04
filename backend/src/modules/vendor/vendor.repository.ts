@@ -44,20 +44,24 @@ export class VendorRepository {
   }
 
   async updateProfile(userId: string, data: any): Promise<any | null> {
+    const patch: Record<string, any> = {};
+    if (data.businessName !== undefined) patch.business_name = data.businessName;
+    if (data.businessAddress !== undefined) patch.business_address = data.businessAddress;
+    if (data.businessPhone !== undefined) patch.business_phone = data.businessPhone;
+    if (data.description !== undefined) patch.description = data.description;
+    if (data.serviceType !== undefined) patch.service_type = data.serviceType;
+
     const { data: profile, error } = await supabase
       .from('vendor_profiles')
-      .update({
-        business_name: data.businessName,
-        business_address: data.businessAddress,
-        business_phone: data.businessPhone,
-        description: data.description,
-        service_type: data.serviceType,
-      })
+      .update(patch)
       .eq('user_id', userId)
       .select()
       .single();
 
-    if (error) return null;
+    if (error) {
+      console.error('Vendor profile update error:', error);
+      return null;
+    }
     return profile;
   }
 

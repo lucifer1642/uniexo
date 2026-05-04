@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Facebook, Instagram, ChevronDown } from 'lucide-react';
 import { LegalModal } from './legal-modal';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,6 +14,11 @@ export function Footer() {
     content: null
   });
   const [openSection, setOpenSection] = useState<string | null>(null);
+  const pathname = usePathname();
+
+  const isHiddenRoute = pathname.startsWith('/login') || pathname.startsWith('/signup') || pathname.startsWith('/admin') || pathname.startsWith('/dashboard');
+
+  if (isHiddenRoute) return null;
 
   const openLegal = (title: string, content: React.ReactNode) => {
     setLegalModal({ open: true, title, content });

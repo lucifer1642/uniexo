@@ -79,6 +79,8 @@ export class UserRepository {
       idCardPhotoUrl: string;
       universityId: string;
       location: string;
+      businessName: string;
+      serviceType: string;
     }>,
   ): Promise<ProfileDTO | null> {
     const patch: Record<string, unknown> = {};
@@ -88,6 +90,8 @@ export class UserRepository {
     if (data.idCardPhotoUrl !== undefined) patch.id_card_photo_url = data.idCardPhotoUrl;
     if (data.universityId !== undefined) patch.university_id = data.universityId;
     if (data.location !== undefined) patch.location = data.location;
+    if (data.businessName !== undefined) patch.business_name = data.businessName;
+    if (data.serviceType !== undefined) patch.service_type = data.serviceType;
 
     const { data: row, error } = await supabase
       .from('profiles')

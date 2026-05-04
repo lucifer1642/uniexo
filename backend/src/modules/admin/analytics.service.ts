@@ -8,30 +8,41 @@ export class AnalyticsService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // Fetch counts with error resilience
+    const fetchCount = async (query: any) => {
+      const { count, error } = await query;
+      if (error) {
+        console.error('KPI fetch error:', error);
+        return 0;
+      }
+      return count || 0;
+    };
+
     const [
-      { count: totalUsers },
-      { count: totalVendors },
-      { data: allCapturedPayments },
-      { count: totalBookings },
-      { count: activeBookings }
+      totalUsers,
+      totalVendors,
+      paymentsRes,
+      totalBookings,
+      activeBookings
     ] = await Promise.all([
-      supabase.from('profiles').select('*', { count: 'exact', head: true }),
-      supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'vendor'),
+      fetchCount(supabase.from('profiles').select('*', { count: 'exact', head: true }).or('is_deleted.is.null,is_deleted.eq.false')),
+      fetchCount(supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'vendor').or('is_deleted.is.null,is_deleted.eq.false')),
       supabase.from('payments').select('amount, created_at').eq('status', 'captured'),
-      supabase.from('bookings').select('*', { count: 'exact', head: true }),
-      supabase.from('bookings').select('*', { count: 'exact', head: true }).eq('status', 'confirmed')
+      fetchCount(supabase.from('bookings').select('*', { count: 'exact', head: true })),
+      fetchCount(supabase.from('bookings').select('*', { count: 'exact', head: true }).eq('status', 'confirmed'))
     ]);
 
-    const totalRevenue = allCapturedPayments?.reduce((sum, p) => sum + (Number(p.amount) || 0), 0) || 0;
-    const todayRevenue = allCapturedPayments?.filter(p => new Date(p.created_at) >= today)
-      .reduce((sum, p) => sum + (Number(p.amount) || 0), 0) || 0;
+    const allCapturedPayments = paymentsRes.data || [];
+    const totalRevenue = allCapturedPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    const todayRevenue = allCapturedPayments.filter(p => new Date(p.created_at) >= today)
+      .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
     return {
       counts: {
-        users: totalUsers || 0,
-        vendors: totalVendors || 0,
-        bookings: totalBookings || 0,
-        activeBookings: activeBookings || 0
+        users: totalUsers,
+        vendors: totalVendors,
+        bookings: totalBookings,
+        activeBookings: activeBookings
       },
       revenue: {
         total: totalRevenue,
@@ -64,10 +75,11 @@ export class AnalyticsService {
       trendsMap[date].count += 1;
     });
 
-    return Object.entries(trendsMap).map(([_id, data]) => ({
-      _id,
+    return Object.entries(trendsMap).map(([id, data]) => ({
+      id,
+      _id: id,
       ...data
-    })).sort((a, b) => a._id.localeCompare(b._id));
+    })).sort((a, b) => a.id.localeCompare(b.id));
   }
 
   /**
@@ -112,8 +124,9 @@ export class AnalyticsService {
       moduleMap[type].bookings += 1;
     });
 
-    return Object.entries(moduleMap).map(([_id, data]) => ({
-      _id,
+    return Object.entries(moduleMap).map(([id, data]) => ({
+      id,
+      _id: id,
       ...data
     })).sort((a, b) => b.revenue - a.revenue);
   }

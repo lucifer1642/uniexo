@@ -29,15 +29,6 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(5000),
 
-  MONGODB_URI: z.string().optional(),
-
-  REDIS_URL: z.string().optional(),
-  REDIS_HOST: z.string().optional().default('127.0.0.1'),
-  REDIS_PORT: z.coerce.number().optional().default(6379),
-  REDIS_PASSWORD: z.string().optional().default(''),
-  REDIS_TLS: z.string().optional().default('false'),
-  USE_MOCK_REDIS: z.string().optional().default('false'),
-
   JWT_ACCESS_SECRET: z.string().min(16, 'JWT_ACCESS_SECRET must be at least 16 chars'),
   JWT_REFRESH_SECRET: z.string().min(16, 'JWT_REFRESH_SECRET must be at least 16 chars'),
   JWT_ACCESS_EXPIRY: z.string().default('1d'),
@@ -77,9 +68,8 @@ if (!parsed.success) {
   console.log("🔍 RAW ENV CHECK:");
   console.log({
     NODE_ENV: process.env.NODE_ENV,
-    MONGODB_URI: process.env.MONGODB_URI ? "DEFINED" : "MISSING",
+    SUPABASE_URL: process.env.SUPABASE_URL ? "DEFINED" : "MISSING",
     PORT: process.env.PORT,
-    REDIS_URL: process.env.REDIS_URL ? "DEFINED" : "MISSING",
   });
   console.error("💡 TIP: Make sure these variables are set in the Render Dashboard.");
   

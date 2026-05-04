@@ -12,7 +12,6 @@ import routes from './routes';
 import cron from 'node-cron';
 import { ReminderJob } from './jobs/reminder.job';
 import { createProxyMiddleware } from 'http-proxy-middleware';
-import { connectDatabase } from './database/connection';
 import { NexusSocketService } from './services/nexus.socket';
 
 const app = express();
@@ -123,8 +122,6 @@ app.use(errorHandler);
 // ─── Start Server ────────────────────────────────────────
 const startServer = async () => {
   try {
-    await connectDatabase();
-    
     // Initialize Nexus Real-time Engine
     NexusSocketService.getInstance().init(server);
 

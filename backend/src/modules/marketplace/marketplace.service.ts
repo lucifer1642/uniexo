@@ -4,7 +4,7 @@ import { EmailService } from '../../services/email.service';
 import { NotFoundError, ForbiddenError, BadRequestError } from '../../utils/errors';
 import { PaginationQuery } from '../../types';
 
-import { IMarketplaceItem } from '../../database/models';
+import { IMarketplaceItem } from '../../types/models';
 
 export class MarketplaceService {
   private marketplaceRepo: MarketplaceRepository;
@@ -81,13 +81,10 @@ export class MarketplaceService {
 
     if (query.category) filter.category = query.category;
     if (query.condition) filter.condition = query.condition;
-    if (query.location) filter.location = { $regex: query.location, $options: 'i' };
-    if (query.search) filter.$text = { $search: query.search };
-    if (query.minPrice || query.maxPrice) {
-      filter.price = {};
-      if (query.minPrice) filter.price.$gte = query.minPrice;
-      if (query.maxPrice) filter.price.$lte = query.maxPrice;
-    }
+    if (query.location) filter.location = query.location;
+    if (query.search) filter.search = query.search;
+    if (query.minPrice) filter.minPrice = query.minPrice;
+    if (query.maxPrice) filter.maxPrice = query.maxPrice;
 
     return this.marketplaceRepo.findAllItems(filter, {
       page: query.page,

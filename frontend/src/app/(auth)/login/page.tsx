@@ -20,6 +20,10 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [otpStep, setOtpStep] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [tempUserData, setTempUserData] = useState<any>(null);
+  const [tempToken, setTempToken] = useState<string>('');
 
   const [formData, setFormData] = useState({
     email: '',
@@ -65,11 +69,36 @@ export default function LoginPage() {
         name: meta.name || data.user.email?.split('@')[0] || 'User',
         email: data.user.email!,
         phone: meta.phone,
-        role: (meta.role as UserRole) || 'user',
+      const role = (meta.role as UserRole) || 'user';
+      const userData = {
+        id: data.user.id,
+        name: meta.name || data.user.email?.split('@')[0] || 'User',
+        email: data.user.email!,
+        phone: meta.phone,
+        role,
         avatar: meta.avatar_url,
       };
 
-      // 3. Store in zustand and redirect
+      if (role === 'admin' || role === 'vendor') {
+        setTempUserData(userData);
+        setTempToken(data.session.access_token);
+        
+        // Call backend to send OTP
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/auth/send-login-otp`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: formData.email })
+        });
+        
+        if (!response.ok) throw new Error('Failed to send OTP');
+        
+        setOtpStep(true);
+        toast.success('OTP sent to your email');
+        setLoading(false);
+        return;
+      }
+
+      // 3. Store in zustand and redirect for normal users
       login(userData, data.session.access_token);
       toast.success('Successfully logged in', { icon: '✨' });
       
@@ -84,6 +113,40 @@ export default function LoginPage() {
       } else {
         setError(err.message || 'Login failed. Please try again.');
       }
+    } finally {
+      if (!otpStep) setLoading(false);
+    }
+  };
+
+  const handleOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/auth/verify-login-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email, otp })
+      });
+      
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.message || 'Invalid OTP');
+      }
+      
+      login(tempUserData, tempToken);
+      toast.success('Successfully logged in', { icon: '✨' });
+      
+      const urlParams = new URLSearchParams(window.location.search);
+      const redirectUrl = urlParams.get('redirect');
+      if (redirectUrl) {
+         router.push(redirectUrl);
+      } else {
+         router.push(tempUserData.role === 'admin' ? '/admin' : '/dashboard');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Verification failed');
     } finally {
       setLoading(false);
     }
@@ -141,79 +204,144 @@ export default function LoginPage() {
           </div>
 
           <div className="backdrop-blur-2xl bg-white/[0.03] border border-white/10 shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] rounded-2xl md:rounded-3xl p-6 sm:p-8 md:p-10">
-            <form className="space-y-6" onSubmit={handleSubmit}>
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-zinc-300 text-sm font-medium ml-1">Email address</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  className="h-13 md:h-12 bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 focus:border-lime-500/50 focus:ring-lime-500/20 transition-all rounded-xl text-base"
-                  placeholder="john@uniexo.in"
-                  value={formData.email}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between ml-1">
-                  <Label htmlFor="password" title="Password" className="text-zinc-300 text-sm font-medium">Password</Label>
-                  <Link href="/forgot-password" title="Forgot Password" className="text-xs font-bold text-lime-500 hover:text-lime-400 transition-colors">
-                    Reset?
-                  </Link>
-                </div>
-                <div className="relative">
+            {!otpStep ? (
+              <form className="space-y-6" onSubmit={handleSubmit}>
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-zinc-300 text-sm font-medium ml-1">Email address</Label>
                   <Input
-                    id="password"
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
                     required
-                    className="h-13 md:h-12 pr-12 bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 focus:border-lime-500/50 focus:ring-lime-500/20 transition-all rounded-xl text-base"
-                    placeholder="••••••••"
-                    value={formData.password}
+                    className="h-13 md:h-12 bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 focus:border-lime-500/50 focus:ring-lime-500/20 transition-all rounded-xl text-base"
+                    placeholder="john@uniexo.in"
+                    value={formData.email}
                     onChange={handleChange}
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-lime-400 transition-colors"
-                    tabIndex={-1}
-                  >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
                 </div>
-              </div>
 
-              {error && (
-                <motion.div 
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="text-red-400 text-xs font-medium bg-red-500/10 border border-red-500/20 py-2.5 px-3 rounded-lg animate-shake"
-                >
-                  {error}
-                </motion.div>
-              )}
-
-              <Button 
-                type="submit" 
-                className="w-full h-13 md:h-12 text-black bg-lime-400 hover:bg-lime-300 font-bold rounded-xl transition-all shadow-[0_0_20px_-5px_rgba(255,0,127,0.5)] active:scale-[0.97] tap-feedback text-base" 
-                disabled={loading}
-              >
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <motion.span 
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      className="w-4 h-4 border-2 border-black border-t-transparent rounded-full"
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between ml-1">
+                    <Label htmlFor="password" title="Password" className="text-zinc-300 text-sm font-medium">Password</Label>
+                    <Link href="/forgot-password" title="Forgot Password" className="text-xs font-bold text-lime-500 hover:text-lime-400 transition-colors">
+                      Reset?
+                    </Link>
+                  </div>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="current-password"
+                      required
+                      className="h-13 md:h-12 pr-12 bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 focus:border-lime-500/50 focus:ring-lime-500/20 transition-all rounded-xl text-base"
+                      placeholder="••••••••"
+                      value={formData.password}
+                      onChange={handleChange}
                     />
-                    Verifying...
-                  </span>
-                ) : 'Sign In'}
-              </Button>
-            </form>
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-lime-400 transition-colors"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+
+                {error && (
+                  <motion.div 
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="text-red-400 text-xs font-medium bg-red-500/10 border border-red-500/20 py-2.5 px-3 rounded-lg animate-shake"
+                  >
+                    {error}
+                  </motion.div>
+                )}
+
+                <Button 
+                  type="submit" 
+                  className="w-full h-13 md:h-12 text-black bg-lime-400 hover:bg-lime-300 font-bold rounded-xl transition-all shadow-[0_0_20px_-5px_rgba(255,0,127,0.5)] active:scale-[0.97] tap-feedback text-base" 
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <motion.span 
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="w-4 h-4 border-2 border-black border-t-transparent rounded-full"
+                      />
+                      Verifying...
+                    </span>
+                  ) : 'Sign In'}
+                </Button>
+              </form>
+            ) : (
+              <form className="space-y-6" onSubmit={handleOtpSubmit}>
+                <div className="space-y-2">
+                  <Label htmlFor="otp" className="text-zinc-300 text-sm font-medium ml-1">Enter Verification Code</Label>
+                  <p className="text-xs text-zinc-400 ml-1 mb-2">We've sent a code to {formData.email}</p>
+                  <Input
+                    id="otp"
+                    name="otp"
+                    type="text"
+                    required
+                    maxLength={6}
+                    className="h-13 md:h-12 bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 focus:border-lime-500/50 focus:ring-lime-500/20 transition-all rounded-xl text-center text-xl tracking-widest font-mono"
+                    placeholder="------"
+                    value={otp}
+                    onChange={(e) => {
+                      setOtp(e.target.value.replace(/[^0-9]/g, ''));
+                      setError('');
+                    }}
+                  />
+                </div>
+
+                {error && (
+                  <motion.div 
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="text-red-400 text-xs font-medium bg-red-500/10 border border-red-500/20 py-2.5 px-3 rounded-lg animate-shake"
+                  >
+                    {error}
+                  </motion.div>
+                )}
+
+                <div className="flex gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setOtpStep(false);
+                      setOtp('');
+                      setTempUserData(null);
+                      setTempToken('');
+                    }}
+                    className="h-13 md:h-12 flex-1 rounded-xl bg-white/[0.05] border-white/10 text-zinc-300 hover:text-white hover:bg-white/[0.1]"
+                    disabled={loading}
+                  >
+                    Back
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    className="w-full flex-[2] h-13 md:h-12 text-black bg-lime-400 hover:bg-lime-300 font-bold rounded-xl transition-all shadow-[0_0_20px_-5px_rgba(255,0,127,0.5)] active:scale-[0.97] tap-feedback text-base" 
+                    disabled={loading || otp.length < 6}
+                  >
+                    {loading ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <motion.span 
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                          className="w-4 h-4 border-2 border-black border-t-transparent rounded-full"
+                        />
+                      </span>
+                    ) : 'Verify & Login'}
+                  </Button>
+                </div>
+              </form>
+            )}
             
             <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-center gap-6">
                <button 

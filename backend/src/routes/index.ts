@@ -10,6 +10,7 @@ import paymentRoutes from '../modules/payment/payment.routes';
 import walletRoutes from '../modules/wallet/wallet.routes';
 import adminRoutes from '../modules/admin/admin.routes';
 import reviewRoutes from '../modules/review/review.routes';
+import authRoutes from '../modules/auth/auth.routes';
 
 const router = Router();
 router.use('/users', userRoutes);
@@ -23,5 +24,6 @@ router.use('/payments', paymentRoutes);
 router.use('/wallet', walletRoutes);
 router.use('/admin', adminRoutes);
 router.use('/reviews', reviewRoutes);
+router.use('/auth', authRoutes);
 
 export default router;

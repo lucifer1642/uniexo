@@ -48,7 +48,7 @@ export function KycUploadDialog({ isOpen, onClose }: KycUploadDialogProps) {
       formData.append('idProof', idProof);
       formData.append('bankDetails', JSON.stringify(bankDetails));
 
-      await api.post('/users/kyc-submit', formData, {
+      await api.post('/users/kyc', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 

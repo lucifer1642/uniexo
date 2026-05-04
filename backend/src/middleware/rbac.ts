@@ -31,7 +31,7 @@ export const isApprovedVendor = async (req: Request, _res: Response, next: NextF
   try {
     const authReq = req as AuthRequest;
     if (!authReq.user) {
-      return next(new UnauthorizedError('Authentication required'));
+      return next(new UnauthorizedError('Authentication required. Please log in again.'));
     }
 
     if (authReq.user.role === UserRole.ADMIN) {
@@ -39,20 +39,28 @@ export const isApprovedVendor = async (req: Request, _res: Response, next: NextF
     }
 
     if (authReq.user.role !== UserRole.VENDOR) {
-      return next(new ForbiddenError('Insufficient permissions'));
+      return next(new ForbiddenError('Only vendors are authorized to perform this action.'));
     }
 
     const vendor = await vendorRepo.findByUserId(authReq.user.userId);
     if (!vendor) {
-      return next(new ForbiddenError('Vendor profile not found'));
+      return next(new ForbiddenError('Vendor profile not found. Please complete your vendor registration.'));
     }
 
     if (vendor.approval_status !== VendorApprovalStatus.APPROVED) {
-      return next(new ForbiddenError(`Vendor account is ${vendor.approval_status}. Approval required.`));
+      const statusMsg = vendor.approval_status === VendorApprovalStatus.PENDING 
+        ? 'is currently pending approval. Please wait for the administrator to review your documents.' 
+        : `has been ${vendor.approval_status}. Please contact support for assistance.`;
+      return next(new ForbiddenError(`Your vendor account ${statusMsg}`));
     }
 
-    if (!vendor.business_address?.trim() || !vendor.business_phone?.trim()) {
-      return next(new ForbiddenError('Vendor profile is incomplete. Please update your business address and phone in your profile.'));
+    const missingFields = [];
+    if (!vendor.business_address?.trim()) missingFields.push('business address');
+    if (!vendor.business_phone?.trim()) missingFields.push('business phone');
+    if (!vendor.service_type) missingFields.push('primary service type');
+
+    if (missingFields.length > 0) {
+      return next(new ForbiddenError(`Incomplete profile: please provide your ${missingFields.join(' and ')} in your profile settings before listing services.`));
     }
 
     next();

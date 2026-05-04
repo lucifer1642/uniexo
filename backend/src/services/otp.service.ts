@@ -1,6 +1,5 @@
 /**
- * OTPService — now backed by Supabase `otp_logs` table.
- * MongoDB OTPLog model is no longer used.
+ * OTPService — backed by Supabase `otp_logs` table.
  */
 import { supabase } from '../config/supabase';
 import { logger } from '../config/logger';

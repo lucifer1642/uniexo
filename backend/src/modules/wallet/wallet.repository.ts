@@ -1,6 +1,28 @@
 import { supabase } from '../../config/supabase';
 import { PaginationQuery } from '../../types';
 
+function mapWalletRow(row: Record<string, unknown>) {
+  return {
+    ...row,
+    _id: row.id,
+    id: row.id,
+    userId: row.user_id,
+  };
+}
+
+function mapTransactionRow(row: Record<string, unknown>) {
+  return {
+    ...row,
+    _id: row.id,
+    id: row.id,
+    walletId: row.wallet_id,
+    userId: row.user_id,
+    referenceId: row.reference_id,
+    serviceType: row.service_type,
+    balanceAfter: row.balance_after,
+  };
+}
+
 export class WalletRepository {
   async findByUserId(userId: string): Promise<any | null> {
     const { data, error } = await supabase
@@ -10,7 +32,7 @@ export class WalletRepository {
       .single();
     
     if (error) return null;
-    return data;
+    return mapWalletRow(data as Record<string, unknown>);
   }
 
   async getOrCreate(userId: string): Promise<any> {
@@ -20,7 +42,7 @@ export class WalletRepository {
       .eq('user_id', userId)
       .single();
 
-    if (!findError && existing) return existing;
+    if (!findError && existing) return mapWalletRow(existing as Record<string, unknown>);
 
     const { data: wallet, error: insertError } = await supabase
       .from('wallets')
@@ -29,7 +51,7 @@ export class WalletRepository {
       .single();
 
     if (insertError) throw insertError;
-    return wallet;
+    return mapWalletRow(wallet as Record<string, unknown>);
   }
 
   async getTransactions(walletId: string, query: PaginationQuery) {
@@ -46,7 +68,7 @@ export class WalletRepository {
     if (error) throw error;
 
     return {
-      data,
+      data: (data || []).map(r => mapTransactionRow(r as Record<string, unknown>)),
       pagination: {
         total: count || 0,
         page,

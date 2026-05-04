@@ -1,6 +1,40 @@
 import { supabase } from '../../config/supabase';
 import { PaginationQuery } from '../../types';
 
+function mapLaundryServiceRow(row: Record<string, unknown>) {
+  return {
+    ...row,
+    _id: row.id,
+    id: row.id,
+    vendorId: row.vendor_id,
+    providerName: row.provider_name,
+    providerPhone: row.provider_phone,
+    providerAddress: row.provider_address,
+    onsitePickup: row.onsite_pickup,
+    onStoreService: row.on_store_service,
+    onsitePickupCharge: row.onsite_pickup_charge,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapOrderRow(row: Record<string, unknown>) {
+  return {
+    ...row,
+    _id: row.id,
+    id: row.id,
+    userId: row.user_id,
+    laundryServiceId: row.laundry_service_id,
+    totalAmount: row.total_amount,
+    commissionAmount: row.commission_amount,
+    paymentStatus: row.payment_status,
+    pickupAddress: row.pickup_address,
+    pickupPhone: row.pickup_phone,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 export class LaundryRepository {
   async createService(data: any): Promise<any> {
     const { data: service, error } = await supabase
@@ -23,7 +57,7 @@ export class LaundryRepository {
       .single();
 
     if (error) throw error;
-    return service;
+    return mapLaundryServiceRow(service as Record<string, unknown>);
   }
 
   async findServiceById(id: string): Promise<any | null> {
@@ -35,19 +69,32 @@ export class LaundryRepository {
       .single();
     
     if (error) return null;
-    return data;
+    return mapLaundryServiceRow(data as Record<string, unknown>);
   }
 
   async updateService(id: string, data: any): Promise<any | null> {
+    const patch: Record<string, unknown> = {};
+    if (data.name !== undefined) patch.name = data.name;
+    if (data.description !== undefined) patch.description = data.description;
+    if (data.providerName !== undefined) patch.provider_name = data.providerName;
+    if (data.providerPhone !== undefined) patch.provider_phone = data.providerPhone;
+    if (data.providerAddress !== undefined) patch.provider_address = data.providerAddress;
+    if (data.services !== undefined) patch.services = data.services;
+    if (data.images !== undefined) patch.images = data.images;
+    if (data.rank !== undefined) patch.rank = data.rank;
+    if (data.onsitePickup !== undefined) patch.onsite_pickup = data.onsitePickup;
+    if (data.onStoreService !== undefined) patch.on_store_service = data.onStoreService;
+    if (data.onsitePickupCharge !== undefined) patch.onsite_pickup_charge = data.onsitePickupCharge;
+
     const { data: service, error } = await supabase
       .from('laundry_services')
-      .update(data)
+      .update(patch)
       .eq('id', id)
       .select()
       .single();
 
     if (error) return null;
-    return service;
+    return mapLaundryServiceRow(service as Record<string, unknown>);
   }
 
   async deleteService(id: string): Promise<void> {
@@ -76,7 +123,7 @@ export class LaundryRepository {
     if (error) throw error;
 
     return {
-      data,
+      data: (data || []).map(r => mapLaundryServiceRow(r as Record<string, unknown>)),
       pagination: {
         total: count || 0,
         page,
@@ -105,7 +152,7 @@ export class LaundryRepository {
       .single();
 
     if (error) throw error;
-    return order;
+    return mapOrderRow(order as Record<string, unknown>);
   }
 
   async findOrderById(id: string): Promise<any | null> {
@@ -116,7 +163,7 @@ export class LaundryRepository {
       .single();
     
     if (error) return null;
-    return data;
+    return mapOrderRow(data as Record<string, unknown>);
   }
 
   async updateOrderStatus(id: string, status: string): Promise<any | null> {
@@ -128,7 +175,7 @@ export class LaundryRepository {
       .single();
 
     if (error) return null;
-    return data;
+    return mapOrderRow(data as Record<string, unknown>);
   }
 
   async patchOrder(id: string, patch: Record<string, unknown>): Promise<any | null> {
@@ -140,7 +187,7 @@ export class LaundryRepository {
       .single();
 
     if (error) return null;
-    return data;
+    return mapOrderRow(data as Record<string, unknown>);
   }
 
   async findServicesByVendorUserId(vendorUserId: string): Promise<any | null> {
@@ -153,7 +200,8 @@ export class LaundryRepository {
       .maybeSingle();
 
     if (error) return null;
-    return data;
+    if (!data) return null;
+    return mapLaundryServiceRow(data as Record<string, unknown>);
   }
 
   async findOrdersForService(serviceId: string, filter?: { status?: string }) {
@@ -161,7 +209,7 @@ export class LaundryRepository {
     if (filter?.status) q = q.eq('status', filter.status);
     const { data, error } = await q;
     if (error) return [];
-    return data ?? [];
+    return (data || []).map(r => mapOrderRow(r as Record<string, unknown>));
   }
 
   async findOrdersPaged(
@@ -181,7 +229,10 @@ export class LaundryRepository {
 
     const { data, error, count } = await base.range(skip, skip + limit - 1);
     if (error) return { rows: [], total: 0 };
-    return { rows: data ?? [], total: count || 0 };
+    return { 
+      rows: (data || []).map(r => mapOrderRow(r as Record<string, unknown>)), 
+      total: count || 0 
+    };
   }
 
   async findOrdersByUser(userId: string, query: PaginationQuery) {
@@ -198,7 +249,7 @@ export class LaundryRepository {
     if (error) throw error;
 
     return {
-      data,
+      data: (data || []).map(r => mapOrderRow(r as Record<string, unknown>)),
       pagination: {
         total: count || 0,
         page,
@@ -225,7 +276,7 @@ export class LaundryRepository {
     if (error) throw error;
 
     return {
-      data,
+      data: (data || []).map(r => mapOrderRow(r as Record<string, unknown>)),
       pagination: {
         total: count || 0,
         page,

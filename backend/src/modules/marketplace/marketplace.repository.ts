@@ -1,69 +1,90 @@
 import { supabase } from '../../config/supabase';
 import { PaginationQuery } from '../../types';
 
+function mapMarketplaceItemRow(row: Record<string, unknown>) {
+  return {
+    ...row,
+    _id: row.id,
+    id: row.id,
+    vendorId: row.vendor_id,
+    isSold: row.is_sold,
+    approvalStatus: row.approval_status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapOfferRow(row: Record<string, unknown>) {
+  return {
+    ...row,
+    _id: row.id,
+    id: row.id,
+    itemId: row.item_id,
+    buyerId: row.buyer_id,
+    sellerId: row.seller_id,
+    offeredPrice: row.offered_price || (row as any).amount,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 export class MarketplaceRepository {
-  async createItem(data: any): Promise<any> {
+  async create(data: any): Promise<any> {
     const { data: item, error } = await supabase
       .from('marketplace_items')
       .insert({
-        seller_id: data.sellerId,
+        vendor_id: data.vendorId,
         title: data.title,
         description: data.description,
-        category: data.category,
         price: data.price,
+        category: data.category,
         condition: data.condition,
         images: data.images,
-        dynamic_fields: data.dynamicFields,
         location: data.location,
+        is_sold: false,
       })
       .select()
       .single();
 
     if (error) throw error;
-    return item;
+    return mapMarketplaceItemRow(item as Record<string, unknown>);
   }
 
-  async findItemById(id: string): Promise<any | null> {
+  async findById(id: string): Promise<any | null> {
     const { data, error } = await supabase
       .from('marketplace_items')
-      .select('*, profiles:seller_id(name, email, phone)')
+      .select('*, profiles:vendor_id(name, email, phone)')
       .eq('id', id)
+      .eq('is_deleted', false)
       .single();
     
     if (error) return null;
-    return data;
+    return mapMarketplaceItemRow(data as Record<string, unknown>);
   }
 
-  async updateItem(id: string, data: any): Promise<any | null> {
-    const { data: item, error } = await supabase
-      .from('marketplace_items')
-      .update(data)
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) return null;
-    return item;
-  }
-
-  async softDeleteItem(id: string): Promise<void> {
-    await supabase
-      .from('marketplace_items')
-      .update({ is_deleted: true })
-      .eq('id', id);
-  }
-
-  async findAllItems(filter: Record<string, any>, query: PaginationQuery) {
+  async findAll(filter: Record<string, any>, query: PaginationQuery) {
     const page = query.page || 1;
     const limit = query.limit || 10;
     const skip = (page - 1) * limit;
     let baseQuery = supabase
       .from('marketplace_items')
-      .select('*, profiles:seller_id(name, email)', { count: 'exact' })
+      .select('*, profiles:vendor_id(name, email, phone)', { count: 'exact' })
       .eq('is_deleted', false);
 
     if (filter.category) baseQuery = baseQuery.eq('category', filter.category);
     if (filter.isSold !== undefined) baseQuery = baseQuery.eq('is_sold', filter.isSold);
+    if (filter.condition) baseQuery = baseQuery.eq('condition', filter.condition);
+    
+    if (filter.location) {
+      baseQuery = baseQuery.ilike('location', `%${filter.location}%`);
+    }
+    
+    if (filter.search) {
+      baseQuery = baseQuery.or(`title.ilike.%${filter.search}%,description.ilike.%${filter.search}%`);
+    }
+
+    if (filter.minPrice) baseQuery = baseQuery.gte('price', filter.minPrice);
+    if (filter.maxPrice) baseQuery = baseQuery.lte('price', filter.maxPrice);
 
     const { data, error, count } = await baseQuery
       .range(skip, skip + limit - 1)
@@ -72,7 +93,7 @@ export class MarketplaceRepository {
     if (error) throw error;
 
     return {
-      data,
+      data: (data || []).map(r => mapMarketplaceItemRow(r as Record<string, unknown>)),
       pagination: {
         total: count || 0,
         page,
@@ -82,14 +103,14 @@ export class MarketplaceRepository {
     };
   }
 
-  async findItemsByUser(userId: string, query: PaginationQuery) {
+  async findByVendor(vendorId: string, query: PaginationQuery) {
     const page = query.page || 1;
     const limit = query.limit || 10;
     const skip = (page - 1) * limit;
     const { data, error, count } = await supabase
       .from('marketplace_items')
       .select('*', { count: 'exact' })
-      .eq('seller_id', userId)
+      .eq('vendor_id', vendorId)
       .eq('is_deleted', false)
       .range(skip, skip + limit - 1)
       .order('created_at', { ascending: false });
@@ -97,7 +118,7 @@ export class MarketplaceRepository {
     if (error) throw error;
 
     return {
-      data,
+      data: (data || []).map(r => mapMarketplaceItemRow(r as Record<string, unknown>)),
       pagination: {
         total: count || 0,
         page,
@@ -105,6 +126,22 @@ export class MarketplaceRepository {
         pages: Math.ceil((count || 0) / limit),
       },
     };
+  }
+
+  async update(id: string, data: any): Promise<any | null> {
+    const { data: item, error } = await supabase
+      .from('marketplace_items')
+      .update(data)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) return null;
+    return mapMarketplaceItemRow(item as Record<string, unknown>);
+  }
+
+  async softDelete(id: string): Promise<void> {
+    await supabase.from('marketplace_items').update({ is_deleted: true }).eq('id', id);
   }
 
   async addImages(id: string, images: string[]): Promise<any | null> {
@@ -119,108 +156,7 @@ export class MarketplaceRepository {
       .single();
 
     if (error) return null;
-    return data;
-  }
-
-  async reportItem(id: string, reason: string): Promise<any | null> {
-    // Supabase RPC or fetch-update
-    const { data: current } = await supabase.from('marketplace_items').select('report_count, report_reasons').eq('id', id).single();
-    const newReasons = [...(current?.report_reasons || []), reason];
-    
-    const { data, error } = await supabase
-      .from('marketplace_items')
-      .update({
-        report_count: (current?.report_count || 0) + 1,
-        report_reasons: newReasons,
-        is_reported: true,
-      })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) return null;
-    return data;
-  }
-
-  // Messages
-  async createMessage(data: any): Promise<any> {
-    const { data: msg, error } = await supabase
-      .from('messages')
-      .insert({
-        sender_id: data.senderId,
-        receiver_id: data.receiverId,
-        content: data.content,
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-    return msg;
-  }
-
-  async getConversation(userId1: string, userId2: string, itemId?: string, query?: PaginationQuery) {
-    const page = query?.page || 1;
-    const limit = query?.limit || 50;
-    const skip = (page - 1) * limit;
-
-    let baseQuery = supabase
-      .from('messages')
-      .select('*', { count: 'exact' })
-      .or(`and(sender_id.eq.${userId1},receiver_id.eq.${userId2}),and(sender_id.eq.${userId2},receiver_id.eq.${userId1})`);
-
-    const { data, error, count } = await baseQuery
-      .range(skip, skip + limit - 1)
-      .order('created_at', { ascending: true });
-
-    if (error) throw error;
-
-    return {
-      data,
-      pagination: {
-        total: count || 0,
-        page,
-        limit,
-        pages: Math.ceil((count || 0) / limit),
-      },
-    };
-  }
-
-  async getUserConversations(userId: string) {
-    const { data, error } = await supabase
-      .from('messages')
-      .select('*')
-      .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-
-    // Group by other user in JS for now (Supabase RPC would be better)
-    const conversations = new Map();
-    data.forEach(msg => {
-      const otherId = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
-      if (!conversations.has(otherId)) {
-        conversations.set(otherId, {
-          lastMessage: msg,
-          unreadCount: (msg.receiver_id === userId && !msg.is_read) ? 1 : 0
-        });
-      } else if (msg.receiver_id === userId && !msg.is_read) {
-        conversations.get(otherId).unreadCount++;
-      }
-    });
-
-    return Array.from(conversations.entries()).map(([id, info]) => ({
-      _id: id,
-      ...info
-    }));
-  }
-
-  async markMessagesAsRead(senderId: string, receiverId: string): Promise<void> {
-    await supabase
-      .from('messages')
-      .update({ is_read: true })
-      .eq('sender_id', senderId)
-      .eq('receiver_id', receiverId)
-      .eq('is_read', false);
+    return mapMarketplaceItemRow(data as Record<string, unknown>);
   }
 
   // Offers
@@ -228,110 +164,52 @@ export class MarketplaceRepository {
     const { data: offer, error } = await supabase
       .from('offers')
       .insert({
-        sender_id: data.senderId,
-        receiver_id: data.receiverId,
         item_id: data.itemId,
-        amount: data.amount,
+        buyer_id: data.buyerId,
+        seller_id: data.sellerId,
+        offered_price: data.offeredPrice || data.amount,
+        message: data.message,
+        status: 'pending',
       })
       .select()
       .single();
 
     if (error) throw error;
-    return offer;
+    return mapOfferRow(offer as Record<string, unknown>);
   }
 
-  async findOfferById(id: string): Promise<any | null> {
+  async findOffersByItem(itemId: string): Promise<any[]> {
     const { data, error } = await supabase
       .from('offers')
-      .select('*, marketplace_items(*), profiles:sender_id(name, email, phone), receiver:receiver_id(name, email, phone)')
-      .eq('id', id)
-      .single();
-    
-    if (error) return null;
-    return data;
+      .select('*, profiles:buyer_id(name, email, phone)')
+      .eq('item_id', itemId)
+      .order('created_at', { ascending: false });
+
+    if (error) return [];
+    return (data || []).map(r => mapOfferRow(r as Record<string, unknown>));
   }
 
-  async updateOfferStatus(id: string, status: string): Promise<any | null> {
+  async updateOfferStatus(offerId: string, status: string): Promise<any | null> {
     const { data, error } = await supabase
       .from('offers')
       .update({ status })
-      .eq('id', id)
+      .eq('id', offerId)
       .select()
       .single();
 
     if (error) return null;
-    return data;
+    return mapOfferRow(data as Record<string, unknown>);
   }
 
-  async findOffersByBuyer(buyerId: string, query: PaginationQuery) {
-    const page = query.page || 1;
-    const limit = query.limit || 10;
-    const skip = (page - 1) * limit;
-    const { data, error, count } = await supabase
+  async findOffersByUser(userId: string, role: 'buyer' | 'seller') {
+    const column = role === 'buyer' ? 'buyer_id' : 'seller_id';
+    const { data, error } = await supabase
       .from('offers')
-      .select('*, marketplace_items(title, price, images, category), profiles:receiver_id(name, email, phone)', { count: 'exact' })
-      .eq('sender_id', buyerId)
-      .range(skip, skip + limit - 1)
+      .select('*, itemId:item_id(*), buyerId:buyer_id(name, email), sellerId:seller_id(name, email)')
+      .eq(column, userId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-
-    return {
-      data,
-      pagination: {
-        total: count || 0,
-        page,
-        limit,
-        pages: Math.ceil((count || 0) / limit),
-      },
-    };
-  }
-
-  async findOffersBySeller(sellerId: string, query: PaginationQuery) {
-    const page = query.page || 1;
-    const limit = query.limit || 10;
-    const skip = (page - 1) * limit;
-    const { data, error, count } = await supabase
-      .from('offers')
-      .select('*, marketplace_items(title, price, images, category), profiles:sender_id(name, email, phone)', { count: 'exact' })
-      .eq('receiver_id', sellerId)
-      .range(skip, skip + limit - 1)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-
-    return {
-      data,
-      pagination: {
-        total: count || 0,
-        page,
-        limit,
-        pages: Math.ceil((count || 0) / limit),
-      },
-    };
-  }
-
-  async findOffersForItem(itemId: string, query: PaginationQuery) {
-    const page = query.page || 1;
-    const limit = query.limit || 10;
-    const skip = (page - 1) * limit;
-    const { data, error, count } = await supabase
-      .from('offers')
-      .select('*, profiles:sender_id(name, email, phone)', { count: 'exact' })
-      .eq('item_id', itemId)
-      .range(skip, skip + limit - 1)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-
-    return {
-      data,
-      pagination: {
-        total: count || 0,
-        page,
-        limit,
-        pages: Math.ceil((count || 0) / limit),
-      },
-    };
+    return (data || []).map(r => mapOfferRow(r as Record<string, unknown>));
   }
 }

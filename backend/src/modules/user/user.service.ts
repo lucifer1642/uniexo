@@ -33,7 +33,14 @@ export class UserService {
     };
   }
 
-  async updateProfile(userId: string, data: { name?: string; phone?: string; universityId?: string; location?: string }) {
+  async updateProfile(userId: string, data: { 
+    name?: string; 
+    phone?: string; 
+    universityId?: string; 
+    location?: string;
+    businessName?: string;
+    serviceType?: string;
+  }) {
     const user = await this.userRepo.updateProfile(userId, data);
     if (!user) throw new NotFoundError('User not found');
     return {
@@ -48,6 +55,8 @@ export class UserService {
       idCardPhotoUrl: user.idCardPhotoUrl,
       kycStatus: user.kycStatus,
       bankDetails: user.bankDetails,
+      businessName: user.businessName,
+      serviceType: user.serviceType,
     };
   }
 

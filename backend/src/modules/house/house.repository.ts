@@ -2,6 +2,32 @@ import { supabase } from '../../config/supabase';
 import { PaginationQuery } from '../../types';
 import { ListingApprovalStatus } from '../../types/enums';
 
+function mapHouseRow(row: Record<string, unknown>) {
+  return {
+    ...row,
+    _id: row.id,
+    id: row.id,
+    vendorId: row.vendor_id,
+    propertyType: row.property_type,
+    pricePerMonth: row.price_per_month,
+    pricePerDay: row.price_per_day,
+    pricePerHour: row.price_per_hour,
+    singleSharingPrice: row.single_sharing_price,
+    doubleSharingPrice: row.double_sharing_price,
+    tripleSharingPrice: row.triple_sharing_price,
+    securityDeposit: row.security_deposit,
+    lockinPeriod: row.lockin_period,
+    noticePeriod: row.notice_period,
+    electricityIncluded: row.electricity_included,
+    electricityCharge: row.electricity_charge,
+    locationUrl: row.location_url,
+    approvalStatus: row.approval_status,
+    isAvailable: row.is_available,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 export class HouseRepository {
   async create(data: any): Promise<any> {
     const { data: house, error } = await supabase
@@ -40,7 +66,7 @@ export class HouseRepository {
       .single();
 
     if (error) throw error;
-    return house;
+    return mapHouseRow(house as Record<string, unknown>);
   }
 
   async findById(id: string): Promise<any | null> {
@@ -51,7 +77,7 @@ export class HouseRepository {
       .single();
     
     if (error) return null;
-    return data;
+    return mapHouseRow(data as Record<string, unknown>);
   }
 
   async update(id: string, data: any): Promise<any | null> {
@@ -92,7 +118,7 @@ export class HouseRepository {
       .single();
 
     if (error) return null;
-    return house;
+    return mapHouseRow(house as Record<string, unknown>);
   }
 
   async softDelete(id: string): Promise<void> {
@@ -111,7 +137,7 @@ export class HouseRepository {
       .single();
 
     if (error) return null;
-    return data;
+    return mapHouseRow(data as Record<string, unknown>);
   }
 
   async findAll(filter: Record<string, any>, query: PaginationQuery) {
@@ -138,6 +164,19 @@ export class HouseRepository {
       baseQuery = baseQuery.ilike('city', `%${filter.city}%`);
     }
 
+    if (filter.state && typeof filter.state === 'string') {
+      baseQuery = baseQuery.ilike('state', `%${filter.state}%`);
+    }
+    if (filter.bedrooms) {
+      baseQuery = baseQuery.eq('bedrooms', filter.bedrooms);
+    }
+    if (filter.minPrice) {
+      baseQuery = baseQuery.gte('price_per_month', filter.minPrice);
+    }
+    if (filter.maxPrice) {
+      baseQuery = baseQuery.lte('price_per_month', filter.maxPrice);
+    }
+
     const { data, error, count } = await baseQuery
       .range(skip, skip + limit - 1)
       .order('rank', { ascending: false })
@@ -146,7 +185,7 @@ export class HouseRepository {
     if (error) throw error;
 
     return {
-      data,
+      data: (data || []).map(r => mapHouseRow(r as Record<string, unknown>)),
       pagination: {
         total: count || 0,
         page,
@@ -171,7 +210,7 @@ export class HouseRepository {
     if (error) throw error;
 
     return {
-      data,
+      data: (data || []).map(r => mapHouseRow(r as Record<string, unknown>)),
       pagination: {
         total: count || 0,
         page,
@@ -190,7 +229,7 @@ export class HouseRepository {
       .single();
 
     if (error) return null;
-    return data;
+    return mapHouseRow(data as Record<string, unknown>);
   }
 
   async addImages(id: string, images: string[]): Promise<any | null> {
@@ -205,6 +244,6 @@ export class HouseRepository {
       .single();
 
     if (error) return null;
-    return data;
+    return mapHouseRow(data as Record<string, unknown>);
   }
 }

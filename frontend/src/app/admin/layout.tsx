@@ -22,12 +22,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <ProtectedRoute allowedRoles={['admin']}>
-      <div className="min-h-[calc(100vh-4rem)] bg-zinc-50 dark:bg-zinc-950/50">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex flex-col md:flex-row gap-8">
-            {/* Sidebar */}
-            <aside className="w-full md:w-64 shrink-0">
-              <div className="bg-card border rounded-xl p-4 space-y-1 sticky top-24">
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950/50 flex">
+        {/* Sidebar */}
+        <aside className="w-64 shrink-0 bg-card border-r fixed h-screen overflow-y-auto z-40">
+          <div className="p-4 space-y-1">
                 <h2 className="text-lg font-bold mb-4 px-3">Admin Panel</h2>
                 {ADMIN_NAV.map((item) => {
                   const isActive = pathname === item.href;
@@ -47,12 +45,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   );
                 })}
               </div>
-            </aside>
-
-            {/* Main Content */}
-            <main className="flex-1 min-w-0">{children}</main>
           </div>
-        </div>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 ml-64 p-8 min-w-0">{children}</main>
       </div>
     </ProtectedRoute>
   );

@@ -1,6 +1,19 @@
 import { supabase } from '../../config/supabase';
 import { PaginationQuery } from '../../types';
 
+function mapReviewRow(row: Record<string, unknown>) {
+  return {
+    ...row,
+    _id: row.id,
+    id: row.id,
+    userId: row.user_id,
+    serviceId: row.service_id,
+    serviceType: row.service_type,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 export class ReviewRepository {
   async create(data: {
     userId: string;
@@ -22,7 +35,7 @@ export class ReviewRepository {
       .single();
 
     if (error) throw error;
-    return row;
+    return mapReviewRow(row as Record<string, unknown>);
   }
 
   async findById(id: string): Promise<any | null> {
@@ -33,7 +46,7 @@ export class ReviewRepository {
       .maybeSingle();
 
     if (error) return null;
-    return data;
+    return data ? mapReviewRow(data as Record<string, unknown>) : null;
   }
 
   async findByServiceId(serviceId: string, query: PaginationQuery) {
@@ -53,7 +66,7 @@ export class ReviewRepository {
 
     const total = count ?? 0;
     return {
-      data: data ?? [],
+      data: (data || []).map(r => mapReviewRow(r as Record<string, unknown>)),
       pagination: {
         total,
         page,
@@ -75,7 +88,7 @@ export class ReviewRepository {
       .maybeSingle();
 
     if (error) return null;
-    return data;
+    return data ? mapReviewRow(data as Record<string, unknown>) : null;
   }
 
   async softDelete(id: string): Promise<void> {

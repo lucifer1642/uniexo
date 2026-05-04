@@ -57,44 +57,9 @@ export const errorHandler = (
     }
   }
 
-  // Mongoose validation error
-  if (err.name === 'ValidationError') {
-    ResponseFormatter.badRequest(res, err.message);
-    return;
-  }
-
-  // Mongoose duplicate key error
-  if (err.name === 'MongoServerError' && (err as any).code === 11000) {
-    const field = Object.keys((err as any).keyPattern || {})[0];
-    ResponseFormatter.conflict(res, `${field} already exists`);
-    return;
-  }
-
-  // Mongoose cast error
-  if (err.name === 'CastError') {
-    ResponseFormatter.badRequest(res, 'Invalid ID format');
-    return;
-  }
-
   // JSON parse error
   if (err.name === 'SyntaxError') {
     ResponseFormatter.badRequest(res, 'Invalid JSON');
-    return;
-  }
-
-  // MongoDB unavailable (common on Vercel if MONGODB_URI is wrong or IP not allowlisted)
-  if (
-    err.name === 'MongoServerSelectionError' ||
-    err.name === 'MongoNetworkError' ||
-    (typeof (err as Error).message === 'string' &&
-      (err as Error).message.includes('connect ECONNREFUSED') &&
-      (err as Error).message.includes('27017'))
-  ) {
-    ResponseFormatter.error(
-      res,
-      503,
-      'Database unavailable. Verify MONGODB_URI and Atlas network access (allow 0.0.0.0/0 or Vercel).',
-    );
     return;
   }
 

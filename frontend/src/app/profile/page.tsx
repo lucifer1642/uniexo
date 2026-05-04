@@ -33,6 +33,8 @@ export default function ProfilePage() {
     description: '',
   });
 
+  const [lastSavedPhone, setLastSavedPhone] = useState(user?.phone || '');
+
   useEffect(() => {
     if (user) {
       setFormData(prev => ({
@@ -73,6 +75,20 @@ export default function ProfilePage() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleAutoSavePhone = async () => {
+    if (formData.phone === lastSavedPhone) return;
+    
+    try {
+      await api.patch('/users/profile', { phone: formData.phone });
+      setLastSavedPhone(formData.phone);
+      updateUser({ phone: formData.phone });
+      toast.success('Phone number auto-saved');
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to auto-save phone number');
+      setFormData(prev => ({ ...prev, phone: lastSavedPhone }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -80,9 +96,16 @@ export default function ProfilePage() {
       const updateData: Record<string, string> = {};
       if (formData.name) updateData.name = formData.name;
       if (formData.phone) updateData.phone = formData.phone;
+      
       if (user?.role === 'user') {
         if (formData.universityId) updateData.universityId = formData.universityId;
         if (formData.location) updateData.location = formData.location;
+      }
+
+      // If vendor, update shared profile fields too
+      if (user?.role === 'vendor') {
+        if (formData.businessName) updateData.businessName = formData.businessName;
+        if (formData.serviceType) updateData.serviceType = formData.serviceType;
       }
       
       const response = await api.patch('/users/profile', updateData);
@@ -94,14 +117,17 @@ export default function ProfilePage() {
         if (formData.businessAddress) vendorUpdates.businessAddress = formData.businessAddress;
         if (formData.businessPhone) vendorUpdates.businessPhone = formData.businessPhone;
         if (formData.description) vendorUpdates.description = formData.description;
+        if (formData.serviceType) vendorUpdates.serviceType = formData.serviceType;
         
         if (Object.keys(vendorUpdates).length > 0) {
-          await api.patch('/vendors/profile', vendorUpdates);
+          const vRes = await api.patch('/vendors/profile', vendorUpdates);
+          // Merge vendor data back if needed, but profiles are primary for AuthStore
         }
       }
 
       if (updatedUser) {
         updateUser(updatedUser);
+        setLastSavedPhone(updatedUser.phone || '');
       }
       toast.success('Profile updated successfully');
     } catch (err: any) {
@@ -199,6 +225,8 @@ export default function ProfilePage() {
                     type="tel" 
                     value={formData.phone} 
                     onChange={handleChange} 
+                    onBlur={handleAutoSavePhone}
+                    placeholder="Auto-saves on leave"
                   />
                 </div>
 
@@ -356,18 +384,25 @@ export default function ProfilePage() {
                         />
                       </div>
                     </div>
-                    <div className="space-y-2 pb-2 mt-4">
-                      <Label htmlFor="serviceType">Primary Service</Label>
-                      <Input
-                        id="serviceType"
-                        name="serviceType"
-                        type="text"
-                        disabled
-                        placeholder="E.g. CAR"
-                        className="bg-muted"
-                        value={formData.serviceType}
-                      />
-                    </div>
+                      <div className="space-y-2 pb-2 mt-4">
+                        <Label htmlFor="serviceType">Primary Service Type</Label>
+                        <select
+                          id="serviceType"
+                          name="serviceType"
+                          disabled={!!user?.serviceType}
+                          value={formData.serviceType}
+                          onChange={(e) => setFormData(prev => ({ ...prev, serviceType: e.target.value }))}
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <option value="">Select Service Type</option>
+                          <option value="CAR">Car Rental</option>
+                          <option value="ROOM">Room / PG Rental</option>
+                          <option value="LAUNDRY">Laundry Service</option>
+                        </select>
+                        {user?.serviceType && (
+                          <p className="text-[10px] text-muted-foreground">Service type is locked once established.</p>
+                        )}
+                      </div>
                   </>
                 )}
 

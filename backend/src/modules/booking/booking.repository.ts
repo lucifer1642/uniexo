@@ -1,6 +1,30 @@
 import { supabase } from '../../config/supabase';
 import { PaginationQuery } from '../../types';
 
+function mapBookingRow(row: Record<string, unknown>) {
+  return {
+    ...row,
+    _id: row.id,
+    id: row.id,
+    userId: row.user_id,
+    vendorId: row.vendor_id,
+    serviceType: row.service_type,
+    serviceId: row.service_id,
+    bookingType: row.booking_type,
+    paymentMethod: row.payment_method,
+    startDate: row.start_date,
+    endDate: row.end_date,
+    totalAmount: row.total_amount,
+    commissionAmount: row.commission_amount,
+    commissionPercent: row.commission_percent,
+    securityDeposit: row.security_deposit,
+    monthlyRent: row.monthly_rent,
+    totalMonths: row.total_months,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 export class BookingRepository {
   async create(data: any): Promise<any> {
     const { data: booking, error } = await supabase
@@ -28,7 +52,7 @@ export class BookingRepository {
       .single();
 
     if (error) throw error;
-    return booking;
+    return mapBookingRow(booking as Record<string, unknown>);
   }
 
   async findById(id: string): Promise<any | null> {
@@ -39,7 +63,7 @@ export class BookingRepository {
       .single();
     
     if (error) return null;
-    return data;
+    return mapBookingRow(data as Record<string, unknown>);
   }
 
   async update(id: string, data: any): Promise<any | null> {
@@ -51,7 +75,7 @@ export class BookingRepository {
       .single();
 
     if (error) return null;
-    return booking;
+    return mapBookingRow(booking as Record<string, unknown>);
   }
 
   async findByUser(userId: string, query: PaginationQuery, filter: Record<string, any> = {}) {
@@ -72,7 +96,7 @@ export class BookingRepository {
     if (error) throw error;
 
     return {
-      data,
+      data: (data || []).map(r => mapBookingRow(r as Record<string, unknown>)),
       pagination: {
         total: count || 0,
         page,
@@ -100,7 +124,7 @@ export class BookingRepository {
     if (error) throw error;
 
     return {
-      data,
+      data: (data || []).map(r => mapBookingRow(r as Record<string, unknown>)),
       pagination: {
         total: count || 0,
         page,
@@ -127,7 +151,7 @@ export class BookingRepository {
     if (error) throw error;
 
     return {
-      data,
+      data: (data || []).map(r => mapBookingRow(r as Record<string, unknown>)),
       pagination: {
         total: count || 0,
         page,
@@ -157,7 +181,7 @@ export class BookingRepository {
 
     const { data, error } = await baseQuery;
     if (error) return [];
-    return data;
+    return (data || []).map(r => mapBookingRow(r as Record<string, unknown>));
   }
 
   /** When a booking is confirmed, auto-cancel other pending bookings on the same listing that overlap dates. */
@@ -188,11 +212,11 @@ export class BookingRepository {
       })
       .map((b: { id: string }) => b.id);
 
-    for (const id of overlapIds) {
+    if (overlapIds.length > 0) {
       await supabase
         .from('bookings')
         .update({ status: 'cancelled', cancellation_reason: cancellationReason })
-        .eq('id', id);
+        .in('id', overlapIds);
     }
   }
 }

@@ -27,6 +27,10 @@ export function Navbar() {
   const router = useRouter();
   const { user, isAuthenticated, logout } = useAuthStore();
 
+  const isHiddenRoute = pathname.startsWith('/login') || pathname.startsWith('/signup') || pathname.startsWith('/admin');
+
+  if (isHiddenRoute) return null;
+
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();

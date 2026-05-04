@@ -36,7 +36,7 @@ export class TokenService {
   }
 
   static async blacklistToken(_token: string, _expiresInSeconds: number): Promise<void> {
-    logger.warn('Token blacklist skipped (MongoDB removed; use refresh_token rotation via Supabase).');
+    // Note: Use refresh_token rotation via Supabase for security
   }
 
   static async isTokenBlacklisted(_token: string): Promise<boolean> {

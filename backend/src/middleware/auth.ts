@@ -17,42 +17,59 @@ export const authenticate = async (
     // 1. Extract Bearer token
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      logger.warn('Auth: missing bearer token');
-      throw new UnauthorizedError('Access token is required');
+      logger.warn('[AUTH] Missing or malformed Authorization header');
+      throw new UnauthorizedError('No authentication token provided. Please log in.');
     }
 
     const token = authHeader.split(' ')[1];
-    if (!token || token === 'undefined' || token === 'null') {
-      logger.warn('Auth: token is empty/undefined');
-      throw new UnauthorizedError('Invalid access token');
+    if (!token || token === 'undefined' || token === 'null' || token.length < 20) {
+      logger.warn(`[AUTH] Invalid token format detected: "${token?.substring(0, 10)}..."`);
+      throw new UnauthorizedError('The authentication token provided is invalid or malformed.');
     }
 
-    // 2. Verify token with Supabase Auth (uses service role key)
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    // 2. Verify token with Supabase Auth
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
-    if (error || !user) {
-      logger.warn(`Auth: Supabase rejected token — ${error?.message || 'no user'}`);
-      throw new UnauthorizedError('Invalid or expired session');
+    if (authError || !user) {
+      logger.error('[AUTH] Supabase getUser failed', { 
+        code: authError?.status, 
+        message: authError?.message,
+        tokenPrefix: token.substring(0, 15)
+      });
+      
+      const message = authError?.message?.includes('JWT') 
+        ? 'Your session has expired or is invalid. Please log in again.' 
+        : `Authentication failed: ${authError?.message || 'User session not found'}`;
+      
+      throw new UnauthorizedError(message);
     }
 
     // 3. Fetch the profile from public.profiles
+    // Note: We use maybeSingle() to prevent .single() from throwing if no row is found
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('id, email, role, name, is_deleted, is_suspended')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
 
-    if (profileError || !profile) {
-      logger.warn(`Auth: profile not found for ${user.id} — ${profileError?.message}`);
-      throw new UnauthorizedError('User profile not found. Please sign up again.');
+    if (profileError) {
+      logger.error(`[AUTH] Profile fetch error for ${user.id}`, { error: profileError.message });
+      throw new UnauthorizedError('Platform error: Unable to verify your profile at this time.');
+    }
+
+    if (!profile) {
+      logger.warn(`[AUTH] No profile found for user ${user.id} (${user.email})`);
+      throw new UnauthorizedError('Authenticated but profile not found. Please complete your registration.');
     }
 
     if (profile.is_deleted) {
-      throw new UnauthorizedError('This account has been deleted');
+      logger.warn(`[AUTH] Access denied for deleted account: ${user.id}`);
+      throw new UnauthorizedError('This account has been permanently deleted.');
     }
 
     if (profile.is_suspended) {
-      throw new UnauthorizedError('This account has been suspended');
+      logger.warn(`[AUTH] Access denied for suspended account: ${user.id}`);
+      throw new UnauthorizedError('Your account has been suspended. Please contact support.');
     }
 
     // 4. Attach to request
@@ -60,16 +77,20 @@ export const authenticate = async (
       userId: profile.id,
       role: profile.role,
       email: profile.email,
+      name: profile.name
     };
 
     next();
   } catch (error) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('DEBUG [Auth Middleware Failure]:', error);
+    }
     next(error);
   }
 };
 
 /**
- * Optional auth — same logic but silently continues if no token is provided.
+ * Optional auth — silently continues if no token or invalid token is provided.
  */
 export const optionalAuth = async (
   req: Request,
@@ -78,34 +99,31 @@ export const optionalAuth = async (
 ): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return next();
-    }
+    if (!authHeader || !authHeader.startsWith('Bearer ')) return next();
 
     const token = authHeader.split(' ')[1];
-    if (!token || token === 'undefined' || token === 'null') {
-      return next();
-    }
+    if (!token || token === 'undefined' || token === 'null' || token.length < 20) return next();
 
     const { data: { user } } = await supabase.auth.getUser(token);
-    if (user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id, email, role')
-        .eq('id', user.id)
-        .single();
+    if (!user) return next();
 
-      if (profile) {
-        (req as AuthRequest).user = {
-          userId: profile.id,
-          role: profile.role,
-          email: profile.email,
-        };
-      }
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id, email, role, name')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (profile) {
+      (req as AuthRequest).user = {
+        userId: profile.id,
+        role: profile.role,
+        email: profile.email,
+        name: profile.name
+      };
     }
     next();
-  } catch {
-    // Silent fail for optional auth
+  } catch (err) {
+    logger.debug('[AUTH] Optional auth suppressed error:', err);
     next();
   }
 };

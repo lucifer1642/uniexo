@@ -51,8 +51,16 @@ export function AddVehicleDialog() {
       setFiles(null);
     },
     onError: (err: any) => {
-      console.error(err);
-      setError(err.response?.data?.message || err.message || 'Failed to add vehicle');
+      console.error('Vehicle upload failure:', err);
+      const msg = err.response?.data?.message || err.message || 'Failed to add vehicle';
+      
+      if (err.response?.status === 401) {
+        setError('Your session has expired. Please log in again.');
+      } else if (err.response?.status === 403) {
+        setError(msg); // Usually "Incomplete profile" or "Approval required"
+      } else {
+        setError(msg);
+      }
     }
   });
 

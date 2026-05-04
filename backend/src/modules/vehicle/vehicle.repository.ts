@@ -2,6 +2,27 @@ import { supabase } from '../../config/supabase';
 import { PaginationQuery } from '../../types';
 import { ListingApprovalStatus } from '../../types/enums';
 
+function mapVehicleRow(row: Record<string, unknown>) {
+  return {
+    ...row,
+    _id: row.id,
+    id: row.id,
+    vendorId: row.vendor_id,
+    modelName: row.model_name,
+    registrationNumber: row.registration_number,
+    fuelType: row.fuel_type,
+    seatingCapacity: row.seating_capacity,
+    pricePerHour: row.price_per_hour,
+    pricePerDay: row.price_per_day,
+    approvalStatus: row.approval_status,
+    isAvailable: row.is_available,
+    currentStatus: row.current_status,
+    rejectionReason: row.rejection_reason,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 export class VehicleRepository {
   async create(data: any): Promise<any> {
     const { data: vehicle, error } = await supabase
@@ -29,7 +50,7 @@ export class VehicleRepository {
       .single();
 
     if (error) throw error;
-    return vehicle;
+    return mapVehicleRow(vehicle as Record<string, unknown>);
   }
 
   async findById(id: string): Promise<any | null> {
@@ -41,7 +62,7 @@ export class VehicleRepository {
       .single();
     
     if (error) return null;
-    return data;
+    return mapVehicleRow(data as Record<string, unknown>);
   }
 
   async update(id: string, data: any): Promise<any | null> {
@@ -65,13 +86,14 @@ export class VehicleRepository {
         availability: data.availability,
         current_status: data.currentStatus,
         rank: data.rank,
+        is_available: data.isAvailable,
       })
       .eq('id', id)
       .select()
       .single();
 
     if (error) return null;
-    return vehicle;
+    return mapVehicleRow(vehicle as Record<string, unknown>);
   }
 
   async softDelete(id: string): Promise<void> {
@@ -91,7 +113,7 @@ export class VehicleRepository {
       .single();
 
     if (error) return null;
-    return data;
+    return mapVehicleRow(data as Record<string, unknown>);
   }
 
   async findAll(filter: Record<string, unknown>, query: PaginationQuery) {
@@ -117,6 +139,18 @@ export class VehicleRepository {
     if (filter.brand) {
       baseQuery = baseQuery.ilike('brand', `%${filter.brand}%`);
     }
+    
+    if (filter.location) {
+      baseQuery = baseQuery.ilike('location', `%${filter.location}%`);
+    }
+
+    if (filter.minPrice) {
+      baseQuery = baseQuery.gte('price_per_day', filter.minPrice);
+    }
+
+    if (filter.maxPrice) {
+      baseQuery = baseQuery.lte('price_per_day', filter.maxPrice);
+    }
 
     const { data, error, count } = await baseQuery
       .range(skip, skip + limit - 1)
@@ -126,7 +160,7 @@ export class VehicleRepository {
     if (error) throw error;
 
     return {
-      data,
+      data: (data || []).map(r => mapVehicleRow(r as Record<string, unknown>)),
       pagination: {
         total: count || 0,
         page,
@@ -151,7 +185,7 @@ export class VehicleRepository {
     if (error) throw error;
 
     return {
-      data,
+      data: (data || []).map(r => mapVehicleRow(r as Record<string, unknown>)),
       pagination: {
         total: count || 0,
         page,
@@ -169,7 +203,7 @@ export class VehicleRepository {
       .eq('is_deleted', false);
 
     if (error) return [];
-    return data ?? [];
+    return (data || []).map(r => mapVehicleRow(r as Record<string, unknown>));
   }
 
   async updateAvailability(
@@ -184,7 +218,7 @@ export class VehicleRepository {
       .single();
 
     if (error) return null;
-    return data;
+    return mapVehicleRow(data as Record<string, unknown>);
   }
 
   async updateApproval(
@@ -200,11 +234,10 @@ export class VehicleRepository {
       .single();
 
     if (error) return null;
-    return data;
+    return mapVehicleRow(data as Record<string, unknown>);
   }
 
   async addImages(id: string, images: string[]): Promise<any | null> {
-    // In Supabase, we fetch current images then append
     const { data: current } = await supabase.from('vehicles').select('images').eq('id', id).single();
     const newImages = [...(current?.images || []), ...images];
     
@@ -216,6 +249,6 @@ export class VehicleRepository {
       .single();
 
     if (error) return null;
-    return data;
+    return mapVehicleRow(data as Record<string, unknown>);
   }
 }

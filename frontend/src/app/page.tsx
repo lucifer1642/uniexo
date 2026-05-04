@@ -940,13 +940,15 @@ export default function Home() {
     setIsClient(true);
     if (isAuthenticated && user?.role === 'admin') {
       router.push('/admin');
+    } else if (isAuthenticated && user?.role === 'vendor') {
+      router.push('/dashboard');
     }
   }, [isAuthenticated, user, router]);
 
   if (!isClient) return null;
 
-  // If admin, we already started redirecting in useEffect, but to avoid flash:
-  if (isAuthenticated && user?.role === 'admin') return null;
+  // If admin or vendor, we already started redirecting in useEffect, but to avoid flash:
+  if (isAuthenticated && (user?.role === 'admin' || user?.role === 'vendor')) return null;
 
   return isAuthenticated ? <Dashboard /> : <Landing />;
 }

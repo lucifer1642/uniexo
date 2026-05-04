@@ -6,7 +6,7 @@ import { ListingApprovalStatus, VendorApprovalStatus } from '../../types/enums';
 import { NotFoundError, ForbiddenError, BadRequestError } from '../../utils/errors';
 import { PaginationQuery } from '../../types';
 
-import { IVehicle } from '../../database/models';
+import { IVehicle } from '../../types/models';
 
 export class VehicleService {
   private vehicleRepo: VehicleRepository;
@@ -131,7 +131,9 @@ export class VehicleService {
 
     if (query.type) filter.type = query.type;
     if (query.brand) filter.brand = query.brand;
-    // location / date / price sliders are not implemented for Supabase public list yet (was Mongo-specific)
+    if (query.location) filter.location = query.location;
+    if (query.minPrice) filter.minPrice = query.minPrice;
+    if (query.maxPrice) filter.maxPrice = query.maxPrice;
 
     const paginationQuery: PaginationQuery = {
       page: query.page,
