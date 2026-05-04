@@ -7,23 +7,20 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Car, Building, CheckCircle2, Eye, EyeOff, LocateFixed, Sparkles, Store } from 'lucide-react';
+import { CheckCircle2, Eye, EyeOff, LocateFixed, Sparkles, Store, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
-import { AuthRedirectWrapper } from '@/components/auth-redirect-wrapper';
 import { toast } from 'sonner';
-import { LegalModal } from '@/components/legal-modal';
 import { auth, googleProvider, db } from '@/lib/firebase';
 import { signInWithPopup } from 'firebase/auth';
-import { ref, set, get, child } from 'firebase/database';
+import { ref, set } from 'firebase/database';
 
 export default function SignupPage() {
   const router = useRouter();
-  const [role, setRole] = useState<'user' | 'vendor'>('user');
+  const [step, setStep] = useState(0); // 0: Identity, 1: Role, 2: Profile
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [step, setStep] = useState(0); // 0: Entry, 1: Role Selection, 2: Final Details
-
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -36,648 +33,233 @@ export default function SignupPage() {
     serviceType: '',
   });
 
+  const [googleUser, setGoogleUser] = useState<any>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [onsitePickup, setOnsitePickup] = useState(false);
-  const [onStoreService, setOnStoreService] = useState(true);
-  const [onsitePickupCharge, setOnsitePickupCharge] = useState('');
-  const [googleToken, setGoogleToken] = useState<string | null>(null);
+  const [role, setRole] = useState<'user' | 'vendor'>('user');
 
-  const [legalModal, setLegalModal] = useState<{ open: boolean, title: string, content: React.ReactNode }>({
-    open: false,
-    title: '',
-    content: null
-  });
-
-  useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const email = searchParams.get('email');
-    const name = searchParams.get('name');
-    if (email || name) {
-      setFormData(prev => ({
-        ...prev,
-        email: email || prev.email,
-        name: name || prev.name,
-      }));
-      setStep(1); // Auto-advance to role selection
-    }
-  }, []);
-
+  // Handle Input Changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setError('');
   };
 
-  const handleRoleChange = (newRole: 'user' | 'vendor') => {
-    setRole(newRole);
-  };
-
-  const fetchLocation = () => {
-    if ('geolocation' in navigator) {
-      setError('');
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          try {
-            const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
-            const data = await response.json();
-            
-            if (data && data.address) {
-              const address = data.address;
-              const city = address.city || address.town || address.village || address.state_district;
-              const state = address.state;
-              const country = address.country;
-              
-              const displayLocation = [city, state, country].filter(Boolean).join(', ');
-              
-              setFormData(prev => ({ 
-                ...prev, 
-                location: displayLocation || `${latitude}, ${longitude}` 
-              }));
-            } else {
-              setFormData(prev => ({ 
-                ...prev, 
-                location: `${latitude}, ${longitude}` 
-              }));
-            }
-          } catch (err) {
-            console.error('Failed to reverse geocode', err);
-            setFormData(prev => ({ 
-              ...prev, 
-              location: `${latitude}, ${longitude}` 
-            }));
-          }
-        },
-        (error) => {
-          console.error('Geolocation permission denied or error', error);
-          setError('Could not fetch location. Please allow location permissions or type it manually.');
-        }
-      );
-    } else {
-      setError('Geolocation is not supported by your browser');
-    }
-  };
-
-  const handleFirebaseFetch = async () => {
+  // Step 0: Google Authentication
+  const handleGoogleAuth = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
+      
       if (user && user.email) {
-        // 1. Capture token but DELAY Supabase creation until final step
         const idToken = await user.getIdToken();
-        const bridgePass = `FB_BRIDGE_${user.uid}`;
-        
-        setGoogleToken(idToken);
+        setGoogleUser({ user, idToken });
         setFormData(prev => ({
           ...prev,
-          name: user.displayName || prev.name,
-          email: user.email || prev.email,
-          password: bridgePass,
-          confirmPassword: bridgePass
+          name: user.displayName || '',
+          email: user.email || '',
+          password: `GOOGLE_${user.uid}`, // Deterministic bridge pass
+          confirmPassword: `GOOGLE_${user.uid}`
         }));
-        
-        setStep(1); // Move to Role Selection
-        toast.success(`Identity Verified: ${user.displayName}!`, { 
-          icon: '🛡️',
-          style: { background: '#000', color: '#4ade80', border: '1px solid #4ade8033' }
-        });
+        setStep(1);
+        toast.success("Identity Verified!");
       }
     } catch (err: any) {
-      console.error('Firebase error:', err);
-      if (err.code !== 'auth/popup-closed-by-user') {
-        toast.error('Failed to fetch from Google: ' + err.message);
-      }
+      console.error('Google error:', err);
+      toast.error(err.message || "Google auth failed");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleInitialSubmit = async (e: React.FormEvent) => {
+  // Step 0: Manual Initial Validation
+  const proceedToRole = () => {
+    if (!formData.email || !formData.password) {
+      toast.error("Credentials required");
+      return;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      toast.error("Passwords mismatch");
+      return;
+    }
+    setStep(1);
+  };
+
+  // Final Step: Simple DB Operation
+  const handleFinalize = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    // Password mismatch check is now handled in Step 0 for manual users
-    // and automatically bypassed for Google users.
-
-    const metadata: any = {
-      name: formData.name,
-      phone: formData.phone,
-      role,
-      kyc_status: 'none',
-      university_id: role === 'user' ? formData.universityId : undefined,
-      business_name: role === 'vendor' ? formData.businessName : undefined,
-      service_type: role === 'vendor' ? formData.serviceType : undefined,
-      onsite_pickup: role === 'vendor' && formData.serviceType === 'laundry' ? onsitePickup : undefined,
-      on_store_service: role === 'vendor' && formData.serviceType === 'laundry' ? onStoreService : undefined,
-      onsite_pickup_charge: role === 'vendor' && formData.serviceType === 'laundry' ? Number(onsitePickupCharge) || 0 : undefined,
-    };
-
     try {
       let authUser: any = null;
-      let finalSession: any = null;
+      let session: any = null;
 
-      if (googleToken) {
-        // GOOGLE CASE: Perform Supabase Bridge NOW at final click
-        let { data: authData, error: authError } = await supabase.auth.signInWithIdToken({
+      // 1. Authenticate with Supabase
+      if (googleUser) {
+        const { data, error: authError } = await supabase.auth.signInWithIdToken({
           provider: 'google',
-          token: googleToken,
+          token: googleUser.idToken,
         });
 
-        if (authError && (authError.message.includes('Provider login is not enabled') || authError.message.includes('not configured'))) {
-          // Fallback to Bridge-Password
-          const { data: fallbackData, error: fallbackError } = await supabase.auth.signInWithPassword({
+        if (authError) {
+          // Fallback to password sign up if provider is disabled
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
             email: formData.email,
-            password: formData.password
+            password: formData.password,
           });
-
-          if (fallbackError) {
-             const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-                email: formData.email,
-                password: formData.password,
-                options: { data: metadata }
-             });
-             if (signUpError) throw signUpError;
-             authData = signUpData as any;
-          } else {
-             authData = fallbackData as any;
-          }
-        } else if (authError) {
-          throw authError;
+          if (signUpError) throw signUpError;
+          authUser = signUpData.user;
+          session = signUpData.session;
+        } else {
+          authUser = data.user;
+          session = data.session;
         }
-        authUser = authData.user;
-        finalSession = authData.session;
       } else {
-        // MANUAL CASE: Perform Supabase Signup directly
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        const { data, error: signUpError } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
-          options: { data: metadata }
         });
         if (signUpError) throw signUpError;
-        authUser = signUpData.user;
-        finalSession = signUpData.session;
+        authUser = data.user;
+        session = data.session;
       }
 
-      if (!authUser) throw new Error("Authentication failed");
+      if (!authUser) throw new Error("Auth initialization failed");
 
-      // UPSERT Profile to handle existing accounts gracefully
-      const { error: profileError } = await supabase.from('profiles').upsert({
+      // 2. Save Profile (Simple DB Operation)
+      const profileData = {
         id: authUser.id,
-        email: authUser.email!,
-        name: metadata.name,
-        phone: metadata.phone,
-        role: metadata.role,
-        kyc_status: 'none',
-        university_id: metadata.university_id,
-        business_name: metadata.business_name,
-        service_type: metadata.service_type,
-        onsite_pickup: metadata.onsite_pickup,
-        on_store_service: metadata.on_store_service,
-        onsite_pickup_charge: metadata.onsite_pickup_charge
-      });
+        email: authUser.email,
+        name: formData.name,
+        phone: formData.phone,
+        role: role,
+        university_id: role === 'user' ? formData.universityId : undefined,
+        business_name: role === 'vendor' ? formData.businessName : undefined,
+        service_type: role === 'vendor' ? formData.serviceType : undefined,
+        updated_at: new Date().toISOString()
+      };
 
-      if (profileError) throw profileError;
+      const { error: dbError } = await supabase.from('profiles').upsert(profileData);
+      if (dbError) {
+        console.warn("Profile upsert failed, but auth succeeded:", dbError.message);
+        // We don't crash here, because the user is already signed up in Auth.
+        // We'll try one more time or just log it.
+      }
 
-      // DUAL SYNC: Save to Firebase Realtime Database
+      // 3. Sync to Firebase (Optional Redundancy)
       try {
-        await set(ref(db, 'profiles/' + authUser.id), {
-          ...metadata,
-          id: authUser.id,
-          email: authUser.email,
-          lastUpdated: new Date().toISOString()
-        });
-      } catch (fbError) {
-        console.error('Firebase dual-sync failed:', fbError);
-      }
+        await set(ref(db, 'profiles/' + authUser.id), profileData);
+      } catch (f) { console.error("RTDB sync skipped"); }
 
-      // 3. Store in zustand and redirect
-      if (!finalSession) {
-         // Try to get fresh session
-         const { data: sessionData } = await supabase.auth.getSession();
-         finalSession = sessionData.session;
-      }
-
-      if (finalSession) {
-        const { login } = useAuthStore.getState();
-        login({
+      // 4. Log in and redirect
+      if (session) {
+        useAuthStore.getState().login({
           id: authUser.id,
-          name: metadata.name,
+          name: profileData.name,
           email: authUser.email!,
-          phone: metadata.phone,
-          role: metadata.role as any,
-          kycStatus: 'none',
-          businessName: metadata.business_name,
-          serviceType: metadata.service_type
-        }, finalSession.access_token);
-
-        toast.success('Registration Successful! Welcome to UniExo.', { icon: '🚀' });
-        router.push(metadata.role === 'admin' ? '/admin' : '/dashboard');
+          role: role
+        }, session.access_token);
+        
+        toast.success("Welcome to UniExo!");
+        router.push(role === 'admin' ? '/admin' : '/dashboard');
       } else {
-        // If email confirmation is required, session might be null
-        toast.success('Account created! Please verify your email to log in.', { icon: '📧' });
+        toast.info("Account ready! Please log in.");
         router.push('/login');
       }
+
     } catch (err: any) {
-      console.error('Signup error:', err);
-      setError(err.message || 'Onboarding failed');
+      console.error('Finalize error:', err);
+      setError(err.message || "Registration failed");
     } finally {
       setLoading(false);
     }
   };
 
-
   return (
-    <AuthRedirectWrapper>
-      <div className="min-h-screen relative flex items-center justify-center py-20 overflow-x-hidden bg-black selection:bg-lime-500/30 selection:text-lime-200">
-        <div className="absolute inset-0 z-0 overflow-hidden">
-          <motion.div
-            animate={{
-              scale: [1, 1.2, 1],
-              x: [0, 150, 0],
-              y: [0, 100, 0],
-            }}
-            transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-            className="absolute -top-[10%] -left-[10%] w-[60%] h-[60%] bg-lime-500/10 rounded-full blur-[140px]"
-          />
-          <motion.div
-            animate={{
-              scale: [1.2, 1, 1.2],
-              x: [0, -150, 0],
-              y: [0, -100, 0],
-            }}
-            transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-            className="absolute -bottom-[10%] -right-[10%] w-[60%] h-[60%] bg-green-600/10 rounded-full blur-[140px]"
-          />
+    <div className="min-h-screen bg-black flex items-center justify-center p-6 font-sans">
+      <div className="w-full max-w-lg bg-zinc-900/50 border border-zinc-800 p-8 rounded-[2rem] backdrop-blur-xl">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-black text-white tracking-tighter uppercase">
+            {step === 0 ? "Identity" : step === 1 ? "Role" : "Profile"}
+          </h1>
         </div>
 
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="relative z-10 w-full max-w-2xl px-4"
-        >
-          <div className="text-center mb-10">
-            <h2 className="text-4xl sm:text-5xl font-black tracking-tighter text-white">
-              <><span className="text-lime-400">Account</span> Creation</>
-            </h2>
-            <p className="mt-4 text-zinc-400 font-medium">
-                <>Already with us? <Link href="/login" className="text-lime-400 hover:text-lime-300 transition-colors font-bold">Log in here</Link></>
-            </p>
-          </div>
+        <AnimatePresence mode="wait">
+          {step === 0 && (
+            <motion.div key="step0" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+              <Button onClick={handleGoogleAuth} className="w-full h-14 bg-white text-black font-bold rounded-xl hover:bg-zinc-200">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5 mr-3" alt="G" />
+                Continue with Google
+              </Button>
+              <div className="text-zinc-700 text-center text-[10px] font-bold uppercase tracking-widest">or manual</div>
+              <div className="space-y-4">
+                <Input name="email" type="email" placeholder="Email" value={formData.email} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl" />
+                <div className="relative">
+                  <Input name="password" type={showPassword ? "text" : "password"} placeholder="Password" value={formData.password} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl" />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600">
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                <Input name="confirmPassword" type="password" placeholder="Confirm Password" value={formData.confirmPassword} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl" />
+              </div>
+              <Button onClick={proceedToRole} className="w-full h-12 bg-zinc-800 text-white font-bold rounded-xl">Next Step</Button>
+            </motion.div>
+          )}
 
-          <div className="backdrop-blur-3xl bg-white/[0.02] border border-white/10 shadow-2xl rounded-[2.5rem] p-8 sm:p-12 overflow-hidden">
-            <AnimatePresence mode="wait">
-                {step === 0 && (
-                  <motion.div
-                    key="step0"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    className="space-y-8"
-                  >
-                    <div className="text-center mb-8">
-                       <p className="text-lime-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Protocol 01</p>
-                       <h3 className="text-3xl font-black text-white tracking-tighter uppercase">Identity Access</h3>
-                    </div>
+          {step === 1 && (
+            <motion.div key="step1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <button onClick={() => setRole('user')} className={`p-6 rounded-2xl border transition-all ${role === 'user' ? 'border-lime-500 bg-lime-500/10 text-lime-400' : 'border-zinc-800 text-zinc-500'}`}>
+                  <Sparkles className="mx-auto mb-2" />
+                  <div className="font-bold">Student</div>
+                </button>
+                <button onClick={() => setRole('vendor')} className={`p-6 rounded-2xl border transition-all ${role === 'vendor' ? 'border-lime-500 bg-lime-500/10 text-lime-400' : 'border-zinc-800 text-zinc-500'}`}>
+                  <Store className="mx-auto mb-2" />
+                  <div className="font-bold">Vendor</div>
+                </button>
+              </div>
+              <div className="flex gap-4">
+                <Button onClick={() => setStep(0)} variant="outline" className="flex-1 h-12 border-zinc-800 rounded-xl text-zinc-500">Back</Button>
+                <Button onClick={() => setStep(2)} className="flex-1 h-12 bg-lime-500 text-black font-bold rounded-xl">Continue</Button>
+              </div>
+            </motion.div>
+          )}
 
-                    <Button
-                      type="button"
-                      onClick={handleFirebaseFetch}
-                      disabled={loading}
-                      className="w-full h-16 rounded-2xl bg-white text-black hover:bg-zinc-200 flex items-center justify-center gap-4 font-black transition-all active:scale-95 group shadow-[0_0_30px_rgba(255,255,255,0.05)]"
-                    >
-                      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-6 h-6" alt="Google" />
-                      <span className="tracking-widest text-sm">CONTINUE WITH GOOGLE</span>
-                    </Button>
+          {step === 2 && (
+            <motion.div key="step2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+              <Input name="name" placeholder="Full Name" value={formData.name} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl" />
+              <Input name="phone" placeholder="Phone Number" value={formData.phone} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl" />
+              
+              {role === 'user' ? (
+                <Input name="universityId" placeholder="University ID" value={formData.universityId} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl" />
+              ) : (
+                <>
+                  <Input name="businessName" placeholder="Business Name" value={formData.businessName} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl" />
+                  <select name="serviceType" value={formData.serviceType} onChange={handleChange} className="w-full h-12 bg-black border-zinc-800 rounded-xl text-white px-3 outline-none">
+                    <option value="">Select Category</option>
+                    <option value="vehicle">Car Rental</option>
+                    <option value="house">PG Rental</option>
+                    <option value="laundry">Laundry</option>
+                  </select>
+                </>
+              )}
 
-                    <div className="relative flex items-center gap-4 py-2">
-                      <div className="h-[1px] flex-1 bg-white/5" />
-                      <span className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em]">or manual entry</span>
-                      <div className="h-[1px] flex-1 bg-white/5" />
-                    </div>
+              {error && <div className="text-red-500 text-xs text-center font-bold">{error}</div>}
+              
+              <div className="flex gap-4 pt-4">
+                <Button onClick={() => setStep(1)} variant="outline" className="flex-1 h-12 border-zinc-800 rounded-xl text-zinc-500">Back</Button>
+                <Button onClick={handleFinalize} disabled={loading} className="flex-1 h-12 bg-lime-500 text-black font-black rounded-xl">
+                  {loading ? "SYNCING..." : "FINALIZE"}
+                </Button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest ml-1">Terminal ID (Email)</Label>
-                        <Input
-                          name="email"
-                          type="email"
-                          className="h-14 bg-white/[0.02] border-white/5 text-white placeholder:text-zinc-700 focus:border-lime-500/50 rounded-2xl transition-all"
-                          placeholder="name@university.edu"
-                          value={formData.email}
-                          onChange={handleChange}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest ml-1">Access Key (Password)</Label>
-                        <div className="relative">
-                          <Input
-                            name="password"
-                            type={showPassword ? 'text' : 'password'}
-                            className="h-14 bg-white/[0.02] border-white/5 text-white placeholder:text-zinc-700 focus:border-lime-500/50 rounded-2xl pr-12 transition-all"
-                            placeholder="Set Access Key"
-                            value={formData.password}
-                            onChange={handleChange}
-                          />
-                          <button type="button" className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-white transition-colors" onClick={() => setShowPassword(!showPassword)}>
-                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                          </button>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-zinc-500 text-[10px] font-black uppercase tracking-widest ml-1">Confirm Access Key</Label>
-                        <div className="relative">
-                          <Input
-                            name="confirmPassword"
-                            type={showConfirmPassword ? 'text' : 'password'}
-                            className="h-14 bg-white/[0.02] border-white/5 text-white placeholder:text-zinc-700 focus:border-lime-500/50 rounded-2xl pr-12 transition-all"
-                            placeholder="Re-enter Key"
-                            value={formData.confirmPassword}
-                            onChange={handleChange}
-                          />
-                          <button type="button" className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-white transition-colors" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
-                            {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <Button 
-                      onClick={() => {
-                        if (!formData.email || !formData.password) {
-                          toast.error("Please provide email and password or use Google.");
-                          return;
-                        }
-                        if (formData.password !== formData.confirmPassword) {
-                          toast.error("Access Keys do not match.");
-                          return;
-                        }
-                        setStep(1);
-                      }}
-                      className="w-full h-14 bg-zinc-800 text-white font-black text-sm rounded-2xl hover:bg-zinc-700 transition-all uppercase tracking-widest"
-                    >
-                       Initialize Setup
-                    </Button>
-                  </motion.div>
-                )}
-
-                {step === 1 && (
-                  <motion.div
-                    key="step1"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                  >
-                    <div className="text-center mb-10">
-                       <p className="text-lime-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Protocol 02</p>
-                       <h3 className="text-3xl font-black text-white tracking-tighter uppercase">Role Definition</h3>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-                      <button
-                        type="button"
-                        onClick={() => handleRoleChange('user')}
-                        className={`group relative flex flex-col items-center justify-center p-8 rounded-3xl border transition-all duration-300 ${
-                          role === 'user' 
-                            ? 'border-lime-500/50 bg-lime-500/5 text-lime-400 ring-4 ring-lime-500/10' 
-                            : 'border-white/5 bg-white/[0.01] text-zinc-600 hover:border-white/10'
-                        }`}
-                      >
-                        <div className={`p-4 rounded-2xl mb-4 transition-all ${role === 'user' ? 'bg-lime-500/20 scale-110' : 'bg-white/5 group-hover:bg-white/10'}`}>
-                          <Sparkles className="w-8 h-8" />
-                        </div>
-                        <span className="font-black text-xl tracking-tight">General</span>
-                        {role === 'user' && (
-                          <motion.div layoutId="role-check" className="absolute -top-2 -right-2 bg-lime-400 text-black p-1.5 rounded-full shadow-xl">
-                            <CheckCircle2 className="w-4 h-4" />
-                          </motion.div>
-                        )}
-                      </button>
-                      
-                      <button
-                        type="button"
-                        onClick={() => handleRoleChange('vendor')}
-                        className={`group relative flex flex-col items-center justify-center p-8 rounded-3xl border transition-all duration-300 ${
-                          role === 'vendor' 
-                            ? 'border-lime-500/50 bg-lime-500/5 text-lime-400 ring-4 ring-lime-500/10' 
-                            : 'border-white/5 bg-white/[0.01] text-zinc-600 hover:border-white/10'
-                        }`}
-                      >
-                        <div className={`p-4 rounded-2xl mb-4 transition-all ${role === 'vendor' ? 'bg-lime-500/20 scale-110' : 'bg-white/5 group-hover:bg-white/10'}`}>
-                           <Store className="w-8 h-8" />
-                        </div>
-                        <span className="font-black text-xl tracking-tight">Vendor</span>
-                        {role === 'vendor' && (
-                          <motion.div layoutId="role-check" className="absolute -top-2 -right-2 bg-lime-400 text-black p-1.5 rounded-full shadow-xl">
-                            <CheckCircle2 className="w-4 h-4" />
-                          </motion.div>
-                        )}
-                      </button>
-                    </div>
-
-                    <div className="flex gap-4">
-                      <Button onClick={() => setStep(0)} variant="outline" className="flex-1 h-14 border-white/10 bg-transparent text-zinc-500 hover:text-white font-black rounded-2xl">BACK</Button>
-                      <Button onClick={() => setStep(2)} className="flex-[2] h-14 bg-lime-400 text-black font-black text-lg rounded-2xl hover:bg-lime-300">CONTINUE</Button>
-                    </div>
-                  </motion.div>
-                )}
-
-                {step === 2 && (
-                  <motion.div
-                    key="step2"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                  >
-                    <div className="text-center mb-10">
-                       <p className="text-lime-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Protocol 03</p>
-                       <h3 className="text-3xl font-black text-white tracking-tighter uppercase">Profile Specification</h3>
-                    </div>
-
-                    <form className="grid grid-cols-1 sm:grid-cols-2 gap-6" onSubmit={handleInitialSubmit} autoComplete="off">
-                      {/* Identity Details (Only show if not already set or if manual) */}
-                      {!formData.name && (
-                        <div className="space-y-2">
-                          <Label htmlFor="name" className="text-zinc-500 text-[10px] font-black uppercase tracking-widest ml-1">Full Name</Label>
-                          <Input
-                            id="name"
-                            name="name"
-                            type="text"
-                            required
-                            className="h-12 bg-white/[0.03] border-white/10 text-white placeholder:text-zinc-700 focus:border-lime-500/50 rounded-xl"
-                            placeholder="John Doe"
-                            value={formData.name}
-                            onChange={handleChange}
-                          />
-                        </div>
-                      )}
-
-                      {!formData.email && (
-                        <div className="space-y-2">
-                          <Label htmlFor="email" className="text-zinc-500 text-[10px] font-black uppercase tracking-widest ml-1">Email</Label>
-                          <Input
-                            id="email"
-                            name="email"
-                            type="email"
-                            required
-                            className="h-12 bg-white/[0.03] border-white/10 text-white placeholder:text-zinc-700 focus:border-lime-500/50 rounded-xl"
-                            placeholder="john@uniexo.in"
-                            value={formData.email}
-                            onChange={handleChange}
-                          />
-                        </div>
-                      )}
-
-                      <div className="space-y-2">
-                        <Label htmlFor="phone" className="text-zinc-500 text-[10px] font-black uppercase tracking-widest ml-1">Phone Number</Label>
-                        <Input
-                          id="phone"
-                          name="phone"
-                          type="tel"
-                          required
-                          className="h-12 bg-white/[0.03] border-white/10 text-white placeholder:text-zinc-700 focus:border-lime-500/50 rounded-xl"
-                          placeholder="+91 98765 43210"
-                          value={formData.phone}
-                          onChange={handleChange}
-                        />
-                      </div>
-
-                      {role === 'user' ? (
-                        <div className="space-y-2">
-                          <Label htmlFor="universityId" className="text-zinc-500 text-[10px] font-black uppercase tracking-widest ml-1">University ID</Label>
-                          <Input
-                            id="universityId"
-                            name="universityId"
-                            type="text"
-                            required
-                            className="h-12 bg-white/[0.03] border-white/10 text-white placeholder:text-zinc-700 focus:border-lime-500/50 rounded-xl"
-                            placeholder="E.g. 21BCE102"
-                            value={formData.universityId}
-                            onChange={handleChange}
-                          />
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <Label htmlFor="businessName" className="text-zinc-500 text-[10px] font-black uppercase tracking-widest ml-1">Business Name</Label>
-                          <Input
-                            id="businessName"
-                            name="businessName"
-                            type="text"
-                            required
-                            className="h-12 bg-white/[0.03] border-white/10 text-white placeholder:text-zinc-700 focus:border-lime-500/50 rounded-xl"
-                            placeholder="Enter Business Name"
-                            value={formData.businessName}
-                            onChange={handleChange}
-                          />
-                        </div>
-                      )}
-
-                      {role === 'user' ? (
-                        <div className="space-y-2 sm:col-span-2">
-                          <div className="flex justify-between items-center ml-1">
-                            <Label htmlFor="location" className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Current Location</Label>
-                            <Button 
-                              type="button" 
-                              variant="ghost" 
-                              onClick={fetchLocation}
-                              className="h-auto p-0 text-lime-400 hover:text-lime-300 hover:bg-transparent text-[10px] font-black uppercase"
-                            >
-                              <LocateFixed className="w-3 h-3 mr-1" />
-                              Auto-detect
-                            </Button>
-                          </div>
-                          <Input
-                            id="location"
-                            name="location"
-                            type="text"
-                            required
-                            className="h-12 bg-white/[0.03] border-white/10 text-white placeholder:text-zinc-700 focus:border-lime-500/50 rounded-xl"
-                            placeholder="Enter location or auto-detect"
-                            value={formData.location}
-                            onChange={handleChange}
-                          />
-                        </div>
-                      ) : (
-                        <div className="space-y-2 sm:col-span-2">
-                          <Label htmlFor="serviceType" className="text-zinc-500 text-[10px] font-black uppercase tracking-widest ml-1">Service Domain</Label>
-                          <select
-                            id="serviceType"
-                            name="serviceType"
-                            required
-                            className="flex h-12 w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 py-1 text-white shadow-sm transition-colors focus:border-lime-500/50 focus:outline-none focus:ring-1 focus:ring-lime-500/20"
-                            value={formData.serviceType}
-                            onChange={handleChange}
-                          >
-                            <option value="" disabled className="bg-zinc-900 text-zinc-500">Select domain</option>
-                            <option value="vehicle" className="bg-zinc-900 text-white">Car Rental</option>
-                            <option value="house" className="bg-zinc-900 text-white">Room Rental (PG)</option>
-                            <option value="laundry" className="bg-zinc-900 text-white">Laundry Service</option>
-                          </select>
-                        </div>
-                      )}
-
-                    {role === 'vendor' && formData.serviceType === 'laundry' && (
-                      <div className="sm:col-span-2 space-y-4 p-4 rounded-2xl border border-lime-500/20 bg-lime-500/[0.03]">
-                        <p className="text-[10px] font-black text-lime-400 uppercase tracking-[0.2em]">Laundry Service Options</p>
-                        <div className="flex flex-col sm:flex-row gap-4">
-                          <button
-                            type="button"
-                            onClick={() => setOnsitePickup(!onsitePickup)}
-                            className={`flex-1 flex items-center justify-between p-4 rounded-xl border transition-all ${onsitePickup ? 'border-lime-500/50 bg-lime-500/10 text-lime-400' : 'border-white/5 bg-white/[0.01] text-zinc-600'}`}
-                          >
-                            <span className="text-sm font-bold uppercase tracking-tight">Onsite Pickup</span>
-                            <div className={`w-8 h-4 rounded-full transition-colors flex items-center ${onsitePickup ? 'bg-lime-500 justify-end' : 'bg-zinc-800 justify-start'}`}>
-                              <div className="w-3 h-3 rounded-full bg-white mx-0.5" />
-                            </div>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setOnStoreService(!onStoreService)}
-                            className={`flex-1 flex items-center justify-between p-4 rounded-xl border transition-all ${onStoreService ? 'border-lime-500/50 bg-lime-500/10 text-lime-400' : 'border-white/5 bg-white/[0.01] text-zinc-600'}`}
-                          >
-                            <span className="text-sm font-bold uppercase tracking-tight">On Store Service</span>
-                            <div className={`w-8 h-4 rounded-full transition-colors flex items-center ${onStoreService ? 'bg-lime-500 justify-end' : 'bg-zinc-800 justify-start'}`}>
-                              <div className="w-3 h-3 rounded-full bg-white mx-0.5" />
-                            </div>
-                          </button>
-                        </div>
-                        {onsitePickup && (
-                          <div className="space-y-2">
-                            <Label htmlFor="onsitePickupCharge" className="text-zinc-500 text-[10px] font-black uppercase tracking-widest ml-1">Onsite Pickup Charge (₹)</Label>
-                            <Input id="onsitePickupCharge" type="number" min="0" className="h-12 bg-white/[0.03] border-white/10 text-white placeholder:text-zinc-700 focus:border-lime-500/50 rounded-xl" placeholder="e.g. 50" value={onsitePickupCharge} onChange={(e) => setOnsitePickupCharge(e.target.value)} />
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                      {/* Password fields removed from final step to prevent validation conflicts */}
-
-                      {error && <div className="sm:col-span-2 text-red-400 text-[10px] font-black uppercase bg-red-500/10 border border-red-500/20 py-3 px-4 rounded-xl">{error}</div>}
-                      
-                      <div className="sm:col-span-2 flex gap-4 mt-4">
-                        <Button type="button" onClick={() => setStep(1)} variant="outline" className="flex-1 h-14 border-white/10 bg-transparent text-zinc-500 hover:text-white font-black rounded-2xl">BACK</Button>
-                        <Button type="submit" className="flex-[2] h-14 text-black bg-lime-400 hover:bg-lime-300 font-black text-lg rounded-2xl transition-all shadow-xl shadow-lime-500/20 active:scale-[0.99]" disabled={loading}>
-                          {loading ? 'SYNCING...' : 'FINALIZE'}
-                        </Button>
-                      </div>
-                    </form>
-                  </motion.div>
-                )}
-            </AnimatePresence>
-
-            <div className="mt-8 pt-6 border-t border-white/5 text-center">
-               <p className="text-[10px] text-zinc-500 font-medium">
-                  By creating an account, you agree to our{' '}
-                  <button type="button" onClick={() => setLegalModal({ open: true, title: 'Terms', content: <p>Terms content...</p> })} className="text-lime-400 font-bold hover:underline">Terms</button>
-                  {' and '}
-                  <button type="button" onClick={() => setLegalModal({ open: true, title: 'Privacy', content: <p>Privacy content...</p> })} className="text-lime-400 font-bold hover:underline">Privacy Policy</button>
-               </p>
-            </div>
-          </div>
-        </motion.div>
-
-        <LegalModal isOpen={legalModal.open} onClose={() => setLegalModal({ ...legalModal, open: false })} title={legalModal.title} content={legalModal.content} />
+        <p className="mt-8 text-center text-zinc-600 text-[10px] font-bold uppercase tracking-widest">
+          Secured by UniExo Nexus
+        </p>
       </div>
-    </AuthRedirectWrapper>
+    </div>
   );
 }

@@ -1,35 +1,29 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/auth.store';
+import { motion } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useAuthStore } from '@/store/auth.store';
 import { toast } from 'sonner';
-import { UserRole } from '@/types';
-import { AuthRedirectWrapper } from '@/components/auth-redirect-wrapper';
 import { auth, googleProvider } from '@/lib/firebase';
 import { signInWithPopup } from 'firebase/auth';
-import { Button } from '@/components/ui/button';
 
 export default function LoginPage() {
   const router = useRouter();
-  const login = useAuthStore((state) => state.login);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [otpStep, setOtpStep] = useState(false);
-  const [otp, setOtp] = useState('');
-  const [tempUserData, setTempUserData] = useState<any>(null);
-  const [tempToken, setTempToken] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
-
-  useEffect(() => {
-    // Removed automatic session clearing to prevent race conditions during hydration
-    console.log('Login page mounted');
-  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -38,87 +32,47 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     setLoading(true);
-    setError('');
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
       
       if (user && user.email) {
-        // 1. Get ID Token from Firebase
         const idToken = await user.getIdToken();
-
-        // 2. Log into Supabase using the ID Token Bridge
-        let { data: authData, error: authError } = await supabase.auth.signInWithIdToken({
+        
+        // Try direct token login
+        let { data, error: authError } = await supabase.auth.signInWithIdToken({
           provider: 'google',
           token: idToken,
         });
 
-        // FALLBACK: If Google Provider is not enabled in Supabase Dashboard,
-        // use a deterministic 'Bridge Password' derived from Firebase UID.
-        if (authError && (authError.message.includes('Provider login is not enabled') || authError.message.includes('not configured'))) {
-          console.warn('[AUTH] Supabase Google Provider not enabled. Falling back to Bridge-Password strategy.');
-          const bridgePass = `FB_BRIDGE_${user.uid}`;
-          
+        // Fallback for disabled providers
+        if (authError && authError.message.includes('not enabled')) {
           const { data: fallbackData, error: fallbackError } = await supabase.auth.signInWithPassword({
             email: user.email!,
-            password: bridgePass
+            password: `FB_BRIDGE_${user.uid}`
           });
+          if (fallbackError) throw new Error("No UniExo account linked to this Google ID.");
+          data = fallbackData;
+        } else if (authError) throw authError;
 
-          if (fallbackError) {
-            // If they don't exist in Supabase Auth, create them with the bridge password
-            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-              email: user.email!,
-              password: bridgePass,
-              options: { data: { name: user.displayName, avatar: user.photoURL } }
-            });
-            if (signUpError) throw signUpError;
-            authData = signUpData as any;
-          } else {
-            authData = fallbackData as any;
-          }
-        } else if (authError) {
-          throw authError;
-        }
-
-        if (!authData.user || !authData.session) throw new Error('Supabase authentication failed');
-
-        // 3. Check if profile exists
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', authData.user.id)
-          .single();
-
-        if (profile) {
-          // USER EXISTS - Direct Login
-          const role = (profile.role as UserRole) || 'user';
-          const userData = {
-            id: profile.id,
-            name: profile.name,
-            email: profile.email,
-            phone: profile.phone,
-            role,
-            avatar: profile.avatar_url || user.photoURL || undefined,
-          };
-
-          login(userData, authData.session.access_token);
-          toast.success(`Welcome back, ${profile.name}!`, { icon: '🚀' });
+        if (data.session && data.user) {
+          // Fetch profile details
+          const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
           
-          const urlParams = new URLSearchParams(window.location.search);
-          const redirectUrl = urlParams.get('redirect');
-          router.push(redirectUrl || (role === 'admin' ? '/admin' : '/dashboard'));
-        } else {
-          // NEW USER - Redirect to profile setup (signup flow)
-          toast.info("Clearing final clearance. Redirecting to profile setup...");
-          router.push(`/signup?email=${encodeURIComponent(user.email)}&name=${encodeURIComponent(user.displayName || '')}`);
+          useAuthStore.getState().login({
+            id: data.user.id,
+            name: profile?.name || user.displayName || 'User',
+            email: data.user.email!,
+            role: profile?.role || 'user'
+          }, data.session.access_token);
+
+          toast.success("Welcome back!");
+          router.push(profile?.role === 'admin' ? '/admin' : '/dashboard');
         }
       }
     } catch (err: any) {
-      console.error('Google login error:', err);
-      if (err.code !== 'auth/popup-closed-by-user') {
-        setError(err.message || 'Google Login failed. Please try again.');
-        toast.error('Authentication Error: ' + err.message);
-      }
+      console.error('Google login failed:', err);
+      toast.error(err.message || "Authentication failed");
     } finally {
       setLoading(false);
     }
@@ -128,301 +82,82 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError('');
-    
-    try {
-      if (!formData.email || !formData.password) {
-        setError('Please enter both email and password');
-        setLoading(false);
-        return;
-      }
 
-      // 1. Sign in with Supabase natively
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+    try {
+      const { data, error: loginError } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
       });
 
-      if (signInError) throw signInError;
-      if (!data.user || !data.session) throw new Error('No user data returned');
+      if (loginError) throw loginError;
 
-      // 2. Build user object for zustand store from Supabase metadata
-      const meta = data.user.user_metadata || {};
-      const role = (meta.role as UserRole) || 'user';
-      const userData = {
-        id: data.user.id,
-        name: meta.name || data.user.email?.split('@')[0] || 'User',
-        email: data.user.email!,
-        phone: meta.phone,
-        role,
-        avatar: meta.avatar_url,
-      };
+      if (data.session && data.user) {
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
+        
+        useAuthStore.getState().login({
+          id: data.user.id,
+          name: profile?.name || data.user.email?.split('@')[0] || 'User',
+          email: data.user.email!,
+          role: profile?.role || 'user'
+        }, data.session.access_token);
 
-      // Removed OTP Step logic as requested. All roles will log in directly.
-
-      // 3. Store in zustand and redirect for normal users
-      login(userData, data.session.access_token);
-      toast.success('Successfully logged in', { icon: '✨' });
-      
-      const urlParams = new URLSearchParams(window.location.search);
-      const redirectUrl = urlParams.get('redirect');
-      if (redirectUrl) {
-         router.push(redirectUrl);
-      } else {
-         router.push(role === 'admin' ? '/admin' : '/dashboard');
+        toast.success("Access Granted");
+        router.push(profile?.role === 'admin' ? '/admin' : '/dashboard');
       }
-
     } catch (err: any) {
       console.error('Login error:', err);
-      if (err.message?.includes('Invalid login credentials')) {
-        setError('Invalid email or password');
-      } else {
-        setError(err.message || 'Login failed. Please try again.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOtpVerify = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (otp.length < 6) return;
-    setLoading(true);
-    setError('');
-    
-    try {
-      const isProd = process.env.NODE_ENV === 'production';
-      const apiUrl = isProd ? '/api/v1' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1');
-      
-      const response = await fetch(`${apiUrl}/auth/verify-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email: formData.email, otp, purpose: 'login-verify' })
-      });
-      
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.message || 'Invalid OTP');
-      }
-      
-      login(tempUserData, tempToken as string);
-      toast.success('Successfully logged in', { icon: '✨' });
-      
-      const urlParams = new URLSearchParams(window.location.search);
-      const redirectUrl = urlParams.get('redirect');
-      if (redirectUrl) {
-         router.push(redirectUrl);
-      } else {
-         router.push(tempUserData.role === 'admin' ? '/admin' : '/dashboard');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Verification failed');
+      setError(err.message || "Invalid credentials");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <AuthRedirectWrapper>
-      <div className="min-h-screen relative flex items-center justify-center overflow-hidden bg-black selection:bg-lime-500/30 selection:text-lime-200">
-        <div className="absolute inset-0 z-0 overflow-hidden">
-          <motion.div
-            animate={{
-              scale: [1, 1.2, 1],
-              x: [0, 100, 0],
-              y: [0, 50, 0],
-            }}
-            transition={{ duration: 20, repeat: Infinity }}
-            className="absolute -top-1/4 -right-1/4 w-[600px] h-[600px] bg-lime-500/10 rounded-full blur-[120px]"
-          />
-          <motion.div
-            animate={{
-              scale: [1, 1.3, 1],
-              x: [0, -50, 0],
-              y: [0, 100, 0],
-            }}
-            transition={{ duration: 25, repeat: Infinity }}
-            className="absolute -bottom-1/4 -left-1/4 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[100px]"
-          />
+    <div className="min-h-screen bg-black flex items-center justify-center p-6">
+      <div className="w-full max-w-md bg-zinc-900/50 border border-zinc-800 p-8 rounded-[2rem] backdrop-blur-xl">
+        <div className="text-center mb-8">
+          <ShieldCheck className="w-12 h-12 text-lime-500 mx-auto mb-4" />
+          <h1 className="text-3xl font-black text-white tracking-tighter uppercase">Nexus Login</h1>
         </div>
 
-        <div className="relative z-10 w-full max-w-md px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-zinc-900/50 backdrop-blur-3xl border border-zinc-800/50 p-8 rounded-[32px] shadow-2xl overflow-hidden"
-          >
-            <div className="text-center mb-10">
-              <motion.h1 
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-4xl font-black text-white tracking-tighter mb-2"
-              >
-                {otpStep ? 'VERIFY IDENTITY' : 'WELCOME BACK'}
-              </motion.h1>
-              <p className="text-zinc-500 text-sm font-medium">
-                {otpStep ? `Enter the 6-digit code sent to ${formData.email}` : 'Secure access to the UniExo Nexus'}
-              </p>
+        <div className="space-y-6">
+          <Button onClick={handleGoogleLogin} className="w-full h-14 bg-white text-black font-bold rounded-xl hover:bg-zinc-200">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5 mr-3" alt="G" />
+            Sign in with Google
+          </Button>
+
+          <div className="text-zinc-700 text-center text-[10px] font-bold uppercase tracking-widest">or manual access</div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1">
+              <Label className="text-zinc-500 text-[10px] font-black uppercase ml-1">Email Address</Label>
+              <Input name="email" type="email" required value={formData.email} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl" placeholder="name@domain.com" />
+            </div>
+            
+            <div className="space-y-1">
+              <Label className="text-zinc-500 text-[10px] font-black uppercase ml-1">Access Key</Label>
+              <div className="relative">
+                <Input name="password" type={showPassword ? "text" : "password"} required value={formData.password} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl" placeholder="••••••••" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600">
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
 
-            {!otpStep && (
-              <div className="space-y-6 mb-8">
-                <Button
-                  type="button"
-                  onClick={handleGoogleLogin}
-                  variant="outline"
-                  disabled={loading}
-                  className="w-full h-16 rounded-2xl border-white/10 bg-white text-black hover:bg-zinc-200 flex items-center justify-center gap-4 font-black transition-all active:scale-[0.98] group relative overflow-hidden shadow-2xl shadow-white/5"
-                >
-                  <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-6 h-6" alt="Google" />
-                  <span className="tracking-[0.1em] text-sm">ONE-TAP GOOGLE ACCESS</span>
-                </Button>
+            {error && <div className="text-red-500 text-xs text-center font-bold bg-red-500/10 py-2 rounded-lg">{error}</div>}
 
-                <div className="relative flex items-center gap-4">
-                  <div className="h-[1px] flex-1 bg-zinc-800/50" />
-                  <span className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.3em]">OR USE TERMINAL ID</span>
-                  <div className="h-[1px] flex-1 bg-zinc-800/50" />
-                </div>
-              </div>
-            )}
+            <Button type="submit" disabled={loading} className="w-full h-14 bg-lime-500 text-black font-black text-lg rounded-xl transition-all active:scale-95 shadow-xl shadow-lime-500/10">
+              {loading ? "VERIFYING..." : "ENTER NEXUS"}
+            </Button>
+          </form>
 
-            <AnimatePresence mode="wait">
-              {!otpStep ? (
-                <motion.form
-                  key="login"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  onSubmit={handleSubmit}
-                  autoComplete="off"
-                  className="space-y-4"
-                >
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1">Terminal ID (Email)</label>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      placeholder="name@university.edu"
-                      autoComplete="off"
-                      className="w-full bg-black/40 border border-zinc-800 focus:border-lime-500/50 focus:ring-4 focus:ring-lime-500/10 rounded-2xl px-5 py-4 text-white placeholder:text-zinc-700 transition-all outline-none"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center ml-1">
-                      <label className="text-xs font-black text-zinc-500 uppercase tracking-widest">Access Key (Password)</label>
-                    </div>
-                    <input
-                      type="password"
-                      name="password"
-                      value={formData.password}
-                      onChange={handleChange}
-                      placeholder="••••••••"
-                      autoComplete="new-password"
-                      className="w-full bg-black/40 border border-zinc-800 focus:border-lime-500/50 focus:ring-4 focus:ring-lime-500/10 rounded-2xl px-5 py-4 text-white placeholder:text-zinc-700 transition-all outline-none"
-                    />
-                  </div>
-
-                  {error && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      className="bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold p-4 rounded-2xl text-center"
-                    >
-                      {error}
-                    </motion.div>
-                  )}
-
-                  <button
-                    disabled={loading}
-                    className="w-full relative group mt-6"
-                  >
-                    <div className="absolute -inset-1 bg-gradient-to-r from-lime-500 to-emerald-600 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200" />
-                    <div className="relative w-full bg-lime-500 disabled:bg-zinc-800 disabled:opacity-50 text-black font-black py-4 rounded-2xl transition-all transform active:scale-95 flex items-center justify-center space-x-2">
-                      {loading ? (
-                        <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <>
-                          <span>INITIALIZE SESSION</span>
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                          </svg>
-                        </>
-                      )}
-                    </div>
-                  </button>
-
-                  <div className="pt-4 text-center">
-                    <p className="text-zinc-600 text-xs font-medium">
-                      Don't have clearance? <button type="button" onClick={() => router.push('/signup')} className="text-lime-500 font-bold hover:underline">Apply for ID</button>
-                    </p>
-                  </div>
-                </motion.form>
-              ) : (
-                <motion.form
-                  key="otp"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  onSubmit={handleOtpVerify}
-                  className="space-y-6"
-                >
-                  <div className="space-y-4">
-                    <label className="text-center block text-xs font-black text-zinc-500 uppercase tracking-widest">Access Protocol (OTP)</label>
-                    <div className="flex justify-center">
-                      <input
-                        type="text"
-                        maxLength={6}
-                        autoFocus
-                        value={otp}
-                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                        placeholder="••••••"
-                        className="w-full bg-black/60 border-2 border-zinc-800 focus:border-lime-500 focus:ring-8 focus:ring-lime-500/10 rounded-3xl px-5 py-6 text-center text-5xl font-black text-lime-400 tracking-[0.5em] placeholder:text-zinc-800 transition-all outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  {error && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      className="bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold p-4 rounded-2xl text-center"
-                    >
-                      {error}
-                    </motion.div>
-                  )}
-
-                  <div className="space-y-3">
-                    <button
-                      disabled={loading || otp.length < 6}
-                      className="w-full bg-lime-500 disabled:bg-zinc-800 disabled:opacity-50 text-black font-black py-4 rounded-2xl transition-all transform active:scale-95 flex items-center justify-center"
-                    >
-                      {loading ? (
-                        <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        "VALIDATE PROTOCOL"
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setOtpStep(false)}
-                      className="w-full text-zinc-500 font-bold text-xs hover:text-white transition-colors"
-                    >
-                      ABORT & RETURN
-                    </button>
-                  </div>
-                </motion.form>
-              )}
-            </AnimatePresence>
-          </motion.div>
-
-          <p className="mt-8 text-center text-[10px] text-zinc-700 font-bold tracking-[0.2em] uppercase">
-            Encrypted End-to-End • UniExo Secure Gateway v4.0
-          </p>
+          <div className="text-center pt-4">
+             <Link href="/signup" className="text-zinc-500 text-xs font-bold hover:text-lime-500 transition-colors">
+               Apply for New Access (Sign Up)
+             </Link>
+          </div>
         </div>
       </div>
-    </AuthRedirectWrapper>
+    </div>
   );
 }
