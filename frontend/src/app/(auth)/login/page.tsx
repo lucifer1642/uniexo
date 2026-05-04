@@ -10,6 +10,7 @@ import { UserRole } from '@/types';
 import { AuthRedirectWrapper } from '@/components/auth-redirect-wrapper';
 import { auth, googleProvider } from '@/lib/firebase';
 import { signInWithPopup } from 'firebase/auth';
+import { Button } from '@/components/ui/button';
 
 export default function LoginPage() {
   const router = useRouter();
