@@ -141,7 +141,7 @@ export default function LoginPage() {
         throw new Error(errData.message || 'Invalid OTP');
       }
       
-      login(tempUserData, tempToken);
+      login(tempUserData, tempToken as string);
       toast.success('Successfully logged in', { icon: '✨' });
       
       const urlParams = new URLSearchParams(window.location.search);
