@@ -52,8 +52,26 @@ export class VendorService {
   }
 
   async getProfile(userId: string) {
-    const profile = await this.vendorRepo.findByUserId(userId);
-    if (!profile) throw new NotFoundError('Vendor profile not found');
+    let profile = await this.vendorRepo.findByUserId(userId);
+    
+    // Auto-create vendor_profiles if it doesn't exist but public.profiles does
+    if (!profile) {
+      const userProfile = await this.userRepo.findById(userId);
+      if (userProfile && userProfile.role === UserRole.VENDOR) {
+         await this.vendorRepo.create({
+            userId,
+            businessName: userProfile.businessName || userProfile.name || 'My Business',
+            businessAddress: userProfile.location || '',
+            businessPhone: userProfile.phone || '',
+            serviceType: userProfile.serviceType || 'ROOM',
+            description: 'Auto-generated vendor profile'
+         });
+         profile = await this.vendorRepo.findByUserId(userId);
+      } else {
+         throw new NotFoundError('Vendor profile not found');
+      }
+    }
+    
     return profile;
   }
 

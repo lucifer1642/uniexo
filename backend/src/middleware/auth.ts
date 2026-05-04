@@ -46,7 +46,7 @@ export const authenticate = async (
 
     // 3. Fetch the profile from public.profiles
     // Note: We use maybeSingle() to prevent .single() from throwing if no row is found
-    const { data: profile, error: profileError } = await supabase
+    let { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('id, email, role, name, is_deleted, is_suspended')
       .eq('id', user.id)
@@ -58,8 +58,29 @@ export const authenticate = async (
     }
 
     if (!profile) {
-      logger.warn(`[AUTH] No profile found for user ${user.id} (${user.email})`);
-      throw new UnauthorizedError('Authenticated but profile not found. Please complete your registration.');
+      logger.warn(`[AUTH] No profile found for user ${user.id} (${user.email}). Auto-creating...`);
+      const meta = user.user_metadata || {};
+      const newProfile = {
+         id: user.id,
+         email: user.email,
+         role: meta.role || 'user',
+         name: meta.name || user.email?.split('@')[0] || 'User',
+         phone: meta.phone || null,
+         business_name: meta.business_name || meta.businessName || null,
+         service_type: meta.service_type || meta.serviceType || null,
+      };
+      
+      const { data: createdProfile, error: createError } = await supabase
+         .from('profiles')
+         .insert(newProfile)
+         .select('id, email, role, name, is_deleted, is_suspended')
+         .single();
+         
+      if (createError || !createdProfile) {
+         logger.error(`[AUTH] Auto-create profile failed for ${user.id}`, { error: createError });
+         throw new UnauthorizedError('Authenticated but profile not found. Please complete your registration.');
+      }
+      profile = createdProfile;
     }
 
     if (profile.is_deleted) {
