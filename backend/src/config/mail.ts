@@ -3,7 +3,7 @@ import { env } from './env';
 import { logger } from './logger';
 
 export const mailTransporter = nodemailer.createTransport(
-  env.SMTP_HOST === 'smtp.gmail.com' 
+  (env.SMTP_HOST === 'smtp.gmail.com' 
     ? {
         service: 'gmail',
         pool: true,
@@ -23,7 +23,7 @@ export const mailTransporter = nodemailer.createTransport(
         tls: {
           rejectUnauthorized: false,
         },
-      }
+      }) as any
 );
 
 mailTransporter.verify().then(() => {
