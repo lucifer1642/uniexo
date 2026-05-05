@@ -117,6 +117,7 @@ export interface House {
   locationUrl?: string;
   tenantsStaying?: number;
   faqs?: { question: string; answer: string }[];
+  vendor?: { name: string; email?: string; phone?: string };
   isAvailable: boolean;
   approvalStatus: ListingApprovalStatus;
   isDeleted: boolean;
@@ -176,6 +177,11 @@ export interface Booking {
   paymentMethod?: 'online';
   status: BookingStatus;
   notes?: string;
+  totalMonths?: number;
+  securityDeposit?: number;
+  monthlyRent?: number;
+  installments?: any[];
+  serviceSnapshot?: any;
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
