@@ -35,7 +35,9 @@ api.interceptors.request.use(async (config) => {
 
   // ── Smart Rerouting for Vendor Listings (Robust Backend) ──
   const robustRoutes = ['/houses', '/vehicles', '/marketplace', '/laundry'];
-  if (config.method === 'post' && config.url && robustRoutes.includes(config.url)) {
+  const isListingRoute = config.url && robustRoutes.some(r => config.url?.startsWith(r));
+  
+  if (isListingRoute && !config.url?.startsWith('/robust')) {
     console.log(`[API] Rerouting ${config.url} to Robust Backend...`);
     config.url = `/robust${config.url}`;
   }
@@ -52,8 +54,18 @@ api.interceptors.response.use(
 
     // ── 401: Handle unauthorized ───
     if (error.response?.status === 401) {
-        const url = error.config?.url || 'unknown';
-        console.warn(`[API] 401 Unauthorized for ${url}. Keeping session active as per 'NO AUTOLOGOUT' policy.`);
+        const url = error.config?.url || '';
+        const isAuthRoute = url.includes('/auth/login') || url.includes('/auth/register');
+        
+        if (!isAuthRoute) {
+            console.warn(`[API] 401 Unauthorized for ${url}. Force redirecting to login.`);
+            
+            // Clear local storage and redirect
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('auth-storage');
+                window.location.href = '/login?error=session_expired';
+            }
+        }
         return Promise.reject(error);
     }
 

@@ -17,15 +17,22 @@ router.use(authenticate);
 router.use(isApprovedVendor);
 
 // House
+router.get('/houses', RobustVendorController.getMyHouses);
+router.get('/houses/vendor/my-houses', RobustVendorController.getMyHouses);
 router.post('/houses', upload.array('images', 10), RobustVendorController.createHouse);
 
 // Vehicle
+router.get('/vehicles', RobustVendorController.getMyVehicles);
+router.get('/vehicles/vendor/my-vehicles', RobustVendorController.getMyVehicles);
 router.post('/vehicles', upload.array('images', 10), RobustVendorController.createVehicle);
 
 // Marketplace
+router.get('/marketplace', RobustVendorController.getMyMarketplaceItems);
+router.get('/marketplace/vendor/my-items', RobustVendorController.getMyMarketplaceItems);
 router.post('/marketplace', upload.array('images', 10), RobustVendorController.createMarketplaceItem);
 
 // Laundry
+router.get('/laundry', RobustVendorController.getMyLaundryService);
 router.post('/laundry', upload.array('images', 10), RobustVendorController.createLaundryService);
 
 export default router;

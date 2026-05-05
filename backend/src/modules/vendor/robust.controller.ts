@@ -69,7 +69,6 @@ export class RobustVendorController {
       const { userId } = (req as AuthRequest).user!;
       logger.info(`[ROBUST-BACKEND] Creating Laundry Service for user ${userId}`);
       
-      // Laundry might not use files yet, but we handle it just in case
       const laundry = await laundryService.createService({
         ...req.body,
         vendorId: userId
@@ -78,6 +77,57 @@ export class RobustVendorController {
       ResponseFormatter.created(res, 'Laundry service created successfully (Robust Mode)', laundry);
     } catch (error) {
       logger.error('[ROBUST-BACKEND] Laundry creation failed:', error);
+      next(error);
+    }
+  }
+
+  // ── GET Operations (My Listings) ──────────────────────────
+
+  static async getMyHouses(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { userId } = (req as AuthRequest).user!;
+      const houses = await houseService.listByVendor(userId, {
+        page: Number(req.query.page) || 1,
+        limit: Number(req.query.limit) || 10,
+      });
+      ResponseFormatter.ok(res, 'My houses fetched (Robust Mode)', houses);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getMyVehicles(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { userId } = (req as AuthRequest).user!;
+      const vehicles = await vehicleService.listByVendor(userId, {
+        page: Number(req.query.page) || 1,
+        limit: Number(req.query.limit) || 10,
+      });
+      ResponseFormatter.ok(res, 'My vehicles fetched (Robust Mode)', vehicles);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getMyMarketplaceItems(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { userId } = (req as AuthRequest).user!;
+      const items = await marketplaceService.findItemsByUser(userId, {
+        page: Number(req.query.page) || 1,
+        limit: Number(req.query.limit) || 10,
+      });
+      ResponseFormatter.ok(res, 'My marketplace items fetched (Robust Mode)', items);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getMyLaundryService(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { userId } = (req as AuthRequest).user!;
+      const service = await laundryService.findServicesByVendorUserId(userId);
+      ResponseFormatter.ok(res, 'My laundry service fetched (Robust Mode)', service);
+    } catch (error) {
       next(error);
     }
   }
