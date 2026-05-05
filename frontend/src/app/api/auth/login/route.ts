@@ -48,8 +48,9 @@ export async function POST(req: Request) {
        return NextResponse.json({ error: 'This account is suspended' }, { status: 403 });
     }
 
-    // 3. Create a simple session token
-    const token = Buffer.from(JSON.stringify({ userId: profile.id, role: profile.role, exp: Date.now() + 86400000 })).toString('base64');
+    // 3. Create a permanent session token (10 years)
+    const TEN_YEARS = 10 * 365 * 24 * 60 * 60 * 1000;
+    const token = Buffer.from(JSON.stringify({ userId: profile.id, role: profile.role, exp: Date.now() + TEN_YEARS })).toString('base64');
 
     // Remove password hash from response
     const { password_hash, ...safeProfile } = profile;

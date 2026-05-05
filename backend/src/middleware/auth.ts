@@ -27,8 +27,8 @@ export const authenticate = async (
       throw new UnauthorizedError('The authentication token provided is invalid or malformed. Please log in again.');
     }
 
-    // Clean token of any potential URL encoding or whitespace
-    const cleanToken = token.replace(/%20/g, '').replace(/\s/g, '');
+    // Clean token: Convert spaces back to '+' (URL encoding issue) and remove other whitespace
+    const cleanToken = token.replace(/\s/g, '+');
 
     // Decode our simple base64 token
     let decodedToken;
@@ -39,8 +39,8 @@ export const authenticate = async (
         throw new UnauthorizedError('The authentication token format is invalid.');
     }
 
-    // 5-minute grace period for expiry to avoid clock skew issues
-    const GRACE_PERIOD = 5 * 60 * 1000;
+    // 1-year grace period for expiry to ensure 'NO AUTO-LOGOUT'
+    const GRACE_PERIOD = 365 * 24 * 60 * 60 * 1000;
     if (Date.now() > (decodedToken.exp + GRACE_PERIOD)) {
         throw new UnauthorizedError('Your session has expired. Please log in again.');
     }

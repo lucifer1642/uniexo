@@ -51,8 +51,9 @@ export async function POST(req: Request) {
         university_id: role === 'user' ? university_id : null,
         business_name: role === 'vendor' ? business_name : null,
         service_type: role === 'vendor' ? service_type : null,
-        onsite_pickup: (role === 'vendor' && service_type === 'laundry') ? (onsite_pickup ? 1 : 0) : null,
-        store_delivery: (role === 'vendor' && service_type === 'laundry') ? (store_delivery ? 1 : 0) : null,
+        onsite_pickup: (role === 'vendor' && service_type === 'laundry') ? (onsite_pickup ? true : false) : null,
+        on_store_service: (role === 'vendor' && service_type === 'laundry') ? (store_delivery ? true : false) : null,
+        store_delivery: (role === 'vendor' && service_type === 'laundry') ? (store_delivery ? true : false) : null,
         kyc_status: 'none',
         updated_at: new Date().toISOString()
     };
@@ -71,19 +72,26 @@ export async function POST(req: Request) {
 
     // If laundry vendor, create corresponding laundry_services record
     if (role === 'vendor' && service_type === 'laundry') {
-        console.log('[API-REGISTER] Creating laundry service for:', business_name);
-        await supabaseAdmin.from('laundry_services').insert([{
-            vendor_id: id,
-            name: business_name || `${name}'s Laundry`,
-            onsite_pickup: !!onsite_pickup,
-            on_store_service: !!store_delivery,
-            onsite_pickup_charge: 0,
-            provider_name: name,
-            provider_phone: phone
-        }]);
+        try {
+            console.log('[API-REGISTER] Creating laundry service for:', business_name);
+            await supabaseAdmin.from('laundry_services').insert([{
+                vendor_id: id,
+                name: business_name || `${name}'s Laundry`,
+                onsite_pickup: !!onsite_pickup,
+                on_store_service: !!store_delivery,
+                onsite_pickup_charge: 0,
+                provider_name: name,
+                provider_phone: phone
+            }]);
+        } catch (laundryErr) {
+            console.error('[API-REGISTER] Non-fatal error creating laundry service:', laundryErr);
+            // We don't return error here to let the signup finish
+        }
     }
 
-    const token = Buffer.from(JSON.stringify({ userId: data.id, role: data.role, exp: Date.now() + 86400000 })).toString('base64');
+    // 10-year expiry for permanent sessions
+    const TEN_YEARS = 10 * 365 * 24 * 60 * 60 * 1000;
+    const token = Buffer.from(JSON.stringify({ userId: data.id, role: data.role, exp: Date.now() + TEN_YEARS })).toString('base64');
     
     // Remove hash from response
     const { password_hash: _hash, ...safeProfile } = data;
