@@ -42,9 +42,15 @@ function HouseCard({ room }: { room: any }) {
           </div>
 
           <div className="absolute bottom-4 left-4 flex gap-2">
-            <Badge className="bg-lime-400 text-black font-black text-[10px] uppercase tracking-tighter px-3 border-none">
-              VERIFIED
-            </Badge>
+            {room.isAvailable === false ? (
+              <Badge className="bg-red-500 text-white font-black text-[10px] uppercase tracking-tighter px-3 border-none">
+                BOOKED
+              </Badge>
+            ) : (
+              <Badge className="bg-lime-400 text-black font-black text-[10px] uppercase tracking-tighter px-3 border-none">
+                VERIFIED
+              </Badge>
+            )}
             {room.propertyType === 'pg' && (
               <Badge className="bg-blue-500 text-white font-black text-[10px] uppercase tracking-tighter px-3 border-none">
                 PREMIUM PG
@@ -136,6 +142,7 @@ export default function HousesPage() {
     rating: 0,
     href: `/houses/${r._id}`,
     rawLocation: r.city || r.address || '',
+    isAvailable: r.isAvailable,
   }));
 
   const filteredRooms = mappedRooms.filter(v => {

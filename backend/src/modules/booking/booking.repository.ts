@@ -20,6 +20,7 @@ function mapBookingRow(row: Record<string, unknown>) {
     securityDeposit: row.security_deposit,
     monthlyRent: row.monthly_rent,
     totalMonths: row.total_months,
+    serviceSnapshot: row.service_snapshot,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -47,6 +48,7 @@ export class BookingRepository {
         monthly_rent: data.monthlyRent,
         total_months: data.totalMonths,
         installments: data.installments,
+        service_snapshot: data.serviceSnapshot,
       })
       .select()
       .single();

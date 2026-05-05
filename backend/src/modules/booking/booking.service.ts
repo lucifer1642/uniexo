@@ -139,6 +139,7 @@ export class BookingService {
       vendorId,
       serviceType: data.serviceType,
       serviceId: data.serviceId,
+      serviceSnapshot: house, // Sync all attributes as a snapshot
       bookingType: data.bookingType || 'daily',
       paymentMethod: data.paymentMethod || 'online',
       startDate,
@@ -149,13 +150,13 @@ export class BookingService {
       notes: data.notes,
       totalMonths: data.totalMonths,
       idCardUrl: data.idCardUrl,
-      securityDeposit: house && house.property_type === 'pg' ? house.security_deposit || 0 : 0,
-      monthlyRent: house && house.property_type === 'pg' ? house.price_per_month || 0 : 0,
+      securityDeposit: house && (house.property_type === 'pg' || house.propertyType === 'pg') ? house.security_deposit || house.securityDeposit || 0 : 0,
+      monthlyRent: house && (house.property_type === 'pg' || house.propertyType === 'pg') ? house.price_per_month || house.pricePerMonth || 0 : 0,
       installments:
-        data.serviceType === ServiceType.HOUSE && house && house.property_type === 'pg' && (data.totalMonths || 1) > 1
+        data.serviceType === ServiceType.HOUSE && house && (house.property_type === 'pg' || house.propertyType === 'pg') && (data.totalMonths || 1) > 1
           ? Array.from({ length: (data.totalMonths || 1) - 1 }).map((_, i) => ({
               month: i + 2,
-              amount: house.price_per_month || 0,
+              amount: house.price_per_month || house.pricePerMonth || 0,
               status: 'pending',
               dueDate: new Date(new Date(startDate).setMonth(new Date(startDate).getMonth() + i + 1)),
             }))

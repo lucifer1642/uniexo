@@ -586,11 +586,20 @@ export default function HouseDetailPage() {
                 {user?.id !== house.vendorId?.toString() && (
                   <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 pb-6 text-center">
                     <div className="flex gap-3 mb-8">
-                      <Button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-full h-11 shadow-md shadow-blue-500/20 font-semibold" onClick={() => setIsInterestedModalOpen(true)}>
-                        I'm interested
+                      <Button 
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-full h-11 shadow-md shadow-blue-500/20 font-semibold" 
+                        onClick={() => setIsInterestedModalOpen(true)}
+                        disabled={house.isAvailable === false}
+                      >
+                        {house.isAvailable === false ? 'Already Booked' : "I'm interested"}
                       </Button>
-                      <Button variant="outline" className="flex-1 border-blue-600 text-blue-600 hover:bg-blue-50 bg-white rounded-full h-11 font-semibold" onClick={() => setIsBookingModalOpen(true)}>
-                        Reserve Bed
+                      <Button 
+                        variant="outline" 
+                        className="flex-1 border-blue-600 text-blue-600 hover:bg-blue-50 bg-white rounded-full h-11 font-semibold" 
+                        onClick={() => setIsBookingModalOpen(true)}
+                        disabled={house.isAvailable === false}
+                      >
+                        {house.isAvailable === false ? 'Unavailable' : 'Reserve Bed'}
                       </Button>
                     </div>
 
@@ -678,8 +687,12 @@ export default function HouseDetailPage() {
                       <div className="text-sm font-semibold text-green-600 bg-green-50 px-3 py-1.5 rounded-md">
                         {house.tenantsStaying || 0} Tenants staying
                       </div>
-                      <Button className="bg-blue-600 hover:bg-blue-700 text-white px-6 font-semibold shadow-md shadow-blue-500/20" onClick={() => setIsBookingModalOpen(true)}>
-                        Reserve Now
+                      <Button 
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 font-semibold shadow-md shadow-blue-500/20" 
+                        onClick={() => setIsBookingModalOpen(true)}
+                        disabled={house.isAvailable === false}
+                      >
+                        {house.isAvailable === false ? 'Booked' : 'Reserve Now'}
                       </Button>
                     </div>
                   </div>

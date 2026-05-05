@@ -150,9 +150,16 @@ export class HouseRepository {
   }
 
   async setListedAvailability(id: string, isAvailable: boolean): Promise<any | null> {
+    const updateData: any = { is_available: isAvailable };
+    if (!isAvailable) {
+      updateData.booked_at = new Date().toISOString();
+    } else {
+      updateData.booked_at = null;
+    }
+
     const { data, error } = await supabase
       .from('houses')
-      .update({ is_available: isAvailable })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();
