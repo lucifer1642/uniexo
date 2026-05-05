@@ -26,10 +26,9 @@ export default function LoginPage() {
   useEffect(() => {
     if (_hasHydrated && isAuthenticated && user) {
       const path = user.role === 'admin' ? '/admin' : user.role === 'vendor' ? '/dashboard' : '/';
-      console.log('[LOGIN] Already authenticated, forcing redirect to:', path);
-      window.location.href = path;
+      router.replace(path);
     }
-  }, [isAuthenticated, user, _hasHydrated]);
+  }, [isAuthenticated, user, _hasHydrated, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -74,15 +73,6 @@ export default function LoginPage() {
       
       useAuthStore.getState().login(userState, data.token);
 
-      // FORCE synchronous localStorage write to guarantee it's there before navigation
-      if (typeof window !== 'undefined') {
-        const fallbackState = {
-          state: { user: userState, token: data.token, isAuthenticated: true, _hasHydrated: true },
-          version: 0
-        };
-        localStorage.setItem('auth-storage', JSON.stringify(fallbackState));
-      }
-
       toast.success("Nexus Access Granted");
 
       // Determine redirect path
@@ -94,11 +84,7 @@ export default function LoginPage() {
       }
 
       console.log('[LOGIN] Redirecting to:', redirectPath);
-      
-      // Use window.location.href to guarantee navigation, since localStorage is already safely populated synchronously
-      setTimeout(() => {
-        window.location.href = redirectPath;
-      }, 50);
+      router.replace(redirectPath);
     } catch (err: any) {
       console.error('Login error:', err);
       setError(err.message || "Invalid credentials");

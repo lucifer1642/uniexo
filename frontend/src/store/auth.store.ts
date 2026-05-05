@@ -49,17 +49,21 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage',
-      onRehydrateStorage: () => (_state, error) => {
+      onRehydrateStorage: () => (state, error) => {
+        // Always mark hydration complete even if storage is empty/corrupted
+        // (prevents auth pages from being stuck)
         useAuthStore.setState({ _hasHydrated: true });
+
         if (error && process.env.NODE_ENV !== 'production') {
           console.error('[AUTH] Rehydrate error:', error);
         }
       },
+      // Only persist actual auth data (not hydration flag)
       partialize: (s) => ({
         user: s.user,
         token: s.token,
         isAuthenticated: s.isAuthenticated,
       }),
-    }
-  )
+    },
+  ),
 );

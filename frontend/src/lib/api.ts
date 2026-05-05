@@ -44,8 +44,19 @@ api.interceptors.response.use(
 
     // ── 401: Handle unauthorized ───
     if (error.response?.status === 401) {
-        // In simple token auth, if 401, we just logout and throw
-        useAuthStore.getState().logout();
+        const { registrationTime, logout } = useAuthStore.getState();
+        
+        // If the session was created very recently (last 10s), it might be a Supabase lag.
+        // Don't logout immediately, just throw the error.
+        const isNewSession = registrationTime && (Date.now() - registrationTime < 10000);
+        
+        if (isNewSession) {
+            console.warn('[API] 401 detected on fresh session. Supabase might be lagging. Skipping auto-logout.');
+            return Promise.reject(error);
+        }
+
+        console.error('[API] 401 Unauthorized. Logging out.');
+        logout();
         if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
             window.location.href = '/login';
         }

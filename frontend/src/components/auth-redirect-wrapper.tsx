@@ -9,9 +9,7 @@ export function AuthRedirectWrapper({ children }: { children: React.ReactNode })
   const { isAuthenticated, user, _hasHydrated } = useAuthStore();
   const [isClient, setIsClient] = useState(false);
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  useEffect(() => setIsClient(true), []);
 
   useEffect(() => {
     if (!isClient || !_hasHydrated) return;
@@ -20,17 +18,15 @@ export function AuthRedirectWrapper({ children }: { children: React.ReactNode })
       const path =
         user.role === 'admin' ? '/admin' : user.role === 'vendor' ? '/dashboard' : '/';
 
+      // Use SPA navigation (no full reload)
       router.replace(path);
     }
   }, [isAuthenticated, user, _hasHydrated, isClient, router]);
 
-  if (!isClient || !_hasHydrated) {
-    return null;
-  }
+  if (!isClient || !_hasHydrated) return null;
 
-  if (isAuthenticated && user) {
-    return null;
-  }
+  // Only show children (login/signup pages) when NOT authenticated
+  if (isAuthenticated && user) return null;
 
   return <>{children}</>;
 }
