@@ -45,6 +45,8 @@ export class VehicleRepository {
         location: data.location,
         availability: data.availability,
         rank: data.rank,
+        approval_status: data.approvalStatus || 'pending',
+        is_available: data.isAvailable !== undefined ? data.isAvailable : true,
       })
       .select()
       .single();
@@ -87,6 +89,7 @@ export class VehicleRepository {
         current_status: data.currentStatus,
         rank: data.rank,
         is_available: data.isAvailable,
+        approval_status: data.approvalStatus,
       })
       .eq('id', id)
       .select()

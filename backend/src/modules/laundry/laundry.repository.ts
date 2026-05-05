@@ -52,6 +52,8 @@ export class LaundryRepository {
         onsite_pickup: data.onsitePickup,
         on_store_service: data.onStoreService,
         onsite_pickup_charge: data.onsitePickupCharge,
+        is_active: data.isActive !== undefined ? data.isActive : true,
+        approval_status: data.approvalStatus || 'approved', // Default to approved for now as per legacy
       })
       .select()
       .single();
@@ -85,6 +87,8 @@ export class LaundryRepository {
     if (data.onsitePickup !== undefined) patch.onsite_pickup = data.onsitePickup;
     if (data.onStoreService !== undefined) patch.on_store_service = data.onStoreService;
     if (data.onsitePickupCharge !== undefined) patch.onsite_pickup_charge = data.onsitePickupCharge;
+    if (data.isActive !== undefined) patch.is_active = data.isActive;
+    if (data.approvalStatus !== undefined) patch.approval_status = data.approvalStatus;
 
     const { data: service, error } = await supabase
       .from('laundry_services')

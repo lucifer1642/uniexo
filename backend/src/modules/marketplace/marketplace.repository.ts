@@ -43,6 +43,8 @@ export class MarketplaceRepository {
         images: data.images,
         location: data.location,
         is_sold: false,
+        approval_status: data.approvalStatus || 'approved',
+        is_available: true,
       })
       .select()
       .single();
@@ -130,9 +132,21 @@ export class MarketplaceRepository {
   }
 
   async update(id: string, data: any): Promise<any | null> {
+    const patch: Record<string, any> = {};
+    if (data.title !== undefined) patch.title = data.title;
+    if (data.description !== undefined) patch.description = data.description;
+    if (data.price !== undefined) patch.price = data.price;
+    if (data.category !== undefined) patch.category = data.category;
+    if (data.condition !== undefined) patch.condition = data.condition;
+    if (data.images !== undefined) patch.images = data.images;
+    if (data.location !== undefined) patch.location = data.location;
+    if (data.isSold !== undefined) patch.is_sold = data.isSold;
+    if (data.isAvailable !== undefined) patch.is_available = data.isAvailable;
+    if (data.approvalStatus !== undefined) patch.approval_status = data.approvalStatus;
+
     const { data: item, error } = await supabase
       .from('marketplace_items')
-      .update(data)
+      .update(patch)
       .eq('id', id)
       .select()
       .single();

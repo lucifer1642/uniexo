@@ -76,6 +76,8 @@ export class HouseRepository {
         faqs: data.faqs,
         location_url: data.locationUrl,
         rank: data.rank,
+        approval_status: data.approvalStatus || 'pending',
+        is_available: data.isAvailable !== undefined ? data.isAvailable : true,
       })
       .select()
       .single();
@@ -89,6 +91,7 @@ export class HouseRepository {
       .from('houses')
       .select('*, profiles:vendor_id(name, email, phone)')
       .eq('id', id)
+      .eq('is_deleted', false)
       .single();
     
     if (error) return null;
@@ -134,6 +137,7 @@ export class HouseRepository {
         location_url: data.locationUrl,
         rank: data.rank,
         is_available: data.isAvailable,
+        approval_status: data.approvalStatus,
       })
       .eq('id', id)
       .select()

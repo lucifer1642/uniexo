@@ -24,6 +24,17 @@ export class VendorService {
     this.walletRepo = new WalletRepository();
   }
 
+  async verifyVendorApproved(userId: string): Promise<any> {
+    const profile = await this.vendorRepo.findByUserId(userId);
+    if (!profile) {
+      throw new NotFoundError('Vendor profile not found');
+    }
+    if (profile.approval_status !== VendorApprovalStatus.APPROVED) {
+      throw new ForbiddenError('Your vendor account is not yet approved');
+    }
+    return profile;
+  }
+
   async register(
     userId: string,
     data: {
