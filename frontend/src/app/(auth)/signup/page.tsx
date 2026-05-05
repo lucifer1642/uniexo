@@ -128,8 +128,10 @@ export default function SignupPage() {
       const redirectPath = role === 'vendor' ? '/dashboard' : '/';
       console.log('[SIGNUP] Redirecting to:', redirectPath);
 
-      // Use router.push to preserve in-memory Zustand state and avoid race conditions with localStorage
-      router.push(redirectPath);
+      // Use window.location.href to guarantee navigation, since localStorage is already safely populated synchronously
+      setTimeout(() => {
+        window.location.href = redirectPath;
+      }, 50);
 
     } catch (err: any) {
       console.error('Finalize error:', err);

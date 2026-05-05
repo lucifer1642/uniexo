@@ -44,7 +44,7 @@ export function AuthRedirectWrapper({ children }: { children: React.ReactNode })
       const role = user?.role || fallbackRole || 'user';
       const path = role === 'admin' ? '/admin' : role === 'vendor' ? '/dashboard' : '/';
       console.log('[AUTH-REDIRECT] Already authenticated, redirecting to:', path);
-      router.push(path);
+      window.location.href = path;
     }
   }, [storeIsAuth, _hasHydrated, isClient, router, user]);
 

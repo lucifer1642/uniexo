@@ -95,9 +95,10 @@ export default function LoginPage() {
 
       console.log('[LOGIN] Redirecting to:', redirectPath);
       
-      // Use router.push to preserve in-memory Zustand state and avoid race conditions with localStorage
-      router.push(redirectPath);
-      
+      // Use window.location.href to guarantee navigation, since localStorage is already safely populated synchronously
+      setTimeout(() => {
+        window.location.href = redirectPath;
+      }, 50);
     } catch (err: any) {
       console.error('Login error:', err);
       setError(err.message || "Invalid credentials");
