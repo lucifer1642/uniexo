@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+// Robust Auth v2.1 - Enhanced for Vendor Listing Stability
 import { AuthRequest } from '../types';
 import { UnauthorizedError, ForbiddenError } from '../utils/errors';
 import { supabase } from '../config/supabase';
