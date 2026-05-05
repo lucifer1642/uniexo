@@ -43,7 +43,9 @@ export const isApprovedVendor = async (req: Request, _res: Response, next: NextF
       return next(new ForbiddenError('Only vendors are authorized to perform this action.'));
     }
 
-    // Robust lookup for vendor profile
+    // Use pre-fetched data from authReq.user if available
+    const user = authReq.user as any;
+    
     let vendor = null;
     try {
         vendor = await vendorRepo.findByUserId(authReq.user.userId);
@@ -52,7 +54,17 @@ export const isApprovedVendor = async (req: Request, _res: Response, next: NextF
     }
 
     if (!vendor) {
-      return next(new ForbiddenError('Vendor profile not found. Please complete your registration.'));
+      // Fallback: If it's a new vendor, they might only have the 'profiles' record data
+      if (user.role === UserRole.VENDOR) {
+          logger.warn(`[RBAC] Vendor profile missing for ${user.userId}, using basic profile data`);
+          vendor = {
+              approval_status: 'pending', // Assume pending for new vendors
+              service_type: user.serviceType,
+              business_name: user.businessName
+          };
+      } else {
+          return next(new ForbiddenError('Vendor profile not found. Please complete your registration.'));
+      }
     }
 
     // Lenient approval check for 'anyhow' operations

@@ -52,7 +52,7 @@ export const authenticate = async (
     for (let i = 0; i < 2; i++) {
         const result = await supabase
           .from('profiles')
-          .select('id, email, role, name, is_deleted, is_suspended')
+          .select('id, email, role, name, is_deleted, is_suspended, kyc_status, service_type, business_name')
           .eq('id', decodedToken.userId)
           .maybeSingle();
         
@@ -61,7 +61,7 @@ export const authenticate = async (
             break;
         }
         profileError = result.error;
-        if (i === 0) await new Promise(resolve => setTimeout(resolve, 200)); // Short sleep
+        if (i === 0) await new Promise(resolve => setTimeout(resolve, 50)); // Fast sleep
     }
 
     if (!profile) {
@@ -98,7 +98,9 @@ export const authenticate = async (
       userId: profile.id,
       role: profile.role,
       email: profile.email,
-      name: profile.name
+      name: profile.name,
+      serviceType: (profile as any).service_type,
+      kycStatus: (profile as any).kyc_status
     };
 
     next();

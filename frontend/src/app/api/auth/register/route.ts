@@ -33,8 +33,8 @@ export async function POST(req: Request) {
        return NextResponse.json({ error: 'User with this email already exists' }, { status: 400 });
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
+    // Hash password with 6 rounds for speed in serverless environment
+    const salt = await bcrypt.genSalt(6);
     const password_hash = await bcrypt.hash(password, salt);
 
     // Generate simple UUID
