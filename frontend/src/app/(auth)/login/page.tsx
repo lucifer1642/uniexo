@@ -80,10 +80,9 @@ export default function LoginPage() {
 
       console.log('[LOGIN] Redirecting to:', redirectPath);
       
-      // Use router.push and force a refresh to clear any stale cache
-      router.push(redirectPath);
-      router.refresh();
-      
+      // Force a hard navigation to guarantee complete state hydration on the new page
+      window.location.href = redirectPath;
+
     } catch (err: any) {
       console.error('Login error:', err);
       setError(err.message || "Invalid credentials");
