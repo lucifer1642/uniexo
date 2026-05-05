@@ -1,6 +1,7 @@
 import { supabase } from '../../config/supabase';
 import { PaginationQuery } from '../../types';
 import { ListingApprovalStatus } from '../../types/enums';
+import { BadRequestError } from '../../utils/errors';
 
 function mapVehicleRow(row: Record<string, unknown>) {
   return {
@@ -88,11 +89,16 @@ export class VehicleRepository {
     if (data.rank !== undefined) patch.rank = data.rank;
     if (data.isAvailable !== undefined) patch.is_available = data.isAvailable;
     if (data.approvalStatus !== undefined) patch.approval_status = data.approvalStatus;
+    
+    if (Object.keys(patch).length === 0) {
+      throw new BadRequestError('no updatable fields provided');
+    }
 
     const { data: vehicle, error } = await supabase
       .from('vehicles')
       .update(patch)
       .eq('id', id)
+      .eq('is_deleted', false)
       .select()
       .single();
 

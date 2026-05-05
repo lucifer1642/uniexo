@@ -1,5 +1,6 @@
 import { supabase } from '../../config/supabase';
 import { PaginationQuery } from '../../types';
+import { BadRequestError } from '../../utils/errors';
 
 function mapMarketplaceItemRow(row: Record<string, unknown>) {
   return {
@@ -143,11 +144,16 @@ export class MarketplaceRepository {
     if (data.isSold !== undefined) patch.is_sold = data.isSold;
     if (data.isAvailable !== undefined) patch.is_available = data.isAvailable;
     if (data.approvalStatus !== undefined) patch.approval_status = data.approvalStatus;
+    
+    if (Object.keys(patch).length === 0) {
+      throw new BadRequestError('no updatable fields provided');
+    }
 
     const { data: item, error } = await supabase
       .from('marketplace_items')
       .update(patch)
       .eq('id', id)
+      .eq('is_deleted', false)
       .select()
       .single();
 

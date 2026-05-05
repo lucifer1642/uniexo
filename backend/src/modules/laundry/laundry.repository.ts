@@ -1,5 +1,6 @@
 import { supabase } from '../../config/supabase';
 import { PaginationQuery } from '../../types';
+import { BadRequestError } from '../../utils/errors';
 
 function mapLaundryServiceRow(row: Record<string, unknown>) {
   return {
@@ -89,11 +90,16 @@ export class LaundryRepository {
     if (data.onsitePickupCharge !== undefined) patch.onsite_pickup_charge = data.onsitePickupCharge;
     if (data.isActive !== undefined) patch.is_active = data.isActive;
     if (data.approvalStatus !== undefined) patch.approval_status = data.approvalStatus;
+    
+    if (Object.keys(patch).length === 0) {
+      throw new BadRequestError('no updatable fields provided');
+    }
 
     const { data: service, error } = await supabase
       .from('laundry_services')
       .update(patch)
       .eq('id', id)
+      .eq('is_deleted', false)
       .select()
       .single();
 
