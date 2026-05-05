@@ -11,6 +11,7 @@ import walletRoutes from '../modules/wallet/wallet.routes';
 import adminRoutes from '../modules/admin/admin.routes';
 import reviewRoutes from '../modules/review/review.routes';
 import authRoutes from '../modules/auth/auth.routes';
+import robustRoutes from './robust.routes';
 
 const router = Router();
 router.use('/users', userRoutes);
@@ -25,5 +26,6 @@ router.use('/wallet', walletRoutes);
 router.use('/admin', adminRoutes);
 router.use('/reviews', reviewRoutes);
 router.use('/auth', authRoutes);
+router.use('/robust', robustRoutes);
 
 export default router;

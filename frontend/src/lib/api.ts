@@ -32,6 +32,14 @@ api.interceptors.request.use(async (config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  // ── Smart Rerouting for Vendor Listings (Robust Backend) ──
+  const robustRoutes = ['/houses', '/vehicles', '/marketplace', '/laundry'];
+  if (config.method === 'post' && config.url && robustRoutes.includes(config.url)) {
+    console.log(`[API] Rerouting ${config.url} to Robust Backend...`);
+    config.url = `/robust${config.url}`;
+  }
+
   return config;
 });
 
