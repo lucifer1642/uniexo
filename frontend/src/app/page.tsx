@@ -940,9 +940,9 @@ export default function Home() {
     setIsClient(true);
     // Only redirect TO protected areas, NEVER away from them automatically
     if (isAuthenticated && user?.role === 'admin') {
-      window.location.href = '/admin';
+      router.push('/admin');
     } else if (isAuthenticated && user?.role === 'vendor') {
-      window.location.href = '/dashboard';
+      router.push('/dashboard');
     }
   }, [isAuthenticated, user, router]);
 

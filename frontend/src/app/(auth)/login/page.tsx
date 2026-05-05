@@ -84,11 +84,9 @@ export default function LoginPage() {
 
       console.log('[LOGIN] Redirecting to:', redirectPath);
       
-      // Force a hard navigation to guarantee complete state hydration on the new page
-      // Using setTimeout to allow the Zustand store to finish its sync write to localStorage
-      setTimeout(() => {
-        window.location.href = redirectPath;
-      }, 100);
+      // Use router.push to preserve in-memory Zustand state and avoid race conditions with localStorage
+      router.push(redirectPath);
+      router.refresh();
       
     } catch (err: any) {
       console.error('Login error:', err);

@@ -117,9 +117,9 @@ export default function SignupPage() {
       const redirectPath = role === 'vendor' ? '/dashboard' : '/';
       console.log('[SIGNUP] Redirecting to:', redirectPath);
 
-      setTimeout(() => {
-        window.location.href = redirectPath;
-      }, 100);
+      // Use router.push to preserve in-memory Zustand state and avoid race conditions with localStorage
+      router.push(redirectPath);
+      router.refresh();
 
     } catch (err: any) {
       console.error('Finalize error:', err);
