@@ -30,6 +30,7 @@ function mapHouseRow(row: Record<string, unknown>) {
     foodAmenities: row.food_amenities,
     approvalStatus: row.approval_status,
     isAvailable: row.is_available,
+    vendor: row.profiles, // Include joined profile data
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

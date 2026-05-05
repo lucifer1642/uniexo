@@ -138,7 +138,7 @@ export default function HousesPage() {
     pricePerMonth: r.pricePerMonth || 0,
     pricePerDay: r.pricePerDay || 0,
     image: r.images?.[0] || '',
-    vendorName: r.vendorId?.name || 'Unknown Vendor',
+    vendorName: r.vendor?.name || 'Unknown Vendor',
     rating: 0,
     href: `/houses/${r._id}`,
     rawLocation: r.city || r.address || '',
