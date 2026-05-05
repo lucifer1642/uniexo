@@ -92,6 +92,7 @@ export interface IHouse extends IBaseEntity {
   isAvailable: boolean;
   rank: number;
   faqs?: { question: string; answer: string }[];
+  vendor?: { name: string; email?: string; phone?: string };
 }
 
 export interface IBooking extends IBaseEntity {
@@ -104,6 +105,12 @@ export interface IBooking extends IBaseEntity {
   totalAmount: number;
   status: BookingStatus;
   paymentStatus: PaymentStatus;
+  totalMonths?: number;
+  securityDeposit?: number;
+  monthlyRent?: number;
+  installments?: any[];
+  serviceSnapshot?: any;
+  notes?: string;
 }
 
 export interface IMarketplaceItem extends IBaseEntity {
