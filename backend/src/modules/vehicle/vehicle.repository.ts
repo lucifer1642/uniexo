@@ -68,29 +68,30 @@ export class VehicleRepository {
   }
 
   async update(id: string, data: any): Promise<any | null> {
+    const patch: Record<string, any> = {};
+    if (data.name !== undefined) patch.name = data.name;
+    if (data.type !== undefined) patch.type = data.type;
+    if (data.brand !== undefined) patch.brand = data.brand;
+    if (data.modelName !== undefined) patch.model_name = data.modelName;
+    if (data.year !== undefined) patch.year = data.year;
+    if (data.registrationNumber !== undefined) patch.registration_number = data.registrationNumber;
+    if (data.fuelType !== undefined) patch.fuel_type = data.fuelType;
+    if (data.seatingCapacity !== undefined) patch.seating_capacity = data.seatingCapacity;
+    if (data.pricePerHour !== undefined) patch.price_per_hour = data.pricePerHour;
+    if (data.pricePerDay !== undefined) patch.price_per_day = data.pricePerDay;
+    if (data.images !== undefined) patch.images = data.images;
+    if (data.description !== undefined) patch.description = data.description;
+    if (data.features !== undefined) patch.features = data.features;
+    if (data.location !== undefined) patch.location = data.location;
+    if (data.availability !== undefined) patch.availability = data.availability;
+    if (data.currentStatus !== undefined) patch.current_status = data.currentStatus;
+    if (data.rank !== undefined) patch.rank = data.rank;
+    if (data.isAvailable !== undefined) patch.is_available = data.isAvailable;
+    if (data.approvalStatus !== undefined) patch.approval_status = data.approvalStatus;
+
     const { data: vehicle, error } = await supabase
       .from('vehicles')
-      .update({
-        name: data.name,
-        type: data.type,
-        brand: data.brand,
-        model_name: data.modelName,
-        year: data.year,
-        registration_number: data.registrationNumber,
-        fuel_type: data.fuelType,
-        seating_capacity: data.seatingCapacity,
-        price_per_hour: data.pricePerHour,
-        price_per_day: data.pricePerDay,
-        images: data.images,
-        description: data.description,
-        features: data.features,
-        location: data.location,
-        availability: data.availability,
-        current_status: data.currentStatus,
-        rank: data.rank,
-        is_available: data.isAvailable,
-        approval_status: data.approvalStatus,
-      })
+      .update(patch)
       .eq('id', id)
       .select()
       .single();

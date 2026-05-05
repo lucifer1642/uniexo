@@ -99,46 +99,47 @@ export class HouseRepository {
   }
 
   async update(id: string, data: any): Promise<any | null> {
+    const patch: Record<string, any> = {};
+    if (data.title !== undefined) patch.title = data.title;
+    if (data.description !== undefined) patch.description = data.description;
+    if (data.propertyType !== undefined) patch.property_type = data.propertyType;
+    if (data.address !== undefined) patch.address = data.address;
+    if (data.city !== undefined) patch.city = data.city;
+    if (data.state !== undefined) patch.state = data.state;
+    if (data.pincode !== undefined) patch.pincode = data.pincode;
+    if (data.bedrooms !== undefined) patch.bedrooms = data.bedrooms;
+    if (data.bathrooms !== undefined) patch.bathrooms = data.bathrooms;
+    if (data.area !== undefined) patch.area = data.area;
+    if (data.roomSize !== undefined) patch.room_size = data.roomSize;
+    if (data.bedType !== undefined) patch.bed_type = data.bedType;
+    if (data.tenantsStaying !== undefined) patch.tenants_staying = data.tenantsStaying;
+    if (data.pricePerMonth !== undefined) patch.price_per_month = data.pricePerMonth;
+    if (data.pricePerDay !== undefined) patch.price_per_day = data.pricePerDay;
+    if (data.pricePerHour !== undefined) patch.price_per_hour = data.pricePerHour;
+    if (data.singleSharingPrice !== undefined) patch.single_sharing_price = data.singleSharingPrice;
+    if (data.doubleSharingPrice !== undefined) patch.double_sharing_price = data.doubleSharingPrice;
+    if (data.tripleSharingPrice !== undefined) patch.triple_sharing_price = data.tripleSharingPrice;
+    if (data.securityDeposit !== undefined) patch.security_deposit = data.securityDeposit;
+    if (data.lockinPeriod !== undefined) patch.lockin_period = data.lockinPeriod;
+    if (data.noticePeriod !== undefined) patch.notice_period = data.noticePeriod;
+    if (data.electricityIncluded !== undefined) patch.electricity_included = data.electricityIncluded;
+    if (data.electricityCharge !== undefined) patch.electricity_charge = data.electricityCharge;
+    if (data.images !== undefined) patch.images = data.images;
+    if (data.amenities !== undefined) patch.amenities = data.amenities;
+    if (data.commonAmenities !== undefined) patch.common_amenities = data.commonAmenities;
+    if (data.roomAmenities !== undefined) patch.room_amenities = data.roomAmenities;
+    if (data.servicesAmenities !== undefined) patch.services_amenities = data.servicesAmenities;
+    if (data.foodAmenities !== undefined) patch.food_amenities = data.foodAmenities;
+    if (data.rules !== undefined) patch.rules = data.rules;
+    if (data.faqs !== undefined) patch.faqs = data.faqs;
+    if (data.locationUrl !== undefined) patch.location_url = data.locationUrl;
+    if (data.rank !== undefined) patch.rank = data.rank;
+    if (data.isAvailable !== undefined) patch.is_available = data.isAvailable;
+    if (data.approvalStatus !== undefined) patch.approval_status = data.approvalStatus;
+
     const { data: house, error } = await supabase
       .from('houses')
-      .update({
-        title: data.title,
-        description: data.description,
-        property_type: data.propertyType,
-        address: data.address,
-        city: data.city,
-        state: data.state,
-        pincode: data.pincode,
-        bedrooms: data.bedrooms,
-        bathrooms: data.bathrooms,
-        area: data.area,
-        room_size: data.roomSize,
-        bed_type: data.bedType,
-        tenants_staying: data.tenantsStaying,
-        price_per_month: data.pricePerMonth,
-        price_per_day: data.pricePerDay,
-        price_per_hour: data.pricePerHour,
-        single_sharing_price: data.singleSharingPrice,
-        double_sharing_price: data.doubleSharingPrice,
-        triple_sharing_price: data.tripleSharingPrice,
-        security_deposit: data.securityDeposit,
-        lockin_period: data.lockinPeriod,
-        notice_period: data.noticePeriod,
-        electricity_included: data.electricityIncluded,
-        electricity_charge: data.electricityCharge,
-        images: data.images,
-        amenities: data.amenities,
-        common_amenities: data.commonAmenities,
-        room_amenities: data.roomAmenities,
-        services_amenities: data.servicesAmenities,
-        food_amenities: data.foodAmenities,
-        rules: data.rules,
-        faqs: data.faqs,
-        location_url: data.locationUrl,
-        rank: data.rank,
-        is_available: data.isAvailable,
-        approval_status: data.approvalStatus,
-      })
+      .update(patch)
       .eq('id', id)
       .select()
       .single();
