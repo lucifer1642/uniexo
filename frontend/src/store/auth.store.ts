@@ -23,6 +23,7 @@ interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   _hasHydrated: boolean;
+  setHasHydrated: (state: boolean) => void;
   login: (user: User, token: string) => void;
   logout: () => void;
   updateUser: (user: Partial<User>) => void;
@@ -36,6 +37,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       _hasHydrated: false,
 
+      setHasHydrated: (state) => set({ _hasHydrated: state }),
       login: (user, token) => set({ user, token, isAuthenticated: true }),
       logout: () => {
         set({ user: null, token: null, isAuthenticated: false });
@@ -49,16 +51,12 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'auth-storage',
-      onRehydrateStorage: () => (state, error) => {
-        // Always mark hydration complete even if storage is empty/corrupted
-        // (prevents auth pages from being stuck)
-        useAuthStore.setState({ _hasHydrated: true });
-
-        if (error && process.env.NODE_ENV !== 'production') {
-          console.error('[AUTH] Rehydrate error:', error);
+      onRehydrateStorage: () => (state) => {
+        // Use the state object directly to avoid circular reference
+        if (state) {
+          state._hasHydrated = true;
         }
       },
-      // Only persist actual auth data (not hydration flag)
       partialize: (s) => ({
         user: s.user,
         token: s.token,
