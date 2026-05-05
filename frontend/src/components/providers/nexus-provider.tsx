@@ -37,7 +37,10 @@ export function NexusProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Determine socket URL based on environment API URL
-    const socketUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://localhost:5000';
+    const socketUrl = 
+      process.env.NEXT_PUBLIC_BACKEND_ORIGIN?.replace(/\/$/, '') || 
+      process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 
+      'http://localhost:5000';
 
     const newSocket = io(socketUrl, {
       transports: ['websocket'],

@@ -102,7 +102,7 @@ export default function SignupPage() {
       console.log('[SIGNUP] Success, auto-logging in...');
       
       // Auto-login
-      useAuthStore.getState().login({
+      const userState = {
         id: data.profile.id,
         name: data.profile.name,
         email: data.profile.email,
@@ -110,7 +110,18 @@ export default function SignupPage() {
         serviceType: data.profile.service_type,
         phone: data.profile.phone,
         kycStatus: data.profile.kyc_status
-      }, data.token);
+      };
+      
+      useAuthStore.getState().login(userState, data.token);
+
+      // FORCE synchronous localStorage write to guarantee it's there before navigation
+      if (typeof window !== 'undefined') {
+        const fallbackState = {
+          state: { user: userState, token: data.token, isAuthenticated: true, _hasHydrated: true },
+          version: 0
+        };
+        localStorage.setItem('auth-storage', JSON.stringify(fallbackState));
+      }
       
       toast.success("Welcome to UniExo!");
 
@@ -119,7 +130,6 @@ export default function SignupPage() {
 
       // Use router.push to preserve in-memory Zustand state and avoid race conditions with localStorage
       router.push(redirectPath);
-      router.refresh();
 
     } catch (err: any) {
       console.error('Finalize error:', err);
