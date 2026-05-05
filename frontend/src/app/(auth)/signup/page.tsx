@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 
 export default function SignupPage() {
   const router = useRouter();
+  const { isAuthenticated, user } = useAuthStore();
   const [step, setStep] = useState(0); // 0: Identity, 1: Role, 2: Profile
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -31,6 +32,14 @@ export default function SignupPage() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<'user' | 'vendor'>('user');
+
+  // If already logged in, redirect away
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const path = user.role === 'admin' ? '/admin' : user.role === 'vendor' ? '/dashboard' : '/';
+      router.push(path);
+    }
+  }, [isAuthenticated, user, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as any;
@@ -60,10 +69,13 @@ export default function SignupPage() {
 
   const handleFinalize = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
+    
     setLoading(true);
     setError('');
 
     try {
+      console.log('[SIGNUP] Finalizing registration for:', formData.email);
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -86,21 +98,31 @@ export default function SignupPage() {
         throw new Error(data.error || "Registration failed");
       }
 
+      console.log('[SIGNUP] Success, auto-logging in...');
+      
       // Auto-login
       useAuthStore.getState().login({
         id: data.profile.id,
         name: data.profile.name,
         email: data.profile.email,
         role: data.profile.role,
-        serviceType: data.profile.service_type
+        serviceType: data.profile.service_type,
+        phone: data.profile.phone,
+        kycStatus: data.profile.kyc_status
       }, data.token);
       
       toast.success("Welcome to UniExo!");
-      router.push(role === 'vendor' ? '/dashboard' : '/');
+
+      const redirectPath = role === 'vendor' ? '/dashboard' : '/';
+      console.log('[SIGNUP] Redirecting to:', redirectPath);
+
+      router.push(redirectPath);
+      router.refresh();
 
     } catch (err: any) {
       console.error('Finalize error:', err);
       setError(err.message || "Registration failed");
+      toast.error(err.message || "Registration failed");
     } finally {
       setLoading(false);
     }
@@ -119,14 +141,14 @@ export default function SignupPage() {
           {step === 0 && (
             <motion.div key="step0" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
               <div className="space-y-4">
-                <Input name="email" type="email" placeholder="Email" value={formData.email} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl text-white" />
+                <Input name="email" type="email" placeholder="Email" value={formData.email} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl text-white placeholder:text-zinc-700" />
                 <div className="relative">
-                  <Input name="password" type={showPassword ? "text" : "password"} placeholder="Password (Min 6 chars)" value={formData.password} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl text-white" />
+                  <Input name="password" type={showPassword ? "text" : "password"} placeholder="Password (Min 6 chars)" value={formData.password} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl text-white placeholder:text-zinc-700" />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600">
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
-                <Input name="confirmPassword" type="password" placeholder="Confirm Password" value={formData.confirmPassword} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl text-white" />
+                <Input name="confirmPassword" type="password" placeholder="Confirm Password" value={formData.confirmPassword} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl text-white placeholder:text-zinc-700" />
               </div>
               <Button onClick={proceedToRole} className="w-full h-12 bg-zinc-800 text-white font-bold rounded-xl hover:bg-zinc-700">Next Step</Button>
               <div className="text-center pt-4">
@@ -184,13 +206,13 @@ export default function SignupPage() {
 
           {step === 2 && (
             <motion.div key="step2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
-              <Input name="name" placeholder="Full Name" value={formData.name} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl text-white" />
-              <Input name="phone" placeholder="Phone Number" value={formData.phone} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl text-white" />
+              <Input name="name" placeholder="Full Name" value={formData.name} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl text-white placeholder:text-zinc-700" />
+              <Input name="phone" placeholder="Phone Number" value={formData.phone} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl text-white placeholder:text-zinc-700" />
               
               {role === 'user' ? (
-                <Input name="universityId" placeholder="University ID" value={formData.universityId} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl text-white" />
+                <Input name="universityId" placeholder="University ID" value={formData.universityId} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl text-white placeholder:text-zinc-700" />
               ) : (
-                <Input name="businessName" placeholder="Business Name" value={formData.businessName} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl text-white" />
+                <Input name="businessName" placeholder="Business Name" value={formData.businessName} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl text-white placeholder:text-zinc-700" />
               )}
 
               {error && <div className="text-red-500 text-xs text-center font-bold bg-red-500/10 p-2 rounded-lg">{error}</div>}
@@ -212,4 +234,3 @@ export default function SignupPage() {
     </div>
   );
 }
-

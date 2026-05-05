@@ -11,44 +11,50 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
     }
 
+    console.log('[API-LOGIN] Attempt for:', email.trim());
+
     // 1. Fetch user by email
     const { data: profile, error } = await supabaseAdmin
       .from('profiles')
       .select('*')
-      .eq('email', email)
-      .single();
+      .eq('email', email.trim())
+      .maybeSingle();
 
     if (error || !profile) {
+      console.log('[API-LOGIN] Failed: User not found or error:', email.trim());
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
     // 2. Verify password
     if (!profile.password_hash) {
+      console.log('[API-LOGIN] Failed: No password_hash for user:', email.trim());
       return NextResponse.json({ error: 'Account not set up with a password. Please sign up again.' }, { status: 401 });
     }
 
     const isMatch = await bcrypt.compare(password, profile.password_hash);
     
     if (!isMatch) {
+      console.log('[API-LOGIN] Failed: Password mismatch for:', email.trim());
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
     if (profile.is_deleted) {
+       console.log('[API-LOGIN] Failed: Account deleted:', email.trim());
        return NextResponse.json({ error: 'This account has been deleted' }, { status: 403 });
     }
     
     if (profile.is_suspended) {
+       console.log('[API-LOGIN] Failed: Account suspended:', email.trim());
        return NextResponse.json({ error: 'This account is suspended' }, { status: 403 });
     }
 
-    // 3. Create a simple session token (just use their ID for now, or generate a UUID)
-    // In a full implementation we'd sign a JWT here. For simple token auth, we'll return
-    // the user ID or a generated token that the frontend will send back.
+    // 3. Create a simple session token
     const token = Buffer.from(JSON.stringify({ userId: profile.id, role: profile.role, exp: Date.now() + 86400000 })).toString('base64');
 
     // Remove password hash from response
     const { password_hash, ...safeProfile } = profile;
 
+    console.log('[API-LOGIN] Success for:', email.trim());
     return NextResponse.json({
       success: true,
       token,

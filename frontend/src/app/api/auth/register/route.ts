@@ -5,6 +5,8 @@ import bcrypt from 'bcryptjs';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+    console.log('[API-REGISTER] Request body:', { ...body, password: '***' });
+    
     const { 
       email, password, name, phone, role, 
       university_id, business_name, service_type, 
@@ -16,13 +18,18 @@ export async function POST(req: Request) {
     }
 
     // Check if user already exists
-    const { data: existingUser } = await supabaseAdmin
+    const { data: existingUser, error: checkError } = await supabaseAdmin
       .from('profiles')
-      .select('id')
-      .eq('email', email)
+      .select('id, email')
+      .eq('email', email.trim())
       .maybeSingle();
 
+    if (checkError) {
+      console.error('[API-REGISTER] Error checking existing user:', checkError);
+    }
+
     if (existingUser) {
+       console.log('[API-REGISTER] Conflict: User already exists:', existingUser.email);
        return NextResponse.json({ error: 'User with this email already exists' }, { status: 400 });
     }
 
@@ -36,7 +43,7 @@ export async function POST(req: Request) {
     // Use Admin Client to bypass RLS and perform Insert
     const profileData: any = {
         id,
-        email,
+        email: email.trim(),
         password_hash,
         role: role || 'user',
         name: name || email.split('@')[0],
@@ -44,15 +51,13 @@ export async function POST(req: Request) {
         university_id: role === 'user' ? university_id : null,
         business_name: role === 'vendor' ? business_name : null,
         service_type: role === 'vendor' ? service_type : null,
+        onsite_pickup: (role === 'vendor' && service_type === 'laundry') ? (onsite_pickup ? 1 : 0) : null,
+        store_delivery: (role === 'vendor' && service_type === 'laundry') ? (store_delivery ? 1 : 0) : null,
         kyc_status: 'none',
         updated_at: new Date().toISOString()
     };
 
-    if (role === 'vendor' && service_type === 'laundry') {
-        profileData.onsite_pickup = onsite_pickup ? 1 : 0;
-        profileData.store_delivery = store_delivery ? 1 : 0;
-    }
-
+    console.log('[API-REGISTER] Inserting profile for:', email);
     const { data, error } = await supabaseAdmin
       .from('profiles')
       .insert([profileData])
@@ -60,17 +65,18 @@ export async function POST(req: Request) {
       .single();
 
     if (error) {
-      console.error('[API-REGISTER] Database error:', error);
+      console.error('[API-REGISTER] Database error during insert:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     // If laundry vendor, create corresponding laundry_services record
     if (role === 'vendor' && service_type === 'laundry') {
+        console.log('[API-REGISTER] Creating laundry service for:', business_name);
         await supabaseAdmin.from('laundry_services').insert([{
             vendor_id: id,
             name: business_name || `${name}'s Laundry`,
-            onsite_pickup: onsite_pickup,
-            on_store_service: store_delivery,
+            onsite_pickup: !!onsite_pickup,
+            on_store_service: !!store_delivery,
             onsite_pickup_charge: 0,
             provider_name: name,
             provider_phone: phone
@@ -82,6 +88,7 @@ export async function POST(req: Request) {
     // Remove hash from response
     const { password_hash: _hash, ...safeProfile } = data;
 
+    console.log('[API-REGISTER] Registration successful for:', email);
     return NextResponse.json({ success: true, token, profile: safeProfile });
   } catch (err: any) {
     console.error('[API-REGISTER] Unhandled error:', err);

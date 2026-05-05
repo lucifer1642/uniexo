@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { isAuthenticated, user } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -21,6 +22,14 @@ export default function LoginPage() {
     password: '',
   });
 
+  // If already logged in, redirect away from login page
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const path = user.role === 'admin' ? '/admin' : user.role === 'vendor' ? '/dashboard' : '/';
+      router.push(path);
+    }
+  }, [isAuthenticated, user, router]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setError('');
@@ -28,10 +37,13 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
+    
     setLoading(true);
     setError('');
 
     try {
+      console.log('[LOGIN] Submitting for:', formData.email);
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -43,20 +55,39 @@ export default function LoginPage() {
         throw new Error(data.error || "Login failed");
       }
 
+      console.log('[LOGIN] Success, updating store...');
+      
+      // Update global auth state
       useAuthStore.getState().login({
         id: data.profile.id,
         name: data.profile.name,
         email: data.profile.email,
         role: data.profile.role,
-        serviceType: data.profile.service_type
+        serviceType: data.profile.service_type,
+        phone: data.profile.phone,
+        kycStatus: data.profile.kyc_status
       }, data.token);
 
-      toast.success("Access Granted");
-      router.push(data.profile.role === 'admin' ? '/admin' : '/dashboard');
+      toast.success("Nexus Access Granted");
+
+      // Determine redirect path
+      let redirectPath = '/';
+      if (data.profile.role === 'admin') {
+        redirectPath = '/admin';
+      } else if (data.profile.role === 'vendor') {
+        redirectPath = '/dashboard';
+      }
+
+      console.log('[LOGIN] Redirecting to:', redirectPath);
+      
+      // Use router.push and force a refresh to clear any stale cache
+      router.push(redirectPath);
+      router.refresh();
       
     } catch (err: any) {
       console.error('Login error:', err);
       setError(err.message || "Invalid credentials");
+      toast.error(err.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -74,13 +105,31 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1">
               <Label className="text-zinc-500 text-[10px] font-black uppercase ml-1">Email Address</Label>
-              <Input name="email" type="email" required value={formData.email} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl text-white" placeholder="name@domain.com" />
+              <Input 
+                name="email" 
+                type="email" 
+                required 
+                disabled={loading}
+                value={formData.email} 
+                onChange={handleChange} 
+                className="h-12 bg-black border-zinc-800 rounded-xl text-white placeholder:text-zinc-700" 
+                placeholder="name@domain.com" 
+              />
             </div>
             
             <div className="space-y-1">
               <Label className="text-zinc-500 text-[10px] font-black uppercase ml-1">Password</Label>
               <div className="relative">
-                <Input name="password" type={showPassword ? "text" : "password"} required value={formData.password} onChange={handleChange} className="h-12 bg-black border-zinc-800 rounded-xl text-white" placeholder="••••••••" />
+                <Input 
+                  name="password" 
+                  type={showPassword ? "text" : "password"} 
+                  required 
+                  disabled={loading}
+                  value={formData.password} 
+                  onChange={handleChange} 
+                  className="h-12 bg-black border-zinc-800 rounded-xl text-white placeholder:text-zinc-700" 
+                  placeholder="••••••••" 
+                />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600">
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
