@@ -15,7 +15,20 @@ export const api = axios.create({
 
 // ── Request Interceptor ──────────────────────────────────────────────────────
 api.interceptors.request.use(async (config) => {
-  const token = useAuthStore.getState().token;
+  let token = useAuthStore.getState().token;
+  
+  if (!token && typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('auth-storage');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.state && parsed.state.token) {
+          token = parsed.state.token;
+        }
+      }
+    } catch (e) {}
+  }
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -33,7 +46,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
         // In simple token auth, if 401, we just logout and throw
         useAuthStore.getState().logout();
-        if (typeof window !== 'undefined') {
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
             window.location.href = '/login';
         }
         return Promise.reject(error);
