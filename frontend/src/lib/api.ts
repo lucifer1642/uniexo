@@ -44,24 +44,8 @@ api.interceptors.response.use(
 
     // ── 401: Handle unauthorized ───
     if (error.response?.status === 401) {
-        const { registrationTime, logout } = useAuthStore.getState();
         const url = error.config?.url || 'unknown';
-        const backendMessage = (error.response.data as any)?.error || error.message;
-        
-        // If the session was created recently (last 60s), it might be a Supabase synchronization lag.
-        // We give it a generous 1-minute window to stabilize.
-        const isNewSession = registrationTime && (Date.now() - registrationTime < 60000);
-        
-        if (isNewSession) {
-            console.warn(`[API] 401 on fresh session for ${url}: "${backendMessage}". Skipping auto-logout during grace period.`);
-            return Promise.reject(error);
-        }
-
-        console.error(`[API] 401 Unauthorized for ${url}: "${backendMessage}". Logging out user.`);
-        logout();
-        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-            window.location.href = '/login';
-        }
+        console.warn(`[API] 401 Unauthorized for ${url}. Keeping session active as per 'NO AUTOLOGOUT' policy.`);
         return Promise.reject(error);
     }
 

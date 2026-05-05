@@ -68,12 +68,10 @@ export const authenticate = async (
     };
 
     next();
-  } catch (error: any) {
-    logger.error(`[AUTH] Middleware Failure: ${error.message}`, { 
-        userId: (error as any).userId,
-        url: req.originalUrl,
-        stack: error.stack 
-    });
+  } catch (error) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('DEBUG [Auth Middleware Failure]:', error);
+    }
     next(error);
   }
 };
