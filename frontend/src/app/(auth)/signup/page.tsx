@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 
 export default function SignupPage() {
   const router = useRouter();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, _hasHydrated } = useAuthStore();
   const [step, setStep] = useState(0); // 0: Identity, 1: Role, 2: Profile
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -35,11 +35,12 @@ export default function SignupPage() {
 
   // If already logged in, redirect away
   useEffect(() => {
-    if (isAuthenticated && user) {
+    if (_hasHydrated && isAuthenticated && user) {
       const path = user.role === 'admin' ? '/admin' : user.role === 'vendor' ? '/dashboard' : '/';
-      router.push(path);
+      console.log('[SIGNUP] Already authenticated, forcing redirect to:', path);
+      window.location.href = path;
     }
-  }, [isAuthenticated, user, router]);
+  }, [isAuthenticated, user, _hasHydrated]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as any;
@@ -75,12 +76,12 @@ export default function SignupPage() {
     setError('');
 
     try {
-      console.log('[SIGNUP] Finalizing registration for:', formData.email);
+      console.log('[SIGNUP] Finalizing registration for:', formData.email.trim());
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: formData.email,
+          email: formData.email.trim(),
           password: formData.password,
           name: formData.name,
           phone: formData.phone,
@@ -116,8 +117,9 @@ export default function SignupPage() {
       const redirectPath = role === 'vendor' ? '/dashboard' : '/';
       console.log('[SIGNUP] Redirecting to:', redirectPath);
 
-      // Force a hard navigation to guarantee complete state hydration on the new page
-      window.location.href = redirectPath;
+      setTimeout(() => {
+        window.location.href = redirectPath;
+      }, 100);
 
     } catch (err: any) {
       console.error('Finalize error:', err);

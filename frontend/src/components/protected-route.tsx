@@ -6,8 +6,11 @@ import { useAuthStore } from '@/store/auth.store';
 
 export function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: string[] }) {
   const router = useRouter();
-  const { isAuthenticated, user, _hasHydrated } = useAuthStore();
+  const { isAuthenticated: storeIsAuth, user: storeUser, _hasHydrated } = useAuthStore();
   const [isClient, setIsClient] = useState(false);
+  
+  // Local state to track auth more reliably during hydration transitions
+  const [isAuthVerified, setIsAuthVerified] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -16,16 +19,41 @@ export function ProtectedRoute({ children, allowedRoles }: { children: React.Rea
   useEffect(() => {
     if (!isClient || !_hasHydrated) return;
 
-    if (!isAuthenticated) {
+    // Check store first
+    if (storeIsAuth) {
+      setIsAuthVerified(true);
+    } else {
+      // Fallback: Check localStorage directly in case store hasn't finished hydrating
+      try {
+        const stored = localStorage.getItem('auth-storage');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed.state && parsed.state.isAuthenticated) {
+            console.log('[PROTECTED-ROUTE] Auth verified via localStorage fallback');
+            setIsAuthVerified(true);
+            return;
+          }
+        }
+      } catch (e) {
+        console.error('[PROTECTED-ROUTE] Error reading localStorage fallback:', e);
+      }
+      
+      // If still not verified, redirect
       console.log('[PROTECTED-ROUTE] Not authenticated, redirecting to /login');
       router.push('/login');
-    } else if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-      console.log('[PROTECTED-ROUTE] Role mismatch, redirecting to /');
+    }
+  }, [storeIsAuth, _hasHydrated, isClient, router]);
+
+  useEffect(() => {
+    if (!isAuthVerified || !storeUser || !allowedRoles) return;
+
+    if (!allowedRoles.includes(storeUser.role)) {
+      console.log('[PROTECTED-ROUTE] Role mismatch:', storeUser.role, 'Expected:', allowedRoles);
       router.push('/');
     }
-  }, [isAuthenticated, _hasHydrated, isClient, router, allowedRoles, user]);
+  }, [isAuthVerified, storeUser, allowedRoles, router]);
 
-  // Wait for both client-side mount and hydration from localStorage
+  // Wait for both client-side mount and hydration/verification
   if (!isClient || !_hasHydrated) {
     return (
         <div className="min-h-screen bg-black flex items-center justify-center">
@@ -34,8 +62,10 @@ export function ProtectedRoute({ children, allowedRoles }: { children: React.Rea
     );
   }
 
-  // If not authenticated or role doesn't match, return null while the useEffect redirect handles it
-  if (!isAuthenticated || (allowedRoles && user && !allowedRoles.includes(user.role))) {
+  // If not verified or role doesn't match, return null while the useEffect redirect handles it
+  if (!isAuthVerified || (allowedRoles && storeUser && !allowedRoles.includes(storeUser.role))) {
+    // Only return null if we are sure we are not auth'd or role is wrong
+    // But wait, if we are NOT auth'd, the useEffect will trigger router.push
     return null;
   }
 

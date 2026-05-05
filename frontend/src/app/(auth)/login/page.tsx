@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, _hasHydrated } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -24,11 +24,12 @@ export default function LoginPage() {
 
   // If already logged in, redirect away from login page
   useEffect(() => {
-    if (isAuthenticated && user) {
+    if (_hasHydrated && isAuthenticated && user) {
       const path = user.role === 'admin' ? '/admin' : user.role === 'vendor' ? '/dashboard' : '/';
-      router.push(path);
+      console.log('[LOGIN] Already authenticated, forcing redirect to:', path);
+      window.location.href = path;
     }
-  }, [isAuthenticated, user, router]);
+  }, [isAuthenticated, user, _hasHydrated]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -43,11 +44,14 @@ export default function LoginPage() {
     setError('');
 
     try {
-      console.log('[LOGIN] Submitting for:', formData.email);
+      console.log('[LOGIN] Submitting for:', formData.email.trim());
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          email: formData.email.trim(),
+          password: formData.password
+        })
       });
 
       const data = await res.json();
@@ -55,7 +59,7 @@ export default function LoginPage() {
         throw new Error(data.error || "Login failed");
       }
 
-      console.log('[LOGIN] Success, updating store...');
+      console.log('[LOGIN] Success, updating store for:', data.profile.email);
       
       // Update global auth state
       useAuthStore.getState().login({
@@ -81,8 +85,11 @@ export default function LoginPage() {
       console.log('[LOGIN] Redirecting to:', redirectPath);
       
       // Force a hard navigation to guarantee complete state hydration on the new page
-      window.location.href = redirectPath;
-
+      // Using setTimeout to allow the Zustand store to finish its sync write to localStorage
+      setTimeout(() => {
+        window.location.href = redirectPath;
+      }, 100);
+      
     } catch (err: any) {
       console.error('Login error:', err);
       setError(err.message || "Invalid credentials");
