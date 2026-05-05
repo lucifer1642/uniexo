@@ -38,7 +38,6 @@ export const useAuthStore = create<AuthState>()(
                 set({ user: null, token: null, isAuthenticated: false });
                 if (typeof window !== 'undefined') {
                     localStorage.removeItem('auth-storage');
-                    localStorage.removeItem('supabase.auth.token'); // Also clear supabase
                     sessionStorage.clear();
                 }
             },

@@ -8,7 +8,6 @@ import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth.store';
 import { useUIStore } from '@/store/ui.store';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -33,7 +32,7 @@ export function Navbar() {
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
+      // Removed supabase signout
     } catch (error) {
       console.error('Logout error:', error);
     } finally {

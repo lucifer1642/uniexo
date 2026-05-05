@@ -144,7 +144,7 @@ const startServer = async () => {
     const { data: testData, error: testError } = await supabase.from('profiles').select('id').limit(1);
     if (testError) {
       logger.error('❌ Supabase connection test failed:', testError.message);
-      // We don't exit here to allow failover to Firebase if implemented, but we warn loudly
+      // We don't exit here — the app may still serve cached/non-DB routes
     } else {
       logger.info('✅ Supabase connection verified successfully');
     }

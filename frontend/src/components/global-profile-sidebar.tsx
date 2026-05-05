@@ -31,7 +31,6 @@ import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
 import { KycUploadDialog } from './kyc-upload-dialog';
 
 const SERVICE_LINKS = [
@@ -90,7 +89,7 @@ export function GlobalProfileSidebar() {
   const handleLogout = async () => {
     try {
       setLogoutLoading(true);
-      await supabase.auth.signOut();
+      // Removed supabase sign out as we only use simple auth now
     } catch (error) {
       console.error('Logout error:', error);
     } finally {

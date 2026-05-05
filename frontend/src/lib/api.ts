@@ -1,13 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import { useAuthStore } from '@/store/auth.store';
-import { supabase } from '@/lib/supabase';
 
-/**
- * Axios instance for all backend API calls.
- * Tuned for 10k+ concurrent users with:
- * - Cached session tokens (avoids getSession on every request)
- * - Exponential backoff on 5xx/network errors
- */
 const isProd = process.env.NODE_ENV === 'production';
 const baseURL = isProd
   ? '/api/v1'
@@ -20,52 +13,9 @@ export const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// ── Token cache ──────────────────────────────────────────────────────────────
-let cachedToken: string | null = null;
-let tokenExpiresAt = 0;
-
-async function getAccessToken(): Promise<string | null> {
-  const now = Date.now();
-  
-  // Use cached token if still valid (with 60s buffer)
-  if (cachedToken && tokenExpiresAt > now + 60000) {
-    return cachedToken;
-  }
-
-  // Refresh from Supabase
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.access_token) {
-      cachedToken = session.access_token;
-      tokenExpiresAt = session.expires_at ? session.expires_at * 1000 : now + 3600000;
-      useAuthStore.setState({ token: session.access_token });
-      return cachedToken;
-    }
-  } catch {
-    // Supabase call failed — fall through to zustand
-  }
-
-  // Fallback to zustand
-  const token = useAuthStore.getState().token;
-  return token || null;
-}
-
-// Keep token cache in sync with auth state changes
-if (typeof window !== 'undefined') {
-  supabase.auth.onAuthStateChange((_event, session) => {
-    if (session?.access_token) {
-      cachedToken = session.access_token;
-      tokenExpiresAt = session.expires_at ? session.expires_at * 1000 : Date.now() + 3600000;
-    } else {
-      cachedToken = null;
-      tokenExpiresAt = 0;
-    }
-  });
-}
-
 // ── Request Interceptor ──────────────────────────────────────────────────────
 api.interceptors.request.use(async (config) => {
-  const token = await getAccessToken();
+  const token = useAuthStore.getState().token;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -73,37 +23,20 @@ api.interceptors.request.use(async (config) => {
 });
 
 // ── Response Interceptor ─────────────────────────────────────────────────────
-// Flag to prevent multiple simultaneous redirects
-let isRedirecting = false;
-
 api.interceptors.response.use(
   (res) => res,
   async (error: AxiosError) => {
     const original = error.config as any;
     if (!original) return Promise.reject(error);
 
-    // ── 401: Refresh token once, then silently fail (NO hard redirect) ───
-    if (error.response?.status === 401 && !original._retry) {
-      original._retry = true;
-      try {
-        const { data: { session }, error: refreshError } = await supabase.auth.refreshSession();
-        if (refreshError || !session) {
-            // Session is dead — clean up local cache but DON'T force logout the user.
-            // Let them stay on the page as requested.
-            cachedToken = null;
-            tokenExpiresAt = 0;
-            throw new Error('Refresh failed');
+    // ── 401: Handle unauthorized ───
+    if (error.response?.status === 401) {
+        // In simple token auth, if 401, we just logout and throw
+        useAuthStore.getState().logout();
+        if (typeof window !== 'undefined') {
+            window.location.href = '/login';
         }
-
-        cachedToken = session.access_token;
-        tokenExpiresAt = session.expires_at ? session.expires_at * 1000 : Date.now() + 3600000;
-        useAuthStore.setState({ token: session.access_token });
-        original.headers.Authorization = `Bearer ${session.access_token}`;
-        return await api(original);
-      } catch (retryError) {
-        // Just reject the error, do not automatically logout if the retry itself fails with 401
-        return Promise.reject(retryError);
-      }
+        return Promise.reject(error);
     }
 
     // ── 5xx or network error: retry with exponential backoff ──────────

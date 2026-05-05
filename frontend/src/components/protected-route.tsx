@@ -26,6 +26,9 @@ export function ProtectedRoute({ children, allowedRoles }: { children: React.Rea
   }
 
   if (!isAuthenticated || (allowedRoles && user && !allowedRoles.includes(user.role))) {
+    if (isClient && typeof window !== 'undefined') {
+      router.push('/login');
+    }
     return null;
   }
 

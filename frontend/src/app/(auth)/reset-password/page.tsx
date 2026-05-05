@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { supabase } from '@/lib/supabase';
 import { AuthRedirectWrapper } from '@/components/auth-redirect-wrapper';
 import { toast } from 'sonner';
 
@@ -17,23 +16,10 @@ function ResetPasswordForm() {
   const [error, setError] = useState('');
   
   const [formData, setFormData] = useState({
-    email: '',
+    email: searchParams.get('email') || '',
     newPassword: '',
+    confirmPassword: '',
   });
-
-  useEffect(() => {
-    const emailParam = searchParams.get('email');
-    if (emailParam) {
-      setFormData(prev => ({ ...prev, email: emailParam }));
-    }
-    
-    // Check if we have an active session from the recovery link
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        setError('No active recovery session. Please request a new reset link.');
-      }
-    });
-  }, [searchParams]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -45,15 +31,35 @@ function ResetPasswordForm() {
     setLoading(true);
     setError('');
     
+    if (formData.newPassword.length < 6) {
+      setError('Password must be at least 6 characters');
+      setLoading(false);
+      return;
+    }
+
+    if (formData.newPassword !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: formData.newPassword
+      const token = searchParams.get('token');
+      
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          newPassword: formData.newPassword,
+          token,
+        })
       });
 
-      if (updateError) throw updateError;
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to reset password');
 
       toast.success('Password reset successfully! Please login with your new password.');
-      await supabase.auth.signOut(); // Sign out the recovery session
       router.push('/login');
     } catch (err: any) {
       console.error(err);
@@ -80,7 +86,7 @@ function ResetPasswordForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="newPassword" title="New Password" className="text-zinc-300 text-sm font-medium ml-1">New Password</Label>
+          <Label htmlFor="newPassword" className="text-zinc-300 text-sm font-medium ml-1">New Password</Label>
           <Input
             id="newPassword"
             name="newPassword"
@@ -88,8 +94,23 @@ function ResetPasswordForm() {
             autoComplete="new-password"
             required
             className="h-12 bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 focus:border-lime-500/50 focus:ring-lime-500/20 transition-all rounded-xl"
-            placeholder="••••••••"
+            placeholder="Min 6 characters"
             value={formData.newPassword}
+            onChange={handleChange}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="confirmPassword" className="text-zinc-300 text-sm font-medium ml-1">Confirm Password</Label>
+          <Input
+            id="confirmPassword"
+            name="confirmPassword"
+            type="password"
+            autoComplete="new-password"
+            required
+            className="h-12 bg-white/[0.05] border-white/10 text-white placeholder:text-zinc-600 focus:border-lime-500/50 focus:ring-lime-500/20 transition-all rounded-xl"
+            placeholder="••••••••"
+            value={formData.confirmPassword}
             onChange={handleChange}
           />
         </div>
@@ -175,4 +196,3 @@ export default function ResetPasswordPage() {
     </AuthRedirectWrapper>
   );
 }
-

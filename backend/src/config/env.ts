@@ -53,10 +53,7 @@ const envSchema = z.object({
   SUPABASE_URL: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
 
-  FIREBASE_PROJECT_ID: z.string().optional().default('uniexo'),
-  FIREBASE_DATABASE_URL: z.string().url().default('https://uniexo-default-rtdb.europe-west1.firebasedatabase.app/'),
-  FIREBASE_CLIENT_EMAIL: z.string().optional(),
-  FIREBASE_PRIVATE_KEY: z.string().optional(),
+  // Firebase removed — all operations are Supabase-only
 
   DEFAULT_COMMISSION_PERCENT: z.coerce.number().min(0).max(100).default(10),
 });
