@@ -23,6 +23,7 @@ interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   _hasHydrated: boolean;
+  registrationTime: number | null;
   setHasHydrated: (state: boolean) => void;
   login: (user: User, token: string) => void;
   logout: () => void;
@@ -36,11 +37,17 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       isAuthenticated: false,
       _hasHydrated: false,
+      registrationTime: null,
 
       setHasHydrated: (state) => set({ _hasHydrated: state }),
-      login: (user, token) => set({ user, token, isAuthenticated: true }),
+      login: (user, token) => set({ 
+        user, 
+        token, 
+        isAuthenticated: true,
+        registrationTime: Date.now()
+      }),
       logout: () => {
-        set({ user: null, token: null, isAuthenticated: false });
+        set({ user: null, token: null, isAuthenticated: false, registrationTime: null });
         if (typeof window !== 'undefined') {
           localStorage.removeItem('auth-storage');
           sessionStorage.clear();
@@ -52,7 +59,6 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'auth-storage',
       onRehydrateStorage: () => (state) => {
-        // Use the state object directly to avoid circular reference
         if (state) {
           state._hasHydrated = true;
         }
@@ -61,6 +67,7 @@ export const useAuthStore = create<AuthState>()(
         user: s.user,
         token: s.token,
         isAuthenticated: s.isAuthenticated,
+        registrationTime: s.registrationTime,
       }),
     },
   ),
