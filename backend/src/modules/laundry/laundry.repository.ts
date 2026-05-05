@@ -38,28 +38,34 @@ function mapOrderRow(row: Record<string, unknown>) {
 
 export class LaundryRepository {
   async createService(data: any): Promise<any> {
+    const insertData = {
+      vendor_id: data.vendorId || data.vendor_id,
+      name: String(data.name || ''),
+      description: String(data.description || ''),
+      provider_name: String(data.providerName || data.provider_name || ''),
+      provider_phone: String(data.providerPhone || data.provider_phone || ''),
+      provider_address: String(data.providerAddress || data.provider_address || ''),
+      services: Array.isArray(data.services) ? data.services : [],
+      images: Array.isArray(data.images) ? data.images : [],
+      rank: Number(data.rank || 0),
+      onsite_pickup: Boolean(data.onsitePickup ?? data.onsite_pickup ?? false),
+      on_store_service: Boolean(data.onStoreService ?? data.on_store_service ?? false),
+      onsite_pickup_charge: Number(data.onsitePickupCharge || data.onsite_pickup_charge || 0),
+      is_active: Boolean(data.isActive ?? data.is_active ?? true),
+      approval_status: data.approvalStatus || data.approval_status || 'approved',
+      is_deleted: false
+    };
+
     const { data: service, error } = await supabase
       .from('laundry_services')
-      .insert({
-        vendor_id: data.vendorId,
-        name: data.name,
-        description: data.description,
-        provider_name: data.providerName,
-        provider_phone: data.providerPhone,
-        provider_address: data.providerAddress,
-        services: data.services,
-        images: data.images,
-        rank: data.rank,
-        onsite_pickup: data.onsitePickup,
-        on_store_service: data.onStoreService,
-        onsite_pickup_charge: data.onsitePickupCharge,
-        is_active: data.isActive !== undefined ? data.isActive : true,
-        approval_status: data.approvalStatus || 'approved', // Default to approved for now as per legacy
-      })
+      .insert(insertData)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('[LAUNDRY-REPO] Create failed:', error);
+      throw error;
+    }
     return mapLaundryServiceRow(service as Record<string, unknown>);
   }
 

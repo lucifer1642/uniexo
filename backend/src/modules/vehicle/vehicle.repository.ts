@@ -26,33 +26,39 @@ function mapVehicleRow(row: Record<string, unknown>) {
 
 export class VehicleRepository {
   async create(data: any): Promise<any> {
+    const insertData = {
+      vendor_id: data.vendorId || data.vendor_id,
+      name: String(data.name || ''),
+      type: String(data.type || ''),
+      brand: String(data.brand || ''),
+      model_name: String(data.modelName || data.model_name || data.model || ''),
+      year: Number(data.year || 0),
+      registration_number: String(data.registrationNumber || data.registration_number || ''),
+      fuel_type: String(data.fuelType || data.fuel_type || ''),
+      seating_capacity: Number(data.seatingCapacity || data.seating_capacity || 0),
+      price_per_hour: Number(data.pricePerHour || data.price_per_hour || 0),
+      price_per_day: Number(data.pricePerDay || data.price_per_day || 0),
+      images: Array.isArray(data.images) ? data.images : [],
+      description: String(data.description || ''),
+      features: Array.isArray(data.features) ? data.features : [],
+      location: String(data.location || ''),
+      availability: Array.isArray(data.availability) ? data.availability : [],
+      rank: Number(data.rank || 0),
+      approval_status: data.approvalStatus || data.approval_status || 'pending',
+      is_available: Boolean(data.isAvailable ?? data.is_available ?? true),
+      current_status: data.currentStatus || data.current_status || 'available',
+    };
+
     const { data: vehicle, error } = await supabase
       .from('vehicles')
-      .insert({
-        vendor_id: data.vendorId,
-        name: data.name,
-        type: data.type,
-        brand: data.brand,
-        model_name: data.modelName,
-        year: data.year,
-        registration_number: data.registrationNumber,
-        fuel_type: data.fuelType,
-        seating_capacity: data.seatingCapacity,
-        price_per_hour: data.pricePerHour,
-        price_per_day: data.pricePerDay,
-        images: data.images,
-        description: data.description,
-        features: data.features,
-        location: data.location,
-        availability: data.availability,
-        rank: data.rank,
-        approval_status: data.approvalStatus || 'pending',
-        is_available: data.isAvailable !== undefined ? data.isAvailable : true,
-      })
+      .insert(insertData)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('[VEHICLE-REPO] Create failed:', error);
+      throw error;
+    }
     return mapVehicleRow(vehicle as Record<string, unknown>);
   }
 

@@ -32,25 +32,31 @@ function mapOfferRow(row: Record<string, unknown>) {
 
 export class MarketplaceRepository {
   async create(data: any): Promise<any> {
+    const insertData = {
+      vendor_id: data.vendorId || data.vendor_id || data.sellerId || data.seller_id,
+      title: String(data.title || ''),
+      description: String(data.description || ''),
+      price: Number(data.price || 0),
+      category: String(data.category || 'other'),
+      condition: String(data.condition || 'good'),
+      images: Array.isArray(data.images) ? data.images : [],
+      location: String(data.location || ''),
+      is_sold: Boolean(data.isSold ?? data.is_sold ?? false),
+      approval_status: data.approvalStatus || data.approval_status || 'approved',
+      is_available: Boolean(data.isAvailable ?? data.is_available ?? true),
+      is_deleted: false
+    };
+
     const { data: item, error } = await supabase
       .from('marketplace_items')
-      .insert({
-        vendor_id: data.vendorId,
-        title: data.title,
-        description: data.description,
-        price: data.price,
-        category: data.category,
-        condition: data.condition,
-        images: data.images,
-        location: data.location,
-        is_sold: false,
-        approval_status: data.approvalStatus || 'approved',
-        is_available: true,
-      })
+      .insert(insertData)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('[MARKETPLACE-REPO] Create failed:', error);
+      throw error;
+    }
     return mapMarketplaceItemRow(item as Record<string, unknown>);
   }
 

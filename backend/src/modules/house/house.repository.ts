@@ -39,51 +39,56 @@ function mapHouseRow(row: Record<string, unknown>) {
 
 export class HouseRepository {
   async create(data: any): Promise<any> {
+    const insertData = {
+      vendor_id: data.vendorId || data.vendor_id,
+      title: String(data.title || ''),
+      description: String(data.description || ''),
+      property_type: String(data.propertyType || data.property_type || 'pg'),
+      address: String(data.address || ''),
+      city: String(data.city || ''),
+      state: String(data.state || ''),
+      pincode: String(data.pincode || ''),
+      bedrooms: Number(data.bedrooms || 0),
+      bathrooms: Number(data.bathrooms || 0),
+      area: Number(data.area || 0),
+      room_size: data.roomSize || data.room_size || null,
+      bed_type: data.bedType || data.bed_type || null,
+      tenants_staying: Number(data.tenantsStaying || data.tenants_staying || 0),
+      price_per_month: Number(data.pricePerMonth || data.price_per_month || 0),
+      price_per_day: Number(data.pricePerDay || data.price_per_day || 0),
+      price_per_hour: Number(data.pricePerHour || data.price_per_hour || 0),
+      single_sharing_price: Number(data.singleSharingPrice || data.single_sharing_price || 0),
+      double_sharing_price: Number(data.doubleSharingPrice || data.double_sharing_price || 0),
+      triple_sharing_price: Number(data.tripleSharingPrice || data.triple_sharing_price || 0),
+      security_deposit: Number(data.securityDeposit || data.security_deposit || 0),
+      lockin_period: data.lockinPeriod || data.lockin_period || null,
+      notice_period: data.noticePeriod || data.notice_period || null,
+      electricity_included: Boolean(data.electricityIncluded ?? data.electricity_included ?? true),
+      electricity_charge: Number(data.electricityCharge || data.electricity_charge || 0),
+      images: Array.isArray(data.images) ? data.images : [],
+      amenities: Array.isArray(data.amenities) ? data.amenities : [],
+      common_amenities: Array.isArray(data.commonAmenities || data.common_amenities) ? (data.commonAmenities || data.common_amenities) : [],
+      room_amenities: Array.isArray(data.roomAmenities || data.room_amenities) ? (data.roomAmenities || data.room_amenities) : [],
+      services_amenities: Array.isArray(data.servicesAmenities || data.services_amenities) ? (data.servicesAmenities || data.services_amenities) : [],
+      food_amenities: Array.isArray(data.foodAmenities || data.food_amenities) ? (data.foodAmenities || data.food_amenities) : [],
+      rules: Array.isArray(data.rules) ? data.rules : [],
+      faqs: Array.isArray(data.faqs) ? data.faqs : [],
+      location_url: data.locationUrl || data.location_url || null,
+      rank: Number(data.rank || 0),
+      approval_status: data.approvalStatus || data.approval_status || 'pending',
+      is_available: Boolean(data.isAvailable ?? data.is_available ?? true),
+    };
+
     const { data: house, error } = await supabase
       .from('houses')
-      .insert({
-        vendor_id: data.vendorId,
-        title: data.title,
-        description: data.description,
-        property_type: data.propertyType,
-        address: data.address,
-        city: data.city,
-        state: data.state,
-        pincode: data.pincode,
-        bedrooms: data.bedrooms,
-        bathrooms: data.bathrooms,
-        area: data.area,
-        room_size: data.roomSize,
-        bed_type: data.bedType,
-        tenants_staying: data.tenantsStaying,
-        price_per_month: data.pricePerMonth,
-        price_per_day: data.pricePerDay,
-        price_per_hour: data.pricePerHour,
-        single_sharing_price: data.singleSharingPrice,
-        double_sharing_price: data.doubleSharingPrice,
-        triple_sharing_price: data.tripleSharingPrice,
-        security_deposit: data.securityDeposit,
-        lockin_period: data.lockinPeriod,
-        notice_period: data.noticePeriod,
-        electricity_included: data.electricityIncluded,
-        electricity_charge: data.electricityCharge,
-        images: data.images,
-        amenities: data.amenities,
-        common_amenities: data.commonAmenities,
-        room_amenities: data.roomAmenities,
-        services_amenities: data.servicesAmenities,
-        food_amenities: data.foodAmenities,
-        rules: data.rules,
-        faqs: data.faqs,
-        location_url: data.locationUrl,
-        rank: data.rank,
-        approval_status: data.approvalStatus || 'pending',
-        is_available: data.isAvailable !== undefined ? data.isAvailable : true,
-      })
+      .insert(insertData)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('[HOUSE-REPO] Create failed:', error);
+      throw error;
+    }
     return mapHouseRow(house as Record<string, unknown>);
   }
 
