@@ -18,23 +18,30 @@ export function AuthRedirectWrapper({ children }: { children: React.ReactNode })
     if (!isClient || !_hasHydrated) return;
 
     let authed = storeIsAuth;
+    let fallbackRole: string | undefined;
     
     // Fallback: Check localStorage directly
-    if (!authed) {
+    if (!authed || !user) {
         try {
             const stored = localStorage.getItem('auth-storage');
             if (stored) {
                 const parsed = JSON.parse(stored);
                 if (parsed.state && parsed.state.isAuthenticated) {
                     authed = true;
+                    fallbackRole = parsed.state.user?.role;
                 }
             }
-        } catch (e) {}
+        } catch (e) {
+            if (process.env.NODE_ENV !== 'production') {
+                console.error('[AUTH-REDIRECT] Error reading auth-storage from localStorage:', e, { key: 'auth-storage' });
+            }
+            try { localStorage.removeItem('auth-storage'); } catch (e2) {}
+        }
     }
 
     if (authed) {
       setIsAuthVerified(true);
-      const role = user?.role || 'user';
+      const role = user?.role || fallbackRole || 'user';
       const path = role === 'admin' ? '/admin' : role === 'vendor' ? '/dashboard' : '/';
       console.log('[AUTH-REDIRECT] Already authenticated, redirecting to:', path);
       window.location.href = path;

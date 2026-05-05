@@ -30,6 +30,9 @@ export function ProtectedRoute({ children, allowedRoles }: { children: React.Rea
           const parsed = JSON.parse(stored);
           if (parsed.state && parsed.state.isAuthenticated) {
             console.log('[PROTECTED-ROUTE] Auth verified via localStorage fallback');
+            if (parsed.state.user && parsed.state.token) {
+                useAuthStore.getState().login(parsed.state.user, parsed.state.token);
+            }
             setIsAuthVerified(true);
             return;
           }
@@ -63,7 +66,7 @@ export function ProtectedRoute({ children, allowedRoles }: { children: React.Rea
   }
 
   // If not verified or role doesn't match, return null while the useEffect redirect handles it
-  if (!isAuthVerified || (allowedRoles && storeUser && !allowedRoles.includes(storeUser.role))) {
+  if (!isAuthVerified || (allowedRoles && (!storeUser || !allowedRoles.includes(storeUser.role)))) {
     // Only return null if we are sure we are not auth'd or role is wrong
     // But wait, if we are NOT auth'd, the useEffect will trigger router.push
     return null;

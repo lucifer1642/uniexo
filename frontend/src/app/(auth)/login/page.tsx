@@ -44,7 +44,7 @@ export default function LoginPage() {
     setError('');
 
     try {
-      console.log('[LOGIN] Submitting for:', formData.email.trim());
+      console.log('[LOGIN] Submitting credentials...');
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -59,7 +59,7 @@ export default function LoginPage() {
         throw new Error(data.error || "Login failed");
       }
 
-      console.log('[LOGIN] Success, updating store for:', data.profile.email);
+      console.log('[LOGIN] Success, updating store...');
       
       // Update global auth state
       useAuthStore.getState().login({

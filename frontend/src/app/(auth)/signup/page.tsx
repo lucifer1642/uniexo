@@ -76,7 +76,7 @@ export default function SignupPage() {
     setError('');
 
     try {
-      console.log('[SIGNUP] Finalizing registration for:', formData.email.trim());
+      console.log('[SIGNUP] Finalizing registration...');
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
