@@ -23,32 +23,33 @@ export class MarketplaceService {
       images = await CloudinaryService.uploadMultiple(files, 'marketplace');
     }
 
-    return this.marketplaceRepo.createItem({
+    return this.marketplaceRepo.create({
       ...data,
-      sellerId: sellerId as any,
+      vendorId: sellerId as any,
       images,
+      approvalStatus: 'approved',
     });
   }
 
   async getById(id: string) {
-    const item = await this.marketplaceRepo.findItemById(id);
+    const item = await this.marketplaceRepo.findById(id);
     if (!item) throw new NotFoundError('Item not found');
     return item;
   }
 
   async update(itemId: string, sellerId: string, data: Partial<IMarketplaceItem>) {
-    const item = await this.marketplaceRepo.findItemById(itemId);
+    const item = await this.marketplaceRepo.findById(itemId);
     if (!item) throw new NotFoundError('Item not found');
-    if (item.sellerId.toString() !== sellerId) {
+    if (String(item.vendorId) !== String(sellerId)) {
       throw new ForbiddenError('You can only update your own items');
     }
-    return this.marketplaceRepo.updateItem(itemId, data);
+    return this.marketplaceRepo.update(itemId, data);
   }
 
   async uploadImages(itemId: string, sellerId: string, files: Express.Multer.File[]) {
-    const item = await this.marketplaceRepo.findItemById(itemId);
+    const item = await this.marketplaceRepo.findById(itemId);
     if (!item) throw new NotFoundError('Item not found');
-    if (item.sellerId.toString() !== sellerId) {
+    if (String(item.vendorId) !== String(sellerId)) {
       throw new ForbiddenError('You can only update your own items');
     }
 
@@ -57,12 +58,12 @@ export class MarketplaceService {
   }
 
   async delete(itemId: string, sellerId: string) {
-    const item = await this.marketplaceRepo.findItemById(itemId);
+    const item = await this.marketplaceRepo.findById(itemId);
     if (!item) throw new NotFoundError('Item not found');
-    if (item.sellerId.toString() !== sellerId) {
+    if (String(item.vendorId) !== String(sellerId)) {
       throw new ForbiddenError('You can only delete your own items');
     }
-    await this.marketplaceRepo.softDeleteItem(itemId);
+    await this.marketplaceRepo.softDelete(itemId);
   }
 
   async listPublic(query: {
@@ -95,11 +96,11 @@ export class MarketplaceService {
   }
 
   async getUserItems(userId: string, query: PaginationQuery) {
-    return this.marketplaceRepo.findItemsByUser(userId, query);
+    return this.marketplaceRepo.findByVendor(userId, query);
   }
 
   async reportItem(itemId: string, reason: string) {
-    const item = await this.marketplaceRepo.findItemById(itemId);
+    const item = await this.marketplaceRepo.findById(itemId);
     if (!item) throw new NotFoundError('Item not found');
     return this.marketplaceRepo.reportItem(itemId, reason);
   }

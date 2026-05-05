@@ -58,7 +58,7 @@ export class VehicleService {
     const vehicle = await this.vehicleRepo.findById(vehicleId);
     if (!vehicle) throw new NotFoundError('Vehicle not found');
 
-    const vId = String((vehicle as { vendor_id: string }).vendor_id);
+    const vId = String(vehicle.vendorId);
 
     if (vId !== vendorId) {
       throw new ForbiddenError('You can only update your own vehicles');
@@ -71,7 +71,7 @@ export class VehicleService {
     const vehicle = await this.vehicleRepo.findById(vehicleId);
     if (!vehicle) throw new NotFoundError('Vehicle not found');
 
-    const vId = String((vehicle as { vendor_id: string }).vendor_id);
+    const vId = String(vehicle.vendorId);
 
     if (vId !== vendorId) {
       throw new ForbiddenError('You can only update your own vehicles');
@@ -85,7 +85,7 @@ export class VehicleService {
     const vehicle = await this.vehicleRepo.findById(vehicleId);
     if (!vehicle) throw new NotFoundError('Vehicle not found');
 
-    const vId = String((vehicle as { vendor_id: string }).vendor_id);
+    const vId = String(vehicle.vendorId);
 
     if (vId !== vendorId) {
       throw new ForbiddenError(`You can only delete your own vehicles. Owner: ${vId}, Requester: ${vendorId}`);
@@ -102,7 +102,7 @@ export class VehicleService {
     const vehicle = await this.vehicleRepo.findById(vehicleId);
     if (!vehicle) throw new NotFoundError('Vehicle not found');
 
-    const vId = String((vehicle as { vendor_id: string }).vendor_id);
+    const vId = String(vehicle.vendorId);
 
     if (vId !== vendorId) {
       throw new ForbiddenError('You can only update your own vehicles');
@@ -206,7 +206,7 @@ export class VehicleService {
     const vehicle = await this.vehicleRepo.findById(vehicleId);
     if (!vehicle) throw new NotFoundError('Vehicle not found');
 
-    const vId = String((vehicle as { vendor_id: string }).vendor_id);
+    const vId = String(vehicle.vendorId);
     if (vId !== vendorId) throw new ForbiddenError('Not your vehicle');
 
     return this.vehicleRepo.patchById(vehicleId, {
@@ -228,7 +228,7 @@ export class VehicleService {
     const vehicle = await this.vehicleRepo.findById(vehicleId);
     if (!vehicle) throw new NotFoundError('Vehicle not found');
 
-    const vId = String((vehicle as { vendor_id: string }).vendor_id);
+    const vId = String(vehicle.vendorId);
     if (vId !== vendorId) throw new ForbiddenError('Not your vehicle');
 
     return this.vehicleRepo.patchById(vehicleId, {
