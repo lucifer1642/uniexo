@@ -67,13 +67,31 @@ export interface IHouse extends IBaseEntity {
   bedrooms: number;
   bathrooms: number;
   area: number;
-  pricePerMonth: number;
-  securityDeposit: number;
+  roomSize?: string;
+  bedType?: string;
+  tenantsStaying?: number;
+  pricePerMonth?: number;
+  pricePerDay?: number;
+  pricePerHour?: number;
+  singleSharingPrice?: number;
+  doubleSharingPrice?: number;
+  tripleSharingPrice?: number;
+  securityDeposit?: number;
+  lockinPeriod?: string;
+  noticePeriod?: string;
+  electricityIncluded?: boolean;
+  electricityCharge?: number;
+  locationUrl?: string;
   images: string[];
-  amenities: string[];
+  amenities?: string[];
+  commonAmenities?: string[];
+  roomAmenities?: string[];
+  servicesAmenities?: string[];
+  foodAmenities?: string[];
   approvalStatus: ListingApprovalStatus;
   isAvailable: boolean;
   rank: number;
+  faqs?: { question: string; answer: string }[];
 }
 
 export interface IBooking extends IBaseEntity {

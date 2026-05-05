@@ -34,6 +34,8 @@ export const createHouseSchema = z.object({
       answer: z.string()
     })).optional(),
     tenantsStaying: z.coerce.number().optional(),
+    roomSize: z.string().optional(),
+    bedType: z.string().optional(),
   }),
 });
 
@@ -72,6 +74,8 @@ export const updateHouseSchema = z.object({
       answer: z.string()
     })).optional(),
     tenantsStaying: z.coerce.number().optional(),
+    roomSize: z.string().optional(),
+    bedType: z.string().optional(),
     isAvailable: z.boolean().optional(),
   }),
 });
