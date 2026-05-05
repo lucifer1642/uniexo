@@ -20,7 +20,11 @@ export class MarketplaceService {
   ) {
     let images: string[] = [];
     if (files && files.length > 0) {
-      images = await CloudinaryService.uploadMultiple(files, 'marketplace');
+      try {
+        images = await CloudinaryService.uploadMultiple(files, 'marketplace');
+      } catch (err) {
+        console.error('[MARKETPLACE-SERVICE] Image upload failed:', err);
+      }
     }
 
     return this.marketplaceRepo.create({

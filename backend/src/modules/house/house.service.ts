@@ -24,7 +24,11 @@ export class HouseService {
 
     let images: string[] = [];
     if (files && files.length > 0) {
-      images = await CloudinaryService.uploadMultiple(files, 'houses');
+      try {
+        images = await CloudinaryService.uploadMultiple(files, 'houses');
+      } catch (err) {
+        console.error('[HOUSE-SERVICE] Image upload failed, continuing with empty array:', err);
+      }
     }
 
     return this.houseRepo.create({

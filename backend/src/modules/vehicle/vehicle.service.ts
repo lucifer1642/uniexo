@@ -31,8 +31,12 @@ export class VehicleService {
 
     let images: string[] = [];
     if (files && files.length > 0) {
-      const allowedFiles = files.slice(0, 1);
-      images = await CloudinaryService.uploadMultiple(allowedFiles, 'vehicles');
+      try {
+        const allowedFiles = files.slice(0, 5); // Allow more than 1
+        images = await CloudinaryService.uploadMultiple(allowedFiles, 'vehicles');
+      } catch (err) {
+        console.error('[VEHICLE-SERVICE] Image upload failed:', err);
+      }
     }
 
     const { model, ...rest } = data as IVehicle & { model?: string };

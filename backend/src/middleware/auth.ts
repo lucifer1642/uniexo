@@ -20,10 +20,10 @@ export const authenticate = async (
       throw new UnauthorizedError('No authentication token provided. Please log in.');
     }
 
-    const token = authHeader.split(' ')[1];
+    const token = authHeader.split(' ')[1]?.trim();
     if (!token || token === 'undefined' || token === 'null') {
       logger.warn(`[AUTH] Invalid token format detected`);
-      throw new UnauthorizedError('The authentication token provided is invalid or malformed.');
+      throw new UnauthorizedError('The authentication token provided is invalid or malformed. Please log in again.');
     }
 
     // Decode our simple base64 token
@@ -34,8 +34,10 @@ export const authenticate = async (
         throw new UnauthorizedError('Invalid token format');
     }
 
-    if (Date.now() > decodedToken.exp) {
-        throw new UnauthorizedError('Token has expired. Please log in again.');
+    // 5-minute grace period for expiry to avoid clock skew issues
+    const GRACE_PERIOD = 5 * 60 * 1000;
+    if (Date.now() > (decodedToken.exp + GRACE_PERIOD)) {
+        throw new UnauthorizedError('Your session has expired. Please log in again.');
     }
 
     // Fetch the profile
@@ -47,7 +49,7 @@ export const authenticate = async (
 
     if (profileError || !profile) {
       logger.error(`[AUTH] Profile fetch error for ${decodedToken.userId}`, { error: profileError?.message });
-      throw new UnauthorizedError('Platform error: Unable to verify your profile at this time.');
+      throw new UnauthorizedError(`Unable to verify profile. ${profileError?.message || 'Profile record not found.'}`);
     }
 
     if (profile.is_deleted) {
