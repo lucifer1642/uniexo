@@ -6,9 +6,8 @@ import { useAuthStore } from '@/store/auth.store';
 
 export function AuthRedirectWrapper({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { isAuthenticated: storeIsAuth, user, _hasHydrated } = useAuthStore();
+  const { isAuthenticated, user, _hasHydrated } = useAuthStore();
   const [isClient, setIsClient] = useState(false);
-  const [isAuthVerified, setIsAuthVerified] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -17,43 +16,19 @@ export function AuthRedirectWrapper({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (!isClient || !_hasHydrated) return;
 
-    let authed = storeIsAuth;
-    let fallbackRole: string | undefined;
-    
-    // Fallback: Check localStorage directly
-    if (!authed || !user) {
-        try {
-            const stored = localStorage.getItem('auth-storage');
-            if (stored) {
-                const parsed = JSON.parse(stored);
-                if (parsed.state && parsed.state.isAuthenticated) {
-                    authed = true;
-                    fallbackRole = parsed.state.user?.role;
-                }
-            }
-        } catch (e) {
-            if (process.env.NODE_ENV !== 'production') {
-                console.error('[AUTH-REDIRECT] Error reading auth-storage from localStorage:', e, { key: 'auth-storage' });
-            }
-            try { localStorage.removeItem('auth-storage'); } catch (e2) {}
-        }
-    }
+    if (isAuthenticated && user) {
+      const path =
+        user.role === 'admin' ? '/admin' : user.role === 'vendor' ? '/dashboard' : '/';
 
-    if (authed) {
-      setIsAuthVerified(true);
-      const role = user?.role || fallbackRole || 'user';
-      const path = role === 'admin' ? '/admin' : role === 'vendor' ? '/dashboard' : '/';
-      console.log('[AUTH-REDIRECT] Already authenticated, redirecting to:', path);
-      window.location.href = path;
+      router.replace(path);
     }
-  }, [storeIsAuth, _hasHydrated, isClient, router, user]);
+  }, [isAuthenticated, user, _hasHydrated, isClient, router]);
 
   if (!isClient || !_hasHydrated) {
     return null;
   }
 
-  // Only render children if the user is NOT authenticated
-  if (isAuthVerified) {
+  if (isAuthenticated && user) {
     return null;
   }
 
