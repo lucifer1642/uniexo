@@ -6,7 +6,7 @@ import { WalletRepository } from '../wallet/wallet.repository';
 import { CloudinaryService } from '../../services/cloudinary.service';
 import { supabase } from '../../config/supabase';
 import { UserRole, VendorApprovalStatus, BookingStatus, OrderStatus } from '../../types/enums';
-import { ConflictError, NotFoundError, BadRequestError } from '../../utils/errors';
+import { ConflictError, NotFoundError, BadRequestError, ForbiddenError } from '../../utils/errors';
 import { PaginationQuery } from '../../types';
 
 export class VendorService {
