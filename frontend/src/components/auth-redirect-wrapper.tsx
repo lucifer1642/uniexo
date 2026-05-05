@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store/auth.store';
 
 export function AuthRedirectWrapper({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user, _hasHydrated } = useAuthStore();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -14,15 +14,17 @@ export function AuthRedirectWrapper({ children }: { children: React.ReactNode })
   }, []);
 
   useEffect(() => {
-    if (!isClient) return;
+    if (!isClient || !_hasHydrated) return;
 
-    if (isAuthenticated) {
-      router.push('/');
+    if (isAuthenticated && user) {
+      const path = user.role === 'admin' ? '/admin' : user.role === 'vendor' ? '/dashboard' : '/';
+      console.log('[AUTH-REDIRECT] Already authenticated, redirecting to:', path);
+      router.push(path);
     }
-  }, [isAuthenticated, isClient, router]);
+  }, [isAuthenticated, _hasHydrated, isClient, router, user]);
 
-  if (!isClient) {
-    return null; // Prevent hydration mismatch
+  if (!isClient || !_hasHydrated) {
+    return null;
   }
 
   // Only render children if the user is NOT authenticated

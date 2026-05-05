@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store/auth.store';
 
 export function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: string[] }) {
   const router = useRouter();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, _hasHydrated } = useAuthStore();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -14,21 +14,28 @@ export function ProtectedRoute({ children, allowedRoles }: { children: React.Rea
   }, []);
 
   useEffect(() => {
-    if (!isClient) return;
+    if (!isClient || !_hasHydrated) return;
 
-    // REMOVED: Automatic redirect to /login. 
-    // We stay on the page even if isAuthenticated is false, 
-    // but the UI will handle the state via the return null below.
-  }, [isAuthenticated, isClient, router, allowedRoles, user]);
+    if (!isAuthenticated) {
+      console.log('[PROTECTED-ROUTE] Not authenticated, redirecting to /login');
+      router.push('/login');
+    } else if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+      console.log('[PROTECTED-ROUTE] Role mismatch, redirecting to /');
+      router.push('/');
+    }
+  }, [isAuthenticated, _hasHydrated, isClient, router, allowedRoles, user]);
 
-  if (!isClient) {
-    return null; // or a loading spinner
+  // Wait for both client-side mount and hydration from localStorage
+  if (!isClient || !_hasHydrated) {
+    return (
+        <div className="min-h-screen bg-black flex items-center justify-center">
+            <div className="w-8 h-8 border-4 border-lime-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+    );
   }
 
+  // If not authenticated or role doesn't match, return null while the useEffect redirect handles it
   if (!isAuthenticated || (allowedRoles && user && !allowedRoles.includes(user.role))) {
-    if (isClient && typeof window !== 'undefined') {
-      router.push('/login');
-    }
     return null;
   }
 
