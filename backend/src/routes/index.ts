@@ -12,6 +12,7 @@ import adminRoutes from '../modules/admin/admin.routes';
 import reviewRoutes from '../modules/review/review.routes';
 import authRoutes from '../modules/auth/auth.routes';
 import robustRoutes from './robust.routes';
+import seoRoutes from './seo.routes';
 
 const router = Router();
 router.use('/users', userRoutes);
@@ -27,5 +28,6 @@ router.use('/admin', adminRoutes);
 router.use('/reviews', reviewRoutes);
 router.use('/auth', authRoutes);
 router.use('/robust', robustRoutes);
+router.use('/seo', seoRoutes);
 
 export default router;

@@ -112,7 +112,7 @@ export class RobustVendorController {
   static async getMyMarketplaceItems(req: Request, res: Response, next: NextFunction) {
     try {
       const { userId } = (req as AuthRequest).user!;
-      const items = await marketplaceService.findItemsByUser(userId, {
+      const items = await marketplaceService.getUserItems(userId, {
         page: Number(req.query.page) || 1,
         limit: Number(req.query.limit) || 10,
       });
@@ -125,7 +125,7 @@ export class RobustVendorController {
   static async getMyLaundryService(req: Request, res: Response, next: NextFunction) {
     try {
       const { userId } = (req as AuthRequest).user!;
-      const service = await laundryService.findServicesByVendorUserId(userId);
+      const service = await laundryService.getVendorService(userId);
       ResponseFormatter.ok(res, 'My laundry service fetched (Robust Mode)', service);
     } catch (error) {
       next(error);

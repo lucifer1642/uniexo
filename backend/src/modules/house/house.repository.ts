@@ -2,6 +2,7 @@ import { supabase } from '../../config/supabase';
 import { PaginationQuery } from '../../types';
 import { ListingApprovalStatus } from '../../types/enums';
 import { BadRequestError } from '../../utils/errors';
+import { SlugUtils } from '../../utils/slug';
 
 function mapHouseRow(row: Record<string, unknown>) {
   return {
@@ -41,9 +42,10 @@ export class HouseRepository {
   async create(data: any): Promise<any> {
     const insertData = {
       vendor_id: data.vendorId || data.vendor_id,
-      title: String(data.title || ''),
+      name: String(data.name || data.title || ''),
+      slug: data.slug || SlugUtils.generate(String(data.name || data.title || 'house')),
       description: String(data.description || ''),
-      property_type: String(data.propertyType || data.property_type || 'pg'),
+      property_type: String(data.propertyType || data.property_type || 'apartment'),
       address: String(data.address || ''),
       city: String(data.city || ''),
       state: String(data.state || ''),
@@ -106,7 +108,8 @@ export class HouseRepository {
 
   async update(id: string, data: any): Promise<any | null> {
     const patch: Record<string, any> = {};
-    if (data.title !== undefined) patch.title = data.title;
+    if (data.name !== undefined || data.title !== undefined) patch.name = data.name || data.title;
+    if (data.slug !== undefined) patch.slug = data.slug;
     if (data.description !== undefined) patch.description = data.description;
     if (data.propertyType !== undefined) patch.property_type = data.propertyType;
     if (data.address !== undefined) patch.address = data.address;

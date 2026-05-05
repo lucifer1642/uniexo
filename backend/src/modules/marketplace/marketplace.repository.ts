@@ -1,6 +1,7 @@
 import { supabase } from '../../config/supabase';
 import { PaginationQuery } from '../../types';
 import { BadRequestError } from '../../utils/errors';
+import { SlugUtils } from '../../utils/slug';
 
 function mapMarketplaceItemRow(row: Record<string, unknown>) {
   return {
@@ -34,7 +35,8 @@ export class MarketplaceRepository {
   async create(data: any): Promise<any> {
     const insertData = {
       vendor_id: data.vendorId || data.vendor_id || data.sellerId || data.seller_id,
-      title: String(data.title || ''),
+      title: String(data.title || data.name || ''),
+      slug: data.slug || SlugUtils.generate(String(data.title || data.name || 'item')),
       description: String(data.description || ''),
       price: Number(data.price || 0),
       category: String(data.category || 'other'),

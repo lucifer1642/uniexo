@@ -2,6 +2,7 @@ import { supabase } from '../../config/supabase';
 import { PaginationQuery } from '../../types';
 import { ListingApprovalStatus } from '../../types/enums';
 import { BadRequestError } from '../../utils/errors';
+import { SlugUtils } from '../../utils/slug';
 
 function mapVehicleRow(row: Record<string, unknown>) {
   return {
@@ -28,7 +29,8 @@ export class VehicleRepository {
   async create(data: any): Promise<any> {
     const insertData = {
       vendor_id: data.vendorId || data.vendor_id,
-      name: String(data.name || ''),
+      name: String(data.name || data.title || ''),
+      slug: data.slug || SlugUtils.generate(String(data.name || data.title || 'vehicle')),
       type: String(data.type || ''),
       brand: String(data.brand || ''),
       model_name: String(data.modelName || data.model_name || data.model || ''),
