@@ -65,7 +65,7 @@ export const errorHandler = (
 
   // Final fallback for unhandled errors
   const isProd = process.env.NODE_ENV === 'production';
-  return ResponseFormatter.error(
+  ResponseFormatter.error(
     res, 
     500, 
     isProd ? 'Internal server error' : `Unhandled Error: ${err.message}`,

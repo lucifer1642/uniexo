@@ -4,6 +4,8 @@ import { authenticate } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
 import { upload } from '../../middleware/upload';
 import { updateProfileSchema, changePasswordSchema } from '../../validators/user.validator';
+import { ResponseFormatter } from '../../utils/response';
+
 
 const router = Router();
 
