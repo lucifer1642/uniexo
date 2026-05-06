@@ -1,9 +1,23 @@
 import { Request, Response, NextFunction } from 'express';
-// Robust Auth v2.1 - Enhanced for Vendor Listing Stability
+// Robust Auth v2.2 - Enhanced token tolerance for Vendor Listing Stability
 import { AuthRequest } from '../types';
-import { UnauthorizedError, ForbiddenError } from '../utils/errors';
+import { UnauthorizedError } from '../utils/errors';
 import { supabase } from '../config/supabase';
 import { logger } from '../config/logger';
+
+function normalizeBearerToken(raw: string) {
+  // Handle common transport issues:
+  // - URL encoding converting '+' to ' '
+  // - accidental quotes
+  // - whitespace/newlines
+  // - base64url variants ('-' '_' instead of '+' '/')
+  return raw
+    .trim()
+    .replace(/^"|"$/g, '')
+    .replace(/\s/g, '+')
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+}
 
 /**
  * Authenticate middleware — verifies the custom base64 token
@@ -23,64 +37,76 @@ export const authenticate = async (
 
     const token = authHeader.split(' ')[1]?.trim();
     if (!token || token === 'undefined' || token === 'null') {
-      logger.warn(`[AUTH] Invalid token format detected`);
-      throw new UnauthorizedError('The authentication token provided is invalid or malformed. Please log in again.');
+      logger.warn('[AUTH] Invalid token format detected');
+      throw new UnauthorizedError(
+        'The authentication token provided is invalid or malformed. Please log in again.',
+      );
     }
 
-    // Clean token: Convert spaces back to '+' (URL encoding issue) and remove other whitespace
-    const cleanToken = token.replace(/\s/g, '+');
+    const cleanToken = normalizeBearerToken(token);
 
     // Decode our simple base64 token
-    let decodedToken;
+    let decodedToken: any;
     try {
-        decodedToken = JSON.parse(Buffer.from(cleanToken, 'base64').toString('utf8'));
+      decodedToken = JSON.parse(Buffer.from(cleanToken, 'base64').toString('utf8'));
     } catch (e) {
-        logger.error(`[AUTH] Token decode failed for: ${cleanToken.substring(0, 10)}...`);
-        throw new UnauthorizedError('The authentication token format is invalid.');
+      logger.error(`[AUTH] Token decode failed for: ${cleanToken.substring(0, 10)}...`);
+      throw new UnauthorizedError('The authentication token format is invalid.');
+    }
+
+    // If exp is missing/invalid, treat token as expired (prevents NaN comparisons).
+    const exp = Number(decodedToken?.exp);
+    if (!Number.isFinite(exp)) {
+      throw new UnauthorizedError('Your session has expired. Please log in again.');
     }
 
     // 1-year grace period for expiry to ensure 'NO AUTO-LOGOUT'
     const GRACE_PERIOD = 365 * 24 * 60 * 60 * 1000;
-    if (Date.now() > (decodedToken.exp + GRACE_PERIOD)) {
-        throw new UnauthorizedError('Your session has expired. Please log in again.');
+    if (Date.now() > exp + GRACE_PERIOD) {
+      throw new UnauthorizedError('Your session has expired. Please log in again.');
+    }
+
+    const userId = decodedToken?.userId;
+    if (!userId) {
+      throw new UnauthorizedError('Your session has expired. Please log in again.');
     }
 
     // Fetch the profile with a simple retry for DB consistency
-    let profile = null;
-    let profileError = null;
-    
+    let profile: any = null;
+    let profileError: any = null;
+
     for (let i = 0; i < 5; i++) {
-        const result = await supabase
-          .from('profiles')
-          .select('id, email, role, name, is_deleted, is_suspended, kyc_status, service_type, business_name')
-          .eq('id', decodedToken.userId)
-          .maybeSingle();
-        
-        if (result.data) {
-            profile = result.data;
-            break;
-        }
-        profileError = result.error;
-        if (i < 4) await new Promise(resolve => setTimeout(resolve, 200)); // Sleep between retries
+      const result = await supabase
+        .from('profiles')
+        .select('id, email, role, name, is_deleted, is_suspended, kyc_status, service_type, business_name')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (result.data) {
+        profile = result.data;
+        break;
+      }
+      profileError = result.error;
+      if (i < 4) await new Promise(resolve => setTimeout(resolve, 200)); // Sleep between retries
     }
 
     if (!profile) {
-      logger.error(`[AUTH] Profile fetch failed for ${decodedToken.userId}`, { error: profileError?.message });
-      
-      // If we have a valid token but DB is just slow/missing profile, 
+      logger.error(`[AUTH] Profile fetch failed for ${userId}`, { error: profileError?.message });
+
+      // If we have a valid token but DB is just slow/missing profile,
       // as a ROBUST fallback we can synthesize a user object if the token has the necessary info
       if (decodedToken.userId && decodedToken.role) {
-          logger.warn(`[AUTH] Using synthesized profile for ${decodedToken.userId} due to DB fetch failure`);
-          profile = {
-              id: decodedToken.userId,
-              role: decodedToken.role,
-              email: 'unknown@uniexo.in',
-              name: 'Nexus User',
-              is_deleted: false,
-              is_suspended: false
-          };
+        logger.warn(`[AUTH] Using synthesized profile for ${userId} due to DB fetch failure`);
+        profile = {
+          id: decodedToken.userId,
+          role: decodedToken.role,
+          email: 'unknown@uniexo.in',
+          name: 'Nexus User',
+          is_deleted: false,
+          is_suspended: false,
+        };
       } else {
-          throw new UnauthorizedError(`Unable to verify profile. Please log in again.`);
+        throw new UnauthorizedError(`Unable to verify profile. Please log in again.`);
       }
     }
 
@@ -100,7 +126,7 @@ export const authenticate = async (
       email: profile.email,
       name: profile.name,
       serviceType: (profile as any).service_type,
-      kycStatus: (profile as any).kyc_status
+      kycStatus: (profile as any).kyc_status,
     };
 
     next();
@@ -127,14 +153,18 @@ export const optionalAuth = async (
     const token = authHeader.split(' ')[1];
     if (!token || token === 'undefined' || token === 'null') return next();
 
-    let decodedToken;
+    const cleanToken = normalizeBearerToken(token);
+
+    let decodedToken: any;
     try {
-        decodedToken = JSON.parse(Buffer.from(token, 'base64').toString('utf8'));
+      decodedToken = JSON.parse(Buffer.from(cleanToken, 'base64').toString('utf8'));
     } catch (e) {
-        return next();
+      return next();
     }
 
-    if (Date.now() > decodedToken.exp) return next();
+    const exp = Number(decodedToken?.exp);
+    if (!Number.isFinite(exp)) return next();
+    if (Date.now() > exp) return next();
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -147,7 +177,7 @@ export const optionalAuth = async (
         userId: profile.id,
         role: profile.role,
         email: profile.email,
-        name: profile.name
+        name: profile.name,
       };
     }
     next();
@@ -156,4 +186,3 @@ export const optionalAuth = async (
     next();
   }
 };
-
