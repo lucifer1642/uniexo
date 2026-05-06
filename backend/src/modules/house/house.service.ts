@@ -22,6 +22,13 @@ export class HouseService {
       throw new ForbiddenError('Vendor must be approved to create listings');
     }
 
+    // Point 3 Enforcement: Check service type
+    const userType = String(vendor.service_type || '').toLowerCase();
+    const isPropertyVendor = ['house', 'room', 'pg'].includes(userType);
+    if (!isPropertyVendor) {
+        throw new ForbiddenError(`Action Blocked: Your account is registered for ${userType || 'another service'}, not properties.`);
+    }
+
     let images: string[] = [];
     if (files && files.length > 0) {
       try {

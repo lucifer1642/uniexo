@@ -18,6 +18,7 @@ import {
   useUserBookings, useVendorBookings, useWallet,
   useVendorVehicles, useVendorHouses, useUserLaundryOrders,
   useUserMarketplaceItems, useVendorProfile, useVendorDashboardStats, useVendorAnalyticsOverview,
+  useDashboardRealtime,
 } from '@/hooks/use-dashboard';
 import { AddVehicleDialog } from '@/components/add-vehicle-dialog';
 import { AddHouseDialog } from '@/components/add-house-dialog';
@@ -76,6 +77,7 @@ function StatusBadge({ status }: { status: string }) {
 function UserDashboard() {
   const [section, setSection] = useState('overview');
   const { user } = useAuthStore();
+  useDashboardRealtime('user');
   const { data: bookingsData, isLoading: loadingBookings } = useUserBookings();
   const { data: wallet, isLoading: loadingWallet } = useWallet();
   const { data: laundryData, isLoading: loadingLaundry } = useUserLaundryOrders();
@@ -357,6 +359,7 @@ function UserDashboard() {
 // ─── VENDOR DASHBOARD ───────────────────────────────────────────────
 function VendorDashboard() {
   const { user } = useAuthStore();
+  useDashboardRealtime('vendor');
   const [section, setSection] = useState('overview');
   const { data: vehiclesData, isLoading: loadingVehicles } = useVendorVehicles();
   const { data: housesData, isLoading: loadingHouses } = useVendorHouses();

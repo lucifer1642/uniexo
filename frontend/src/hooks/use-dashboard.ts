@@ -1,8 +1,28 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { useRealtimeSync } from './use-realtime';
 
-const REALTIME_INTERVAL = 8000; // 8 seconds
-const REALTIME_STALE = 5000;    // 5 seconds
+export const useDashboardRealtime = (role: 'user' | 'vendor' | 'admin') => {
+    const tables: any[] = ['bookings', 'wallets'];
+    const keys = [
+        ['wallet'], 
+        ['walletTransactions'],
+        ['vendorDashboardStats'],
+        ['vendorAnalyticsOverview']
+    ];
+
+    if (role === 'vendor') {
+        tables.push('vehicles', 'houses', 'laundry_orders');
+        keys.push(['vendorBookings'], ['vendorVehicles'], ['vendorHouses']);
+    } else {
+        keys.push(['userBookings'], ['userLaundryOrders'], ['userMarketplaceItems']);
+    }
+
+    return useRealtimeSync(tables, keys);
+};
+
+const REALTIME_INTERVAL = 60000; // 60 seconds (Fallback polling)
+const REALTIME_STALE = 30000;    // 30 seconds
 
 // User bookings
 export const useUserBookings = (page = 1, limit = 10) => {

@@ -29,6 +29,12 @@ export class VehicleService {
       throw new ForbiddenError('Vendor must be approved to create listings');
     }
 
+    // Point 3 Enforcement: Check service type
+    const vendorServiceType = String(vendor.service_type || '').toLowerCase();
+    if (vendorServiceType !== 'vehicle') {
+        throw new ForbiddenError(`Action Blocked: Your account is registered for ${vendorServiceType || 'another service'}, not vehicles.`);
+    }
+
     let images: string[] = [];
     if (files && files.length > 0) {
       try {

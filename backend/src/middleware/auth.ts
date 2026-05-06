@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-// Robust Auth v2.2 - Enhanced token tolerance for Vendor Listing Stability
+// Robust Auth v2.3 - Enhanced token tolerance for Vendor Listing Stability
 import { AuthRequest } from '../types';
 import { UnauthorizedError } from '../utils/errors';
 import { supabase } from '../config/supabase';
@@ -48,28 +48,30 @@ export const authenticate = async (
     // Decode our simple base64 token
     let decodedToken: any;
     try {
-      decodedToken = JSON.parse(Buffer.from(cleanToken, 'base64').toString('utf8'));
+      const decodedString = Buffer.from(cleanToken, 'base64').toString('utf8');
+      decodedToken = JSON.parse(decodedString);
     } catch (e) {
-      logger.error(`[AUTH] Token decode failed for: ${cleanToken.substring(0, 10)}...`);
-      throw new UnauthorizedError('The authentication token format is invalid.');
+      logger.error(`[AUTH] Token decode failed for: ${cleanToken.substring(0, 15)}...`, { error: e });
+      throw new UnauthorizedError('The authentication token format is invalid or corrupted.');
     }
 
-    // If exp is missing/invalid, treat token as expired (prevents NaN comparisons).
-    const exp = Number(decodedToken?.exp);
-    if (!Number.isFinite(exp)) {
-      throw new UnauthorizedError('Your session has expired. Please log in again.');
+    // Validation: Ensure token has required fields
+    if (!decodedToken.userId || !decodedToken.exp) {
+        logger.warn('[AUTH] Token missing required fields', { decodedToken });
+        throw new UnauthorizedError('Invalid token content. Please log in again.');
     }
 
     // 1-year grace period for expiry to ensure 'NO AUTO-LOGOUT'
     const GRACE_PERIOD = 365 * 24 * 60 * 60 * 1000;
-    if (Date.now() > exp + GRACE_PERIOD) {
-      throw new UnauthorizedError('Your session has expired. Please log in again.');
+    const now = Date.now();
+    const expiry = Number(decodedToken.exp);
+
+    if (now > (expiry + GRACE_PERIOD)) {
+        logger.warn(`[AUTH] Session expired for user ${decodedToken.userId}`, { now, expiry, grace: GRACE_PERIOD });
+        throw new UnauthorizedError('Your session has expired. Please log in again for security.');
     }
 
-    const userId = decodedToken?.userId;
-    if (!userId) {
-      throw new UnauthorizedError('Your session has expired. Please log in again.');
-    }
+    const userId = decodedToken.userId;
 
     // Fetch the profile with a simple retry for DB consistency
     let profile: any = null;

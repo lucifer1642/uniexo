@@ -70,10 +70,11 @@ export const isApprovedVendor = async (req: Request, _res: Response, next: NextF
     // Lenient approval check for 'anyhow' operations
     if (vendor.approval_status !== VendorApprovalStatus.APPROVED) {
       const statusMsg = vendor.approval_status === VendorApprovalStatus.PENDING 
-        ? 'is currently pending approval. Please wait for the administrator to review your documents.' 
-        : `has been ${vendor.approval_status}. Please contact support for assistance.`;
+        ? 'is currently pending approval. Our team is reviewing your documents.' 
+        : `has been ${vendor.approval_status}. Please check your email or contact support for details.`;
       
-      return next(new ForbiddenError(`Your vendor account ${statusMsg}`));
+      logger.warn(`[RBAC] Access denied for non-approved vendor ${authReq.user.userId}: ${vendor.approval_status}`);
+      return next(new ForbiddenError(`Access Denied: Your vendor account ${statusMsg}`));
     }
 
     // Field check with fallbacks
