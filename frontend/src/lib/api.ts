@@ -58,13 +58,9 @@ api.interceptors.response.use(
         const isAuthRoute = url.includes('/auth/login') || url.includes('/auth/register');
         
         if (!isAuthRoute) {
-            console.warn(`[API] 401 Unauthorized for ${url}. Force redirecting to login.`);
-            
-            // Clear local storage and redirect
-            if (typeof window !== 'undefined') {
-                localStorage.removeItem('auth-storage');
-                window.location.href = '/login?error=session_expired';
-            }
+            console.warn(`[API] 401 Unauthorized for ${url}. Keeping session but logging warning.`);
+            // DO NOT wipe storage or redirect. Let the UI handle it or let user refresh.
+            // window.location.href = '/login?error=session_expired';
         }
         return Promise.reject(error);
     }
