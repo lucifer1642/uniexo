@@ -65,10 +65,19 @@ export const errorHandler = (
 
   // Final fallback for unhandled errors
   const isProd = process.env.NODE_ENV === 'production';
+  const errorMessage = isProd ? 'Internal server error' : `Unhandled Error: ${err.message}`;
+  
+  // LOG the actual error for Vercel/Production logs
+  logger.error(`[GLOBAL-ERROR] ${err.name}: ${err.message}`, { 
+    stack: err.stack,
+    url: _req.url,
+    method: _req.method
+  });
+
   ResponseFormatter.error(
     res, 
     500, 
-    isProd ? 'Internal server error' : `Unhandled Error: ${err.message}`,
+    errorMessage,
     isProd ? undefined : err.stack
   );
 };
