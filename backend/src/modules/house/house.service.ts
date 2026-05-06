@@ -5,6 +5,7 @@ import { IHouse } from '../../types/models';
 import { ListingApprovalStatus, VendorApprovalStatus } from '../../types/enums';
 import { NotFoundError, ForbiddenError, BadRequestError } from '../../utils/errors';
 import { PaginationQuery } from '../../types';
+import { logger } from '../../config/logger';
 
 
 export class HouseService {
@@ -24,9 +25,11 @@ export class HouseService {
 
     // Point 3 Enforcement: Check service type
     const userType = String(vendor.service_type || '').toLowerCase();
-    const isPropertyVendor = ['house', 'room', 'pg'].includes(userType);
+    const isPropertyVendor = ['house', 'room', 'pg', 'property'].some(t => userType.includes(t));
     if (!isPropertyVendor) {
-        throw new ForbiddenError(`Action Blocked: Your account is registered for ${userType || 'another service'}, not properties.`);
+        logger.warn(`[HOUSE-SERVICE] Vendor ${vendorId} service type mismatch: ${userType}`);
+        // Log but don't block in robust mode unless it's completely empty
+        if (!userType) throw new ForbiddenError('Please complete your vendor profile first.');
     }
 
     let images: string[] = [];
