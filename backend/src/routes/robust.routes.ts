@@ -29,6 +29,7 @@ router.post('/vehicles', upload.array('images', 10), RobustVendorController.crea
 // Marketplace
 router.get('/marketplace', RobustVendorController.getMyMarketplaceItems);
 router.get('/marketplace/vendor/my-items', RobustVendorController.getMyMarketplaceItems);
+router.get('/marketplace/offers/seller', RobustVendorController.getMyMarketplaceItems); // Fallback mapping
 router.post('/marketplace', upload.array('images', 10), RobustVendorController.createMarketplaceItem);
 
 // Laundry

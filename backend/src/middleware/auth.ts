@@ -77,23 +77,34 @@ export const authenticate = async (
     let profile: any = null;
     let profileError: any = null;
 
-    for (let i = 0; i < 5; i++) {
-      const result = await supabase
-        .from('profiles')
-        .select('id, email, role, name, is_deleted, is_suspended, kyc_status, service_type, business_name')
-        .eq('id', userId)
-        .maybeSingle();
+    try {
+        for (let i = 0; i < 3; i++) {
+            // Simplified select to avoid potential missing column issues causing 500s
+            const result = await supabase
+                .from('profiles')
+                .select('*') 
+                .eq('id', userId)
+                .maybeSingle();
 
-      if (result.data) {
-        profile = result.data;
-        break;
-      }
-      profileError = result.error;
-      if (i < 4) await new Promise(resolve => setTimeout(resolve, 200)); // Sleep between retries
+            if (result.data) {
+                profile = result.data;
+                break;
+            }
+            profileError = result.error;
+            if (result.error) {
+                logger.error(`[AUTH] Supabase error during profile fetch (attempt ${i+1}):`, result.error);
+            }
+            if (i < 2) await new Promise(resolve => setTimeout(resolve, 200));
+        }
+    } catch (e: any) {
+        logger.error(`[AUTH] Critical crash during profile fetch for ${userId}:`, e);
+        // Fallback to synthesis below if possible
     }
 
     if (!profile) {
-      logger.error(`[AUTH] Profile fetch failed for ${userId}`, { error: profileError?.message });
+      if (profileError) {
+          logger.error(`[AUTH] Profile fetch failed for ${userId} after retries:`, profileError);
+      }
 
       // If we have a valid token but DB is just slow/missing profile,
       // as a ROBUST fallback we can synthesize a user object if the token has the necessary info
@@ -102,13 +113,13 @@ export const authenticate = async (
         profile = {
           id: decodedToken.userId,
           role: decodedToken.role,
-          email: 'unknown@uniexo.in',
-          name: 'Nexus User',
+          email: decodedToken.email || 'unknown@uniexo.in',
+          name: decodedToken.name || 'Nexus User',
           is_deleted: false,
           is_suspended: false,
         };
       } else {
-        throw new UnauthorizedError(`Unable to verify profile. Please log in again.`);
+        throw new UnauthorizedError(`Authentication failed: Profile not found and cannot be synthesized.`);
       }
     }
 
@@ -122,21 +133,31 @@ export const authenticate = async (
       throw new UnauthorizedError('Your account has been suspended. Please contact support.');
     }
 
+    // Attach user to request with careful fallbacks
     (req as AuthRequest).user = {
-      userId: profile.id,
-      role: profile.role,
-      email: profile.email,
-      name: profile.name,
-      serviceType: (profile as any).service_type,
-      kycStatus: (profile as any).kyc_status,
+      userId: profile.id || decodedToken.userId,
+      role: profile.role || decodedToken.role,
+      email: profile.email || decodedToken.email || '',
+      name: profile.name || decodedToken.name || 'User',
+      serviceType: profile.service_type || (profile as any).serviceType,
+      kycStatus: profile.kyc_status || (profile as any).kycStatus,
     };
 
     next();
-  } catch (error) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('DEBUG [Auth Middleware Failure]:', error);
+  } catch (error: any) {
+    logger.error(`[AUTH] Authentication Middleware Crash: ${error.message}`, { 
+        stack: error.stack,
+        url: req.url 
+    });
+    
+    // Ensure we don't return 500 if it's an AppError
+    if (error instanceof UnauthorizedError || error instanceof ForbiddenError) {
+        return next(error);
     }
-    next(error);
+    
+    // For other errors, return a descriptive error in dev, but standard 401 in prod to be safe
+    const isProd = process.env.NODE_ENV === 'production';
+    next(new UnauthorizedError(isProd ? 'Authentication failed. Please log in again.' : `Auth Error: ${error.message}`));
   }
 };
 

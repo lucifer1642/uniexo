@@ -34,10 +34,15 @@ api.interceptors.request.use(async (config) => {
   }
 
   // ── Smart Rerouting for Vendor Listings (Robust Backend) ──
-  const robustRoutes = ['/houses', '/vehicles', '/marketplace', '/laundry'];
-  const isListingRoute = config.url && robustRoutes.some(r => config.url?.startsWith(r));
+  const robustBaseRoutes = ['/houses', '/vehicles', '/marketplace', '/laundry'];
+  const isBaseRoute = config.url && robustBaseRoutes.includes(config.url);
+  const isVendorFetch = config.url?.includes('/vendor/my-');
+  const isPost = config.method?.toLowerCase() === 'post';
   
-  if (isListingRoute && !config.url?.startsWith('/robust')) {
+  // Only reroute if it's a base listing route (GET/POST) or a specific vendor fetch
+  const shouldReroute = (isBaseRoute || isVendorFetch || isPost) && !config.url?.startsWith('/robust');
+  
+  if (shouldReroute) {
     console.log(`[API] Rerouting ${config.url} to Robust Backend...`);
     config.url = `/robust${config.url}`;
   }
