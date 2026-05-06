@@ -16,24 +16,26 @@ const router = Router();
 router.use(authenticate);
 router.use(isApprovedVendor);
 
-// House
+// ── HOUSES ──────────────────────────────────────────────────────────────────
 router.get('/houses', RobustVendorController.getMyHouses);
-router.get('/houses/vendor/my-houses', RobustVendorController.getMyHouses);
 router.post('/houses', upload.array('images', 10), RobustVendorController.createHouse);
 
-// Vehicle
+// ── VEHICLES ────────────────────────────────────────────────────────────────
 router.get('/vehicles', RobustVendorController.getMyVehicles);
-router.get('/vehicles/vendor/my-vehicles', RobustVendorController.getMyVehicles);
 router.post('/vehicles', upload.array('images', 10), RobustVendorController.createVehicle);
 
-// Marketplace
+// ── MARKETPLACE ─────────────────────────────────────────────────────────────
 router.get('/marketplace', RobustVendorController.getMyMarketplaceItems);
-router.get('/marketplace/vendor/my-items', RobustVendorController.getMyMarketplaceItems);
-router.get('/marketplace/offers/seller', RobustVendorController.getMyMarketplaceItems); // Fallback mapping
 router.post('/marketplace', upload.array('images', 10), RobustVendorController.createMarketplaceItem);
 
-// Laundry
+// ── LAUNDRY ─────────────────────────────────────────────────────────────────
 router.get('/laundry', RobustVendorController.getMyLaundryService);
 router.post('/laundry', upload.array('images', 10), RobustVendorController.createLaundryService);
+
+// ── LEGACY FALLBACKS (Backward Compatibility) ──────────────────────────────
+router.get('/houses/vendor/my-houses', RobustVendorController.getMyHouses);
+router.get('/vehicles/vendor/my-vehicles', RobustVendorController.getMyVehicles);
+router.get('/marketplace/vendor/my-items', RobustVendorController.getMyMarketplaceItems);
+router.get('/marketplace/offers/seller', RobustVendorController.getMyMarketplaceItems);
 
 export default router;

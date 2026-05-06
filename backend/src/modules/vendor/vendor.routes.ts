@@ -10,22 +10,23 @@ const router = Router();
 
 router.use(authenticate);
 
-router.post('/register', isAuthenticated, validate(vendorRegistrationSchema), VendorController.register);
-router.get('/profile', isAuthenticated, VendorController.getProfile);
-router.patch('/profile', isAuthenticated, validate(updateVendorProfileSchema), VendorController.updateProfile);
-router.post('/documents', isAuthenticated, upload.array('documents', 5), VendorController.uploadDocuments);
-router.get('/dashboard/stats', isAuthenticated, VendorController.getDashboardStats);
+// ── REGISTRATION & PROFILE ──────────────────────────────────────────────────
+router.post('/register', validate(vendorRegistrationSchema), VendorController.register);
+router.get('/profile', VendorController.getProfile);
+router.patch('/profile', validate(updateVendorProfileSchema), VendorController.updateProfile);
+router.post('/documents', upload.array('documents', 5), VendorController.uploadDocuments);
+router.get('/dashboard/stats', VendorController.getDashboardStats);
 
-// ─── Analytics Routes ───────────────────────────────────────────────────
-router.get('/analytics/overview', isAuthenticated, VendorController.getAnalyticsOverview);
-router.get('/analytics/sales', isAuthenticated, VendorController.getSalesBreakdown);
-router.get('/analytics/ledger', isAuthenticated, VendorController.getLedgerBook);
-router.get('/analytics/dues', isAuthenticated, VendorController.getDueAmounts);
-router.get('/analytics/trends', isAuthenticated, VendorController.getBookingTrends);
-router.get('/analytics/revenue-series', isAuthenticated, VendorController.getRevenueTimeSeries);
-router.get('/analytics/room-occupancy', isAuthenticated, VendorController.getRoomOccupancy);
+// ── ANALYTICS ────────────────────────────────────────────────────────────────
+router.get('/analytics/overview', VendorController.getAnalyticsOverview);
+router.get('/analytics/sales', VendorController.getSalesBreakdown);
+router.get('/analytics/ledger', VendorController.getLedgerBook);
+router.get('/analytics/dues', VendorController.getDueAmounts);
+router.get('/analytics/trends', VendorController.getBookingTrends);
+router.get('/analytics/revenue-series', VendorController.getRevenueTimeSeries);
+router.get('/analytics/room-occupancy', VendorController.getRoomOccupancy);
 
-// ─── Admin Routes ────────────────────────────────────────────────────────
+// ── ADMIN ───────────────────────────────────────────────────────────────────
 router.get('/', isAdmin, VendorController.listVendors);
 router.patch('/:vendorId/approval', isAdmin, validate(vendorApprovalSchema), VendorController.approve);
 

@@ -11,21 +11,25 @@ const router = Router();
 
 router.use(authenticate);
 
+// ── PROFILE ──────────────────────────────────────────────────────────────────
 router.get('/profile', UserController.getProfile);
 router.patch('/profile', validate(updateProfileSchema), UserController.updateProfile);
 router.post('/avatar', upload.single('avatar'), UserController.uploadAvatar);
+
+// ── KYC & VERIFICATION ──────────────────────────────────────────────────────
 router.post('/id-card', upload.single('idCard'), UserController.uploadIdCard);
-router.post('/kyc-document', upload.single('document'), UserController.uploadIdCard); // Sequential upload support
-router.post('/kyc-document', upload.single('idCard'), UserController.uploadIdCard); // Sequential upload support
+router.post('/kyc-document', upload.single('document'), UserController.uploadIdCard); // Sequential fallback
 router.post('/kyc', upload.fields([
   { name: 'idProof', maxCount: 1 },
   { name: 'businessProof', maxCount: 1 }
 ]), UserController.submitKyc);
-router.post('/kyc-submit', UserController.submitKyc); // Sequential JSON support
+router.post('/kyc-submit', UserController.submitKyc); // JSON sequential support
+
+// ── SECURITY ─────────────────────────────────────────────────────────────────
 router.post('/change-password', validate(changePasswordSchema), UserController.changePassword);
 router.delete('/account', UserController.deleteAccount);
 
-// Notifications (Dummy endpoints to satisfy frontend hooks)
+// ── NOTIFICATIONS ────────────────────────────────────────────────────────────
 router.get('/notifications', (_req, res) => ResponseFormatter.ok(res, 'Notifications fetched', []));
 router.patch('/notifications/:id/read', (_req, res) => ResponseFormatter.ok(res, 'Notification marked as read'));
 router.post('/notifications/read-all', (_req, res) => ResponseFormatter.ok(res, 'All notifications marked as read'));
