@@ -6,6 +6,8 @@ export interface JWTPayload {
   role: UserRole;
   email: string;
   name?: string;
+  serviceType?: string;
+  kycStatus?: string;
 }
 
 export interface AuthRequest extends Request {
