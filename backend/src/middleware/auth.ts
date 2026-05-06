@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 // Robust Auth v2.3 - Enhanced token tolerance for Vendor Listing Stability
 import { AuthRequest } from '../types';
-import { UnauthorizedError } from '../utils/errors';
+import { UnauthorizedError, ForbiddenError } from '../utils/errors';
 import { supabase } from '../config/supabase';
 import { logger } from '../config/logger';
 
