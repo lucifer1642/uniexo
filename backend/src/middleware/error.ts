@@ -63,7 +63,14 @@ export const errorHandler = (
     return;
   }
 
-  ResponseFormatter.serverError(res);
+  // Final fallback for unhandled errors
+  const isProd = process.env.NODE_ENV === 'production';
+  return ResponseFormatter.error(
+    res, 
+    500, 
+    isProd ? 'Internal server error' : `Unhandled Error: ${err.message}`,
+    isProd ? undefined : err.stack
+  );
 };
 
 export const notFoundHandler = (_req: Request, res: Response): void => {

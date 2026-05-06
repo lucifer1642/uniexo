@@ -20,4 +20,9 @@ router.post('/kyc', upload.fields([
 router.post('/change-password', validate(changePasswordSchema), UserController.changePassword);
 router.delete('/account', UserController.deleteAccount);
 
+// Notifications (Dummy endpoints to satisfy frontend hooks)
+router.get('/notifications', (_req, res) => ResponseFormatter.ok(res, 'Notifications fetched', []));
+router.patch('/notifications/:id/read', (_req, res) => ResponseFormatter.ok(res, 'Notification marked as read'));
+router.post('/notifications/read-all', (_req, res) => ResponseFormatter.ok(res, 'All notifications marked as read'));
+
 export default router;

@@ -62,21 +62,17 @@ const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
   console.error("=========================================");
-  console.error("❌ ENV VALIDATION FAILED");
+  console.error("⚠️ ENV VALIDATION FAILED");
   console.error("The following environment variables are missing or invalid:");
   console.error(JSON.stringify(parsed.error.flatten().fieldErrors, null, 2));
   console.error("=========================================");
 
-  console.log("🔍 RAW ENV CHECK:");
-  console.log({
-    NODE_ENV: process.env.NODE_ENV,
-    SUPABASE_URL: process.env.SUPABASE_URL ? "DEFINED" : "MISSING",
-    PORT: process.env.PORT,
-  });
-  console.error("💡 TIP: Make sure these variables are set in the Render Dashboard.");
-  
-  process.exit(1);
+  // On Vercel/Production, don't kill the process immediately. 
+  // Let the app start so we can get better diagnostic info via logs/API.
+  if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+    process.exit(1);
+  }
 }
 
-export const env = parsed.data;
+export const env = parsed.success ? parsed.data : (process.env as any);
 export type Env = z.infer<typeof envSchema>;
