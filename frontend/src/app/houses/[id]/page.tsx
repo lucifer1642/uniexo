@@ -162,9 +162,8 @@ export default function HouseDetailPage() {
     try {
       // 1. Upload ID Card
       const formData = new FormData();
-      formData.append('document', idCardFile);
-      formData.append('type', 'id_card');
-      const uploadRes = await api.post('/users/kyc-document', formData, {
+      formData.append('idCard', idCardFile);
+      const uploadRes = await api.post('/users/id-card', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       const idCardUrl = uploadRes.data.data.url;

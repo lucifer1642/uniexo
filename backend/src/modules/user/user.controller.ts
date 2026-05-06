@@ -59,6 +59,15 @@ export class UserController {
   static async submitKyc(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { userId } = (req as AuthRequest).user!;
+      
+      // Handle sequential JSON submission if it's not a multipart request with files
+      if (!req.files || (Array.isArray(req.files) ? req.files.length === 0 : Object.keys(req.files).length === 0)) {
+        const { bankDetails, documents } = req.body;
+        const result = await userService.submitKyc(userId, bankDetails, documents);
+        ResponseFormatter.ok(res, 'KYC submitted for review', result);
+        return;
+      }
+
       const files = req.files as { [fieldname: string]: Express.Multer.File[] };
       
       if (!files?.idProof) {

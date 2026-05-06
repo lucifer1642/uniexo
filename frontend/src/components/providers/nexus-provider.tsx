@@ -42,9 +42,17 @@ export function NexusProvider({ children }: { children: React.ReactNode }) {
       process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 
       'http://localhost:5000';
 
+    // Only connect if we have a valid external origin or are on localhost
+    const isLocal = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+    if (!socketUrl.startsWith('http') && !isLocal) {
+      console.warn('[Nexus] Skipping socket connection: Invalid origin');
+      return;
+    }
+
     const newSocket = io(socketUrl, {
       transports: ['websocket'],
-      reconnectionAttempts: 5,
+      reconnectionAttempts: 2, // Reduce spam
+      timeout: 5000,
     });
 
     newSocket.on('connect', () => {
