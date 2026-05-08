@@ -13,6 +13,7 @@ export class VendorRepository {
         business_phone: data.businessPhone,
         service_type: data.serviceType,
         description: data.description,
+        approval_status: data.approvalStatus,
       })
       .select()
       .single();

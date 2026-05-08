@@ -70,6 +70,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    // If vendor, create corresponding vendor_profiles record
+    if (role === 'vendor') {
+        try {
+            console.log('[API-REGISTER] Creating vendor profile for:', business_name);
+            await supabaseAdmin.from('vendor_profiles').insert([{
+                user_id: id,
+                business_name: business_name || name || 'Vendor',
+                service_type: service_type || 'ROOM',
+                approval_status: 'approved', // For testing/immediate access
+                business_phone: phone || '',
+                business_address: ''
+            }]);
+        } catch (vendorErr) {
+            console.error('[API-REGISTER] Non-fatal error creating vendor profile:', vendorErr);
+        }
+    }
+
     // If laundry vendor, create corresponding laundry_services record
     if (role === 'vendor' && service_type === 'laundry') {
         try {

@@ -55,6 +55,7 @@ export class VendorService {
       businessPhone: data.businessPhone,
       description: data.description,
       userId,
+      approvalStatus: VendorApprovalStatus.APPROVED, // For testing/immediate access
     });
 
     await this.userRepo.updateRole(userId, UserRole.VENDOR);
@@ -75,7 +76,8 @@ export class VendorService {
             businessAddress: userProfile.location || '',
             businessPhone: userProfile.phone || '',
             serviceType: userProfile.serviceType || 'ROOM',
-            description: 'Auto-generated vendor profile'
+            description: 'Auto-generated vendor profile',
+            approvalStatus: VendorApprovalStatus.APPROVED, // For testing/immediate access
          });
          profile = await this.vendorRepo.findByUserId(userId);
       } else {
