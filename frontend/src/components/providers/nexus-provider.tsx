@@ -27,6 +27,34 @@ const NexusContext = createContext<NexusContextType>({
 
 export const useNexus = () => useContext(NexusContext);
 
+const resolveSocketUrl = () => {
+  const configured =
+    process.env.NEXT_PUBLIC_SOCKET_URL?.trim() ||
+    process.env.NEXT_PUBLIC_BACKEND_ORIGIN?.trim() ||
+    process.env.NEXT_PUBLIC_API_URL?.trim()?.replace(/\/api\/v1\/?$/, '');
+
+  if (!configured) {
+    return 'http://localhost:5000';
+  }
+
+  try {
+    const url = new URL(configured);
+    const isFrontendPreview =
+      url.hostname.includes('frontend') && url.hostname.endsWith('.vercel.app');
+
+    if (typeof window !== 'undefined' && isFrontendPreview && url.origin !== window.location.origin) {
+      console.warn(
+        `[Nexus] Skipping socket connection to ${url.origin}; it looks like a frontend deployment, not the backend.`,
+      );
+      return null;
+    }
+
+    return url.origin;
+  } catch {
+    return configured.replace(/\/$/, '');
+  }
+};
+
 export function NexusProvider({ children }: { children: React.ReactNode }) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [stats, setStats] = useState<NexusPulseStats | null>(null);
@@ -36,15 +64,11 @@ export function NexusProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Determine socket URL based on environment API URL
-    const socketUrl = 
-      process.env.NEXT_PUBLIC_BACKEND_ORIGIN?.replace(/\/$/, '') || 
-      process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 
-      'http://localhost:5000';
+    const socketUrl = resolveSocketUrl();
 
     // Only connect if we have a valid external origin or are on localhost
     const isLocal = typeof window !== 'undefined' && window.location.hostname === 'localhost';
-    if (!socketUrl.startsWith('http') && !isLocal) {
+    if (!socketUrl || (!socketUrl.startsWith('http') && !isLocal)) {
       console.warn('[Nexus] Skipping socket connection: Invalid origin');
       return;
     }

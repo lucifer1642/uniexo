@@ -49,6 +49,7 @@ const envSchema = z.object({
   CLOUDINARY_API_SECRET: z.string().optional().default(''),
 
   CLIENT_URL: z.string().url().default('http://localhost:3000'),
+  CLIENT_URLS: z.string().optional().default(''),
 
   SUPABASE_URL: z.string().min(1),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),

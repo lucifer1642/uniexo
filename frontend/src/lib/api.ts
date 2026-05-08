@@ -1,7 +1,39 @@
 import axios, { AxiosError } from 'axios';
 import { useAuthStore } from '@/store/auth.store';
 
-const baseURL = process.env.NEXT_PUBLIC_API_URL?.trim() || '/api/v1';
+const API_PREFIX = '/api/v1';
+
+const normalizeApiBaseURL = () => {
+  const configured = process.env.NEXT_PUBLIC_API_URL?.trim();
+  const backendOrigin = process.env.NEXT_PUBLIC_BACKEND_ORIGIN?.trim()?.replace(/\/$/, '');
+
+  if (backendOrigin) {
+    return `${backendOrigin}${API_PREFIX}`;
+  }
+
+  if (!configured) {
+    return API_PREFIX;
+  }
+
+  try {
+    const url = new URL(configured);
+    const isFrontendPreview =
+      url.hostname.includes('frontend') && url.hostname.endsWith('.vercel.app');
+
+    if (typeof window !== 'undefined' && isFrontendPreview && url.origin !== window.location.origin) {
+      console.warn(
+        `[API] Ignoring NEXT_PUBLIC_API_URL=${url.origin}; it looks like a frontend deployment, not the backend.`,
+      );
+      return API_PREFIX;
+    }
+
+    return `${url.origin}${url.pathname.replace(/\/$/, '') || API_PREFIX}`;
+  } catch {
+    return configured.replace(/\/$/, '');
+  }
+};
+
+const baseURL = normalizeApiBaseURL();
 
 export const api = axios.create({
   baseURL,

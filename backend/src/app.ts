@@ -18,6 +18,23 @@ import { OTPEngine } from './services/otp.service';
 const app = express();
 const server = createServer(app);
 
+const configuredClientOrigins = [
+  env.CLIENT_URL,
+  ...(env.CLIENT_URLS || '').split(','),
+]
+  .map((origin: string) => origin.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+
+const allowedOrigins = new Set([
+  ...configuredClientOrigins,
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:3001',
+  'https://uniexo.in',
+  'https://www.uniexo.in',
+]);
+
 // ─── Trust Proxy ─────────────────────────────────────────
 if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
@@ -48,16 +65,8 @@ app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      const allowedOrigins = [
-        env.CLIENT_URL,
-        'http://localhost:3000',
-        'http://localhost:3001',
-        'http://127.0.0.1:3000',
-        'http://127.0.0.1:3001',
-        'https://uniexo.in',
-        'https://www.uniexo.in',
-      ];
-      if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+      const normalizedOrigin = origin.replace(/\/$/, '');
+      if (allowedOrigins.has(normalizedOrigin) || normalizedOrigin.endsWith('.vercel.app')) {
         callback(null, true);
       } else {
         logger.warn(`CORS denied origin: ${origin}`);
