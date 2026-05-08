@@ -50,7 +50,13 @@ export async function POST(req: Request) {
 
     // 3. Create a permanent session token (10 years)
     const TEN_YEARS = 10 * 365 * 24 * 60 * 60 * 1000;
-    const token = Buffer.from(JSON.stringify({ userId: profile.id, role: profile.role, exp: Date.now() + TEN_YEARS })).toString('base64');
+    const token = Buffer.from(JSON.stringify({ 
+      userId: profile.id, 
+      role: profile.role, 
+      email: profile.email,
+      name: profile.name,
+      exp: Date.now() + TEN_YEARS 
+    })).toString('base64');
 
     // Remove password hash from response
     const { password_hash, ...safeProfile } = profile;

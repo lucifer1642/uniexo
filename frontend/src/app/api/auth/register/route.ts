@@ -70,21 +70,30 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // If vendor, create corresponding vendor_profiles record
+    // If vendor, create corresponding vendor_profiles record (MUST succeed)
     if (role === 'vendor') {
-        try {
-            console.log('[API-REGISTER] Creating vendor profile for:', business_name);
-            await supabaseAdmin.from('vendor_profiles').insert([{
-                user_id: id,
-                business_name: business_name || name || 'Vendor',
-                service_type: service_type || 'ROOM',
-                approval_status: 'approved', // For testing/immediate access
-                business_phone: phone || '',
-                business_address: ''
-            }]);
-        } catch (vendorErr) {
-            console.error('[API-REGISTER] Non-fatal error creating vendor profile:', vendorErr);
+        console.log('[API-REGISTER] Creating vendor profile for:', business_name);
+        const { data: vendorProfile, error: vendorErr } = await supabaseAdmin
+          .from('vendor_profiles')
+          .upsert({
+            user_id: id,
+            business_name: business_name || name || 'Vendor',
+            service_type: service_type || 'ROOM',
+            approval_status: 'approved',
+            business_phone: phone || '',
+            business_address: ''
+          }, { onConflict: 'user_id' })
+          .select()
+          .single();
+
+        if (vendorErr) {
+          console.error('[API-REGISTER] CRITICAL: vendor_profiles upsert failed:', vendorErr);
+          // Don't silently proceed - the vendor won't be able to list anything
+          return NextResponse.json({ 
+            error: `Vendor profile setup failed: ${vendorErr.message}. Please contact support.` 
+          }, { status: 500 });
         }
+        console.log('[API-REGISTER] Vendor profile created successfully:', vendorProfile?.id);
     }
 
     // If laundry vendor, create corresponding laundry_services record
@@ -108,7 +117,13 @@ export async function POST(req: Request) {
 
     // 10-year expiry for permanent sessions
     const TEN_YEARS = 10 * 365 * 24 * 60 * 60 * 1000;
-    const token = Buffer.from(JSON.stringify({ userId: data.id, role: data.role, exp: Date.now() + TEN_YEARS })).toString('base64');
+    const token = Buffer.from(JSON.stringify({ 
+      userId: data.id, 
+      role: data.role, 
+      email: data.email,
+      name: data.name,
+      exp: Date.now() + TEN_YEARS 
+    })).toString('base64');
     
     // Remove hash from response
     const { password_hash: _hash, ...safeProfile } = data;

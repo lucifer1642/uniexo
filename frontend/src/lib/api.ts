@@ -1,10 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import { useAuthStore } from '@/store/auth.store';
 
-const isProd = process.env.NODE_ENV === 'production';
-const baseURL = isProd
-  ? '/api/v1'
-  : (process.env.NEXT_PUBLIC_API_URL?.trim() || '/api/v1');
+const baseURL = process.env.NEXT_PUBLIC_API_URL?.trim() || '/api/v1';
 
 export const api = axios.create({
   baseURL,
