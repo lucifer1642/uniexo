@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/auth.store';
 import Link from 'next/link';
 import { AddLaundryServiceDialog } from '@/components/add-laundry-service-dialog';
 import { Badge } from '@/components/ui/badge';
+import { haptics } from '@/lib/haptics';
 
 function LaundryCard({ service }: { service: any }) {
   return (
@@ -16,8 +17,9 @@ function LaundryCard({ service }: { service: any }) {
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      whileHover={{ y: -8 }}
-      className="group relative flex flex-col bg-[#1a050f] border border-white/5 rounded-[2.5rem] overflow-hidden transition-all duration-500 hover:border-primary/30 shadow-2xl"
+      whileHover={{ y: -10 }}
+      whileTap={{ scale: 0.97 }}
+      className="group relative flex flex-col glass rounded-[2.5rem] md:rounded-[3rem] overflow-hidden transition-all duration-500 hover:border-primary/30 shadow-2xl glow-border tap-feedback"
     >
       <Link href={service.href} className="block">
         <div className="relative aspect-video overflow-hidden">
@@ -28,7 +30,7 @@ function LaundryCard({ service }: { service: any }) {
               className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700" 
             />
           ) : (
-            <div className="w-full h-full bg-zinc-900 flex flex-col items-center justify-center text-zinc-700">
+            <div className="w-full h-full bg-surface flex flex-col items-center justify-center text-muted-foreground">
               <WashingMachine className="w-16 h-16 opacity-10" />
             </div>
           )}
@@ -36,7 +38,7 @@ function LaundryCard({ service }: { service: any }) {
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
           
           <div className="absolute top-4 right-4">
-             <div className="px-3 py-1 rounded-full bg-purple-500/20 backdrop-blur-md border border-purple-500/30 text-purple-400 text-[10px] font-black tracking-widest uppercase">
+             <div className="px-3 py-1 rounded-full bg-primary/20 backdrop-blur-md border border-primary/30 text-primary text-[10px] font-black tracking-widest uppercase">
                 EXPRESS
              </div>
           </div>
@@ -48,7 +50,7 @@ function LaundryCard({ service }: { service: any }) {
               </Badge>
             )}
             {service.onStoreService && (
-              <Badge className="bg-zinc-800 text-white font-black text-[10px] uppercase tracking-tighter px-3 border border-white/10">
+              <Badge className="bg-surface text-foreground font-black text-[10px] uppercase tracking-tighter px-3 border border-border">
                 IN-STORE
               </Badge>
             )}
@@ -57,38 +59,38 @@ function LaundryCard({ service }: { service: any }) {
 
         <div className="p-8">
           <div className="flex justify-between items-start mb-2">
-            <h3 className="font-black text-2xl leading-tight group-hover:text-purple-400 transition-colors line-clamp-1">{service.title}</h3>
-            <div className="flex items-center gap-1 text-xs font-black text-purple-400">
+            <h3 className="font-black text-2xl leading-tight group-hover:text-primary transition-colors line-clamp-1 text-foreground">{service.title}</h3>
+            <div className="flex items-center gap-1 text-xs font-black text-primary">
               <Star className="w-3 h-3 fill-current" />
               <span>4.7</span>
             </div>
           </div>
           
-          <div className="flex items-center gap-1.5 text-zinc-500 text-sm font-medium mb-6">
+          <div className="flex items-center gap-1.5 text-muted-foreground text-sm font-medium mb-6">
             <MapPin className="w-3.5 h-3.5" />
             <span className="line-clamp-1">{service.vendorName}</span>
           </div>
 
           <div className="flex gap-4 mb-8">
-             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.02] border border-white/5">
-                <Clock className="w-3.5 h-3.5 text-purple-400" />
-                <span className="text-[10px] font-bold text-zinc-400">24HR RETURN</span>
+             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-surface border border-border">
+                <Clock className="w-3.5 h-3.5 text-primary" />
+                <span className="text-[10px] font-bold text-muted-foreground">24HR RETURN</span>
              </div>
-             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.02] border border-white/5">
-                <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-                <span className="text-[10px] font-bold text-zinc-400">HYGIENIC</span>
+             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-surface border border-border">
+                <Sparkles className="w-3.5 h-3.5 text-primary" />
+                <span className="text-[10px] font-bold text-muted-foreground">HYGIENIC</span>
              </div>
           </div>
 
-          <div className="pt-6 border-t border-white/5 flex items-center justify-between">
+          <div className="pt-6 border-t border-border flex items-center justify-between">
             <div className="flex flex-col">
-              <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">STARTING AT</span>
+              <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">STARTING AT</span>
               <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-black text-white group-hover:text-purple-400 transition-colors">₹{service.price}</span>
-                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">/ {service.unit}</span>
+                <span className="text-3xl font-black text-foreground group-hover:text-primary transition-colors">₹{service.price}</span>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">/ {service.unit}</span>
               </div>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center group-hover:bg-purple-500 group-hover:text-white transition-all duration-500 shadow-2xl">
+            <div className="w-12 h-12 rounded-2xl bg-surface flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-500 shadow-2xl">
                <ArrowRight className="w-6 h-6" />
             </div>
           </div>
@@ -124,10 +126,10 @@ export default function LaundryPage() {
   );
 
   return (
-    <div className="min-h-screen bg-black text-white selection:bg-primary/30 pb-20">
+    <div className="min-h-screen bg-background text-foreground selection:bg-primary/30 pb-20 theme-laundry">
       {/* Hero Header */}
       <div className="relative pt-20 pb-16 overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-purple-500/5 blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
         <div className="container mx-auto px-6 relative z-10">
           <div className="flex flex-col md:flex-row justify-between items-end gap-8">
             <div className="max-w-2xl">
@@ -135,14 +137,14 @@ export default function LaundryPage() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                >
-                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] font-black tracking-[0.2em] mb-4 uppercase">
+                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black tracking-[0.2em] mb-4 uppercase">
                     <Sparkles className="w-3 h-3" />
                     PREMIUM FABRIC CARE
                  </div>
                  <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-[0.9] mb-6">
-                    Freshness, <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-pink-500 font-black">Delivered.</span>
+                    Freshness, <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-primary font-black">Delivered.</span>
                  </h1>
-                 <p className="text-zinc-500 text-lg font-medium">Professional wash, dry clean, and ironing services at your doorstep. Fast, hygienic, and affordable.</p>
+                 <p className="text-muted-foreground text-lg font-medium">Professional wash, dry clean, and ironing services at your doorstep. Fast, hygienic, and affordable.</p>
                </motion.div>
             </div>
             {isAdmin && <AddLaundryServiceDialog />}
@@ -154,26 +156,26 @@ export default function LaundryPage() {
         {/* Search Bar */}
         <div className="flex flex-col md:flex-row items-center gap-6 mb-16">
            <div className="relative flex-1 group w-full">
-              <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500 group-focus-within:text-purple-400 transition-colors" />
+              <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
               <input 
                 type="text" 
                 placeholder="Search for providers or services..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full h-16 pl-16 pr-8 bg-white/[0.02] border border-white/5 rounded-3xl focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500/30 transition-all text-lg placeholder:text-zinc-600"
+                className="w-full h-16 pl-16 pr-8 bg-surface/40 border border-border rounded-3xl focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all text-lg placeholder:text-muted-foreground"
               />
            </div>
            
-           <div className="hidden lg:flex items-center gap-6 pl-4 border-l border-white/5">
+           <div className="hidden lg:flex items-center gap-6 pl-4 border-l border-border">
               <div className="text-center">
-                 <div className="text-2xl font-black text-purple-400 tracking-tighter">{filteredServices.length}</div>
-                 <div className="text-[8px] font-black text-zinc-500 tracking-[0.2em] uppercase">PROVIDERS</div>
+                 <div className="text-2xl font-black text-primary tracking-tighter">{filteredServices.length}</div>
+                 <div className="text-[8px] font-black text-muted-foreground tracking-[0.2em] uppercase">PROVIDERS</div>
               </div>
               <div className="flex gap-2">
-                 <Button variant="ghost" size="icon" className="h-12 w-12 rounded-2xl bg-white/5 text-purple-400 hover:bg-purple-500 hover:text-white transition-all">
+                 <Button variant="ghost" size="icon" className="h-12 w-12 rounded-2xl bg-surface text-primary hover:bg-primary hover:text-primary-foreground transition-all">
                     <LayoutGrid className="w-5 h-5" />
                  </Button>
-                 <Button variant="ghost" size="icon" className="h-12 w-12 rounded-2xl bg-white/[0.02] text-zinc-600">
+                 <Button variant="ghost" size="icon" className="h-12 w-12 rounded-2xl bg-surface/50 text-muted-foreground">
                     <List className="w-5 h-5" />
                  </Button>
               </div>

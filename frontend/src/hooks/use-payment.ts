@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/api';
 
 interface CreateOrderParams {
+    userId: string;
     serviceType: 'vehicle' | 'house' | 'laundry' | 'marketplace';
     referenceId: string;
     amount: number;
@@ -16,8 +16,14 @@ interface VerifyPaymentParams {
 export const useCreatePaymentOrder = () => {
     return useMutation({
         mutationFn: async (data: CreateOrderParams) => {
-            const res = await api.post('/payments/create-order', data);
-            return res.data;
+            const res = await fetch('/api/payments/create-order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+            const json = await res.json();
+            if (!json.success) throw new Error(json.error || 'Failed to create order');
+            return json;
         },
     });
 };
@@ -27,15 +33,18 @@ export const useVerifyPayment = () => {
 
     return useMutation({
         mutationFn: async (data: VerifyPaymentParams) => {
-            const res = await api.post('/payments/verify', data);
-            return res.data;
+            const res = await fetch('/api/payments/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+            const json = await res.json();
+            if (!json.success) throw new Error(json.error || 'Payment verification failed');
+            return json;
         },
         onSuccess: () => {
-            // Invalidate queries to update dashboard statuses
             queryClient.invalidateQueries({ queryKey: ['userBookings'] });
             queryClient.invalidateQueries({ queryKey: ['vendorBookings'] });
-            queryClient.invalidateQueries({ queryKey: ['wallet'] });
-            queryClient.invalidateQueries({ queryKey: ['walletTransactions'] });
         },
     });
 };

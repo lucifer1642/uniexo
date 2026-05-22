@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import bcrypt from 'bcryptjs';
+import { authHelpers } from '@/modules/auth/auth.helpers';
+import { otpService } from '@/modules/email/otp.service';
+import { notificationService } from '@/modules/email/notification.service';
+import { OTP_ENABLED } from '@/modules/email/email.config';
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    console.log('[API-REGISTER] Request body:', { ...body, password: '***' });
-    
     const { 
       email, password, name, phone, role, 
       university_id, business_name, service_type, 
@@ -14,37 +16,35 @@ export async function POST(req: Request) {
     } = body;
 
     if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Email and password are required' }, { status: 200 });
+    }
+    if (password.length < 6) {
+      return NextResponse.json({ success: false, error: 'Password must be at least 6 characters' }, { status: 200 });
     }
 
-    // Check if user already exists
-    const { data: existingUser, error: checkError } = await supabaseAdmin
+    const { data: existingUser } = await supabaseAdmin
       .from('profiles')
-      .select('id, email')
+      .select('id, auth_provider')
       .eq('email', email.trim())
       .maybeSingle();
 
-    if (checkError) {
-      console.error('[API-REGISTER] Error checking existing user:', checkError);
-    }
-
     if (existingUser) {
-       console.log('[API-REGISTER] Conflict: User already exists:', existingUser.email);
-       return NextResponse.json({ error: 'User with this email already exists' }, { status: 400 });
+       if (existingUser.auth_provider === 'google') {
+          return NextResponse.json({ success: false, error: 'This email is registered via Google. Please use Google Sign-In.' }, { status: 200 });
+       }
+       return NextResponse.json({ success: false, error: 'User with this email already exists' }, { status: 200 });
     }
 
-    // Hash password with 6 rounds for speed in serverless environment
-    const salt = await bcrypt.genSalt(6);
-    const password_hash = await bcrypt.hash(password, salt);
-
-    // Generate simple UUID
+    const password_hash = await authHelpers.hashPassword(password);
     const id = crypto.randomUUID();
+    const uni_id = await authHelpers.generateUniId();
 
-    // Use Admin Client to bypass RLS and perform Insert
     const profileData: any = {
         id,
+        uni_id,
         email: email.trim(),
         password_hash,
+        auth_provider: 'email',
         role: role || 'user',
         name: name || email.split('@')[0],
         phone: phone || null,
@@ -55,25 +55,24 @@ export async function POST(req: Request) {
         on_store_service: (role === 'vendor' && service_type === 'laundry') ? (store_delivery ? true : false) : null,
         store_delivery: (role === 'vendor' && service_type === 'laundry') ? (store_delivery ? true : false) : null,
         kyc_status: 'none',
+        email_verified: !OTP_ENABLED,
         updated_at: new Date().toISOString()
     };
 
-    console.log('[API-REGISTER] Inserting profile for:', email);
-    const { data, error } = await supabaseAdmin
+    const { data: profile, error } = await supabaseAdmin
       .from('profiles')
       .insert([profileData])
       .select()
       .single();
 
     if (error) {
-      console.error('[API-REGISTER] Database error during insert:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error('[AUTH REGISTER] DB Error:', error);
+      return NextResponse.json({ success: false, error: 'Failed to create account. Please try again.' }, { status: 200 });
     }
 
-    // If vendor, create corresponding vendor_profiles record (MUST succeed)
+    // Vendor specific records
     if (role === 'vendor') {
-        console.log('[API-REGISTER] Creating vendor profile for:', business_name);
-        const { data: vendorProfile, error: vendorErr } = await supabaseAdmin
+        const { error: vendorErr } = await supabaseAdmin
           .from('vendor_profiles')
           .upsert({
             user_id: id,
@@ -82,56 +81,49 @@ export async function POST(req: Request) {
             approval_status: 'approved',
             business_phone: phone || '',
             business_address: ''
-          }, { onConflict: 'user_id' })
-          .select()
-          .single();
+          }, { onConflict: 'user_id' });
 
         if (vendorErr) {
-          console.error('[API-REGISTER] CRITICAL: vendor_profiles upsert failed:', vendorErr);
-          // Don't silently proceed - the vendor won't be able to list anything
-          return NextResponse.json({ 
-            error: `Vendor profile setup failed: ${vendorErr.message}. Please contact support.` 
-          }, { status: 500 });
+          console.error('[AUTH REGISTER] Vendor Profile Error:', vendorErr);
         }
-        console.log('[API-REGISTER] Vendor profile created successfully:', vendorProfile?.id);
-    }
 
-    // If laundry vendor, create corresponding laundry_services record
-    if (role === 'vendor' && service_type === 'laundry') {
-        try {
-            console.log('[API-REGISTER] Creating laundry service for:', business_name);
-            await supabaseAdmin.from('laundry_services').insert([{
-                vendor_id: id,
-                name: business_name || `${name}'s Laundry`,
-                onsite_pickup: !!onsite_pickup,
-                on_store_service: !!store_delivery,
-                onsite_pickup_charge: 0,
-                provider_name: name,
-                provider_phone: phone
-            }]);
-        } catch (laundryErr) {
-            console.error('[API-REGISTER] Non-fatal error creating laundry service:', laundryErr);
-            // We don't return error here to let the signup finish
+        if (service_type === 'laundry') {
+            try {
+              const { error: laundryErr } = await supabaseAdmin.from('laundry_services').insert([{
+                  vendor_id: id,
+                  name: business_name || `${name}'s Laundry`,
+                  onsite_pickup: !!onsite_pickup,
+                  on_store_service: !!store_delivery,
+                  onsite_pickup_charge: 0,
+                  provider_name: name,
+                  provider_phone: phone
+              }]);
+              if (laundryErr) console.error('[AUTH REGISTER] Laundry Error:', laundryErr);
+            } catch (e) {
+              console.error('[AUTH REGISTER] Laundry Error:', e);
+            }
         }
     }
 
-    // 10-year expiry for permanent sessions
-    const TEN_YEARS = 10 * 365 * 24 * 60 * 60 * 1000;
-    const token = Buffer.from(JSON.stringify({ 
-      userId: data.id, 
-      role: data.role, 
-      email: data.email,
-      name: data.name,
-      exp: Date.now() + TEN_YEARS 
-    })).toString('base64');
-    
-    // Remove hash from response
-    const { password_hash: _hash, ...safeProfile } = data;
+    const safeProfile = authHelpers.sanitizeProfile(profile);
+    const token = authHelpers.generateToken(safeProfile);
 
-    console.log('[API-REGISTER] Registration successful for:', email);
-    return NextResponse.json({ success: true, token, profile: safeProfile });
+    // Fire-and-forget: Send OTP if enabled
+    if (OTP_ENABLED) {
+      otpService.sendOtp(email.trim(), 'signup').catch(() => {});
+    }
+
+    // Fire-and-forget: Welcome notification
+    notificationService.onSignup(id, email.trim(), name || email.split('@')[0]).catch(() => {});
+
+    return NextResponse.json({ 
+      success: true, 
+      token, 
+      profile: safeProfile,
+      otpRequired: OTP_ENABLED
+    }, { status: 200 });
   } catch (err: any) {
-    console.error('[API-REGISTER] Unhandled error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('[AUTH REGISTER] Uncaught Error:', err);
+    return NextResponse.json({ success: false, error: 'Internal server error occurred.' }, { status: 200 });
   }
 }

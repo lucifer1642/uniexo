@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import bcrypt from 'bcryptjs';
+import { authHelpers } from '@/modules/auth/auth.helpers';
+import { notificationService } from '@/modules/email/notification.service';
 
 export async function POST(req: Request) {
   try {
@@ -8,12 +9,9 @@ export async function POST(req: Request) {
     const { email, password } = body;
 
     if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Email and password are required' }, { status: 200 });
     }
 
-    console.log('[API-LOGIN] Attempt for:', email.trim());
-
-    // 1. Fetch user by email
     const { data: profile, error } = await supabaseAdmin
       .from('profiles')
       .select('*')
@@ -21,54 +19,45 @@ export async function POST(req: Request) {
       .maybeSingle();
 
     if (error || !profile) {
-      console.log('[API-LOGIN] Failed: User not found or error:', email.trim());
-      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+      return NextResponse.json({ success: false, error: 'Invalid email or password' }, { status: 200 });
     }
 
-    // 2. Verify password
     if (!profile.password_hash) {
-      console.log('[API-LOGIN] Failed: No password_hash for user:', email.trim());
-      return NextResponse.json({ error: 'Account not set up with a password. Please sign up again.' }, { status: 401 });
+      // Account exists but no password (likely signed up via Google)
+      if (profile.auth_provider === 'google') {
+         return NextResponse.json({ success: false, error: 'Please sign in with Google.' }, { status: 200 });
+      }
+      return NextResponse.json({ success: false, error: 'Account not set up with a password. Please sign up again.' }, { status: 200 });
     }
 
-    const isMatch = await bcrypt.compare(password, profile.password_hash);
+    const isMatch = await authHelpers.verifyPassword(password, profile.password_hash);
     
     if (!isMatch) {
-      console.log('[API-LOGIN] Failed: Password mismatch for:', email.trim());
-      return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
+      return NextResponse.json({ success: false, error: 'Invalid email or password' }, { status: 200 });
     }
 
     if (profile.is_deleted) {
-       console.log('[API-LOGIN] Failed: Account deleted:', email.trim());
-       return NextResponse.json({ error: 'This account has been deleted' }, { status: 403 });
+       return NextResponse.json({ success: false, error: 'This account has been deleted.' }, { status: 200 });
     }
     
     if (profile.is_suspended) {
-       console.log('[API-LOGIN] Failed: Account suspended:', email.trim());
-       return NextResponse.json({ error: 'This account is suspended' }, { status: 403 });
+       return NextResponse.json({ success: false, error: 'This account is suspended. Please contact support.' }, { status: 200 });
     }
 
-    // 3. Create a permanent session token (10 years)
-    const TEN_YEARS = 10 * 365 * 24 * 60 * 60 * 1000;
-    const token = Buffer.from(JSON.stringify({ 
-      userId: profile.id, 
-      role: profile.role, 
-      email: profile.email,
-      name: profile.name,
-      exp: Date.now() + TEN_YEARS 
-    })).toString('base64');
+    const safeProfile = authHelpers.sanitizeProfile(profile);
+    const token = authHelpers.generateToken(safeProfile);
 
-    // Remove password hash from response
-    const { password_hash, ...safeProfile } = profile;
+    // Fire-and-forget: Login notification
+    notificationService.onLogin(profile.id, profile.email, profile.name).catch(() => {});
 
-    console.log('[API-LOGIN] Success for:', email.trim());
     return NextResponse.json({
       success: true,
       token,
       profile: safeProfile
-    });
+    }, { status: 200 });
   } catch (err: any) {
-    console.error('[API-LOGIN] Unhandled error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('[AUTH LOGIN] Uncaught Error:', err);
+    return NextResponse.json({ success: false, error: 'Internal server error occurred.' }, { status: 200 });
   }
 }
+

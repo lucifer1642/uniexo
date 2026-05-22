@@ -3,19 +3,19 @@
   "version": "1.0.0",
   "private": true,
   "workspaces": [
-    "frontend",
-    "backend"
+    "frontend"
   ],
   "scripts": {
-    "install:all": "npm install && npm install --workspace=frontend && npm install --workspace=backend",
-    "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
-    "start": "concurrently \"npm run start --workspace=backend\" \"PORT=3001 npm run start --workspace=frontend\"",
-    "dev": "concurrently \"npm run dev --workspace=backend\" \"PORT=3001 npm run dev --workspace=frontend\""
+    "install:all": "npm install && npm install --workspace=frontend",
+    "build": "npm run build --workspace=frontend",
+    "start": "cross-env PORT=3002 npm run start --workspace=frontend",
+    "dev": "cross-env PORT=3002 npm run dev --workspace=frontend"
   },
   "dependencies": {
     "concurrently": "^9.1.2"
   },
   "devDependencies": {
+    "cross-env": "^10.1.0",
     "tailwindcss": "3.4.19"
   }
 }

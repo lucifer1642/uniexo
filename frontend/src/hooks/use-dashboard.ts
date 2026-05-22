@@ -2,6 +2,19 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useRealtimeSync } from './use-realtime';
 
+const getAuthHeaders = () => {
+    if (typeof window === 'undefined') return {};
+    try {
+        const raw = localStorage.getItem('uniexo-auth-storage');
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        const token = parsed?.state?.token;
+        return token ? { 'Authorization': `Bearer ${token}` } : {};
+    } catch {
+        return {};
+    }
+};
+
 export const useDashboardRealtime = (role: 'user' | 'vendor' | 'admin') => {
     const tables: any[] = ['bookings', 'wallets'];
     const keys = [
@@ -29,9 +42,13 @@ export const useUserBookings = (page = 1, limit = 10) => {
     return useQuery({
         queryKey: ['userBookings', page, limit],
         queryFn: async () => {
-            const { data } = await api.get('/bookings/my', { params: { page, limit } });
-            const result = data.data;
-            return { bookings: result?.data || result || [], pagination: result?.pagination };
+            try {
+                const res = await fetch(`/api/bookings?page=${page}&limit=${limit}`, { headers: getAuthHeaders() });
+                const json = await res.json();
+                if (!json.success) return { bookings: [], pagination: null };
+                const bookings = (json.data || []).map((b: any) => ({ ...b, _id: b.id }));
+                return { bookings, pagination: json.pagination || null };
+            } catch { return { bookings: [], pagination: null }; }
         },
         refetchInterval: REALTIME_INTERVAL,
         staleTime: REALTIME_STALE,
@@ -43,36 +60,47 @@ export const useVendorBookings = (page = 1, limit = 10) => {
     return useQuery({
         queryKey: ['vendorBookings', page, limit],
         queryFn: async () => {
-            const { data } = await api.get('/bookings/vendor', { params: { page, limit } });
-            const result = data.data;
-            return { bookings: result?.data || result || [], pagination: result?.pagination };
+            try {
+                const res = await fetch(`/api/bookings/vendor?page=${page}&limit=${limit}`, { headers: getAuthHeaders() });
+                const json = await res.json();
+                if (!json.success) return { bookings: [], pagination: null };
+                const bookings = (json.data || []).map((b: any) => ({ ...b, _id: b.id }));
+                return { bookings, pagination: json.pagination || null };
+            } catch { return { bookings: [], pagination: null }; }
         },
         refetchInterval: REALTIME_INTERVAL,
         staleTime: REALTIME_STALE,
     });
 };
 
-// Wallet
+// Wallet (stub - returns empty until wallet API is built)
 export const useWallet = () => {
     return useQuery({
         queryKey: ['wallet'],
         queryFn: async () => {
-            const { data } = await api.get('/wallet');
-            return data.data;
+            try {
+                const res = await fetch('/api/wallet', { headers: getAuthHeaders() });
+                if (!res.ok) return { balance: 0, transactions: [] };
+                const json = await res.json();
+                return json.data || { balance: 0, transactions: [] };
+            } catch { return { balance: 0, transactions: [] }; }
         },
         refetchInterval: REALTIME_INTERVAL,
         staleTime: REALTIME_STALE,
     });
 };
 
-// Wallet transactions
+// Wallet transactions (stub)
 export const useWalletTransactions = (page = 1, limit = 10) => {
     return useQuery({
         queryKey: ['walletTransactions', page, limit],
         queryFn: async () => {
-            const { data } = await api.get('/wallet/transactions', { params: { page, limit } });
-            const result = data.data;
-            return { transactions: result?.data || result || [], pagination: result?.pagination };
+            try {
+                const res = await fetch(`/api/wallet/transactions?page=${page}&limit=${limit}`, { headers: getAuthHeaders() });
+                if (!res.ok) return { transactions: [], pagination: null };
+                const json = await res.json();
+                return { transactions: json.data || [], pagination: json.pagination || null };
+            } catch { return { transactions: [], pagination: null }; }
         },
         refetchInterval: REALTIME_INTERVAL,
         staleTime: REALTIME_STALE,
@@ -84,9 +112,19 @@ export const useVendorVehicles = (page = 1, limit = 10) => {
     return useQuery({
         queryKey: ['vendorVehicles', page, limit],
         queryFn: async () => {
-            const { data } = await api.get('/vehicles/vendor/my-vehicles', { params: { page, limit } });
-            const result = data.data;
-            return { vehicles: result?.data || result || [], pagination: result?.pagination };
+            const res = await fetch(`/api/vehicles/vendor/my-vehicles?page=${page}&limit=${limit}`, { headers: getAuthHeaders() });
+            const json = await res.json();
+            if (!json.success) return { vehicles: [], pagination: null };
+            
+            const mapped = (json.data || []).map((v: any) => ({
+                ...v,
+                _id: v.id,
+                pricePerDay: v.price_per_day,
+                approvalStatus: v.approval_status,
+                isAvailable: v.is_available,
+            }));
+            
+            return { vehicles: mapped, pagination: json.pagination };
         },
         refetchInterval: REALTIME_INTERVAL,
         staleTime: REALTIME_STALE,
@@ -98,9 +136,20 @@ export const useVendorHouses = (page = 1, limit = 10) => {
     return useQuery({
         queryKey: ['vendorHouses', page, limit],
         queryFn: async () => {
-            const { data } = await api.get('/houses/vendor/my-houses', { params: { page, limit } });
-            const result = data.data;
-            return { houses: result?.data || result || [], pagination: result?.pagination };
+            const res = await fetch(`/api/houses/vendor/my-houses?page=${page}&limit=${limit}`, { headers: getAuthHeaders() });
+            const json = await res.json();
+            if (!json.success) return { houses: [], pagination: null };
+            
+            const mapped = (json.data || []).map((h: any) => ({
+                ...h,
+                _id: h.id,
+                pricePerMonth: h.price_per_month,
+                pricePerDay: h.price_per_day,
+                approvalStatus: h.approval_status,
+                isAvailable: h.is_available,
+            }));
+            
+            return { houses: mapped, pagination: json.pagination };
         },
         refetchInterval: REALTIME_INTERVAL,
         staleTime: REALTIME_STALE,
@@ -112,9 +161,12 @@ export const useUserLaundryOrders = (page = 1, limit = 10) => {
     return useQuery({
         queryKey: ['userLaundryOrders', page, limit],
         queryFn: async () => {
-            const { data } = await api.get('/laundry/orders/my', { params: { page, limit } });
-            const result = data.data;
-            return { orders: result?.data || result || [], pagination: result?.pagination };
+            try {
+                const res = await fetch(`/api/laundry/orders?page=${page}&limit=${limit}`, { headers: getAuthHeaders() });
+                if (!res.ok) return { orders: [], pagination: null };
+                const json = await res.json();
+                return { orders: json.data || [], pagination: json.pagination || null };
+            } catch { return { orders: [], pagination: null }; }
         },
         refetchInterval: REALTIME_INTERVAL,
         staleTime: REALTIME_STALE,
@@ -126,9 +178,12 @@ export const useUserMarketplaceItems = (page = 1, limit = 10) => {
     return useQuery({
         queryKey: ['userMarketplaceItems', page, limit],
         queryFn: async () => {
-            const { data } = await api.get('/marketplace/user/my-items', { params: { page, limit } });
-            const result = data.data;
-            return { items: result?.data || result || [], pagination: result?.pagination };
+            try {
+                const res = await fetch(`/api/marketplace/my-items?page=${page}&limit=${limit}`, { headers: getAuthHeaders() });
+                if (!res.ok) return { items: [], pagination: null };
+                const json = await res.json();
+                return { items: json.data || [], pagination: json.pagination || null };
+            } catch { return { items: [], pagination: null }; }
         },
         refetchInterval: REALTIME_INTERVAL,
         staleTime: REALTIME_STALE,
@@ -140,8 +195,12 @@ export const useVendorProfile = () => {
     return useQuery({
         queryKey: ['vendorProfile'],
         queryFn: async () => {
-            const { data } = await api.get('/vendors/profile');
-            return data.data;
+            try {
+                const res = await fetch(`/api/vendors/profile`, { headers: getAuthHeaders() });
+                if (!res.ok) return null;
+                const json = await res.json();
+                return json.data || null;
+            } catch { return null; }
         },
         refetchInterval: REALTIME_INTERVAL,
         staleTime: REALTIME_STALE,
@@ -153,22 +212,30 @@ export const useVendorDashboardStats = () => {
     return useQuery({
         queryKey: ['vendorDashboardStats'],
         queryFn: async () => {
-            const { data } = await api.get('/vendors/dashboard/stats');
-            return data.data;
+            try {
+                const res = await fetch(`/api/vendors/stats`, { headers: getAuthHeaders() });
+                if (!res.ok) return {};
+                const json = await res.json();
+                return json.data || {};
+            } catch { return {}; }
         },
         refetchInterval: REALTIME_INTERVAL,
         staleTime: REALTIME_STALE,
     });
 };
 
-// ─── ANALYTICS HOOKS ──────────────────────────────────────────────
+// ─── ANALYTICS HOOKS ──────────────────────────
 
 export const useVendorAnalyticsOverview = () => {
     return useQuery({
         queryKey: ['vendorAnalyticsOverview'],
         queryFn: async () => {
-            const { data } = await api.get('/vendors/analytics/overview');
-            return data.data;
+            try {
+                const res = await fetch(`/api/vendors/analytics/overview`, { headers: getAuthHeaders() });
+                if (!res.ok) return {};
+                const json = await res.json();
+                return json.data || {};
+            } catch { return {}; }
         },
         refetchInterval: REALTIME_INTERVAL,
         staleTime: REALTIME_STALE,
@@ -179,8 +246,12 @@ export const useVendorSalesBreakdown = (period: 'week' | 'month' | 'year' = 'mon
     return useQuery({
         queryKey: ['vendorSalesBreakdown', period],
         queryFn: async () => {
-            const { data } = await api.get('/vendors/analytics/sales', { params: { period } });
-            return data.data;
+            try {
+                const res = await fetch(`/api/vendors/analytics/sales?period=${period}`, { headers: getAuthHeaders() });
+                if (!res.ok) return null;
+                const json = await res.json();
+                return json.data || null;
+            } catch { return null; }
         },
         refetchInterval: REALTIME_INTERVAL,
         staleTime: REALTIME_STALE,
@@ -191,8 +262,12 @@ export const useVendorLedger = (page = 1, limit = 20) => {
     return useQuery({
         queryKey: ['vendorLedger', page, limit],
         queryFn: async () => {
-            const { data } = await api.get('/vendors/analytics/ledger', { params: { page, limit } });
-            return data.data;
+            try {
+                const res = await fetch(`/api/vendors/analytics/ledger?page=${page}&limit=${limit}`, { headers: getAuthHeaders() });
+                if (!res.ok) return null;
+                const json = await res.json();
+                return json.data || null;
+            } catch { return null; }
         },
         refetchInterval: REALTIME_INTERVAL,
         staleTime: REALTIME_STALE,
@@ -203,8 +278,12 @@ export const useVendorDues = () => {
     return useQuery({
         queryKey: ['vendorDues'],
         queryFn: async () => {
-            const { data } = await api.get('/vendors/analytics/dues');
-            return data.data;
+            try {
+                const res = await fetch(`/api/vendors/analytics/dues`, { headers: getAuthHeaders() });
+                if (!res.ok) return { totalDue: 0 };
+                const json = await res.json();
+                return json.data || { totalDue: 0 };
+            } catch { return { totalDue: 0 }; }
         },
         refetchInterval: REALTIME_INTERVAL,
         staleTime: REALTIME_STALE,
@@ -215,8 +294,12 @@ export const useVendorBookingTrends = (days = 30) => {
     return useQuery({
         queryKey: ['vendorBookingTrends', days],
         queryFn: async () => {
-            const { data } = await api.get('/vendors/analytics/trends', { params: { days } });
-            return data.data;
+            try {
+                const res = await fetch(`/api/vendors/analytics/trends?days=${days}`, { headers: getAuthHeaders() });
+                if (!res.ok) return [];
+                const json = await res.json();
+                return json.data || [];
+            } catch { return []; }
         },
         refetchInterval: REALTIME_INTERVAL,
         staleTime: REALTIME_STALE,
@@ -227,8 +310,12 @@ export const useVendorRevenueTimeSeries = (days = 30) => {
     return useQuery({
         queryKey: ['vendorRevenueTimeSeries', days],
         queryFn: async () => {
-            const { data } = await api.get('/vendors/analytics/revenue-series', { params: { days } });
-            return data.data;
+            try {
+                const res = await fetch(`/api/vendors/analytics/revenue-series?days=${days}`, { headers: getAuthHeaders() });
+                if (!res.ok) return [];
+                const json = await res.json();
+                return json.data || [];
+            } catch { return []; }
         },
         refetchInterval: REALTIME_INTERVAL,
         staleTime: REALTIME_STALE,
@@ -239,8 +326,29 @@ export const useVendorRoomOccupancy = () => {
     return useQuery({
         queryKey: ['vendorRoomOccupancy'],
         queryFn: async () => {
-            const { data } = await api.get('/vendors/analytics/room-occupancy');
-            return data.data;
+            try {
+                const res = await fetch(`/api/vendors/analytics/room-occupancy`, { headers: getAuthHeaders() });
+                if (!res.ok) return [];
+                const json = await res.json();
+                return json.data || [];
+            } catch { return []; }
+        },
+        refetchInterval: REALTIME_INTERVAL,
+        staleTime: REALTIME_STALE,
+    });
+};
+
+// Vendor payments received
+export const useVendorPayments = (page = 1, limit = 20) => {
+    return useQuery({
+        queryKey: ['vendorPayments', page, limit],
+        queryFn: async () => {
+            try {
+                const res = await fetch(`/api/payments/vendor?page=${page}&limit=${limit}`, { headers: getAuthHeaders() });
+                if (!res.ok) return { payments: [], total: 0 };
+                const json = await res.json();
+                return { payments: json.data || [], total: json.total || 0 };
+            } catch { return { payments: [], total: 0 }; }
         },
         refetchInterval: REALTIME_INTERVAL,
         staleTime: REALTIME_STALE,

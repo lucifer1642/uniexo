@@ -1,48 +1,45 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import bcrypt from 'bcryptjs';
+import { authHelpers } from '@/modules/auth/auth.helpers';
 
 export async function POST(req: Request) {
   try {
     const { email, newPassword } = await req.json();
 
     if (!email || !newPassword) {
-      return NextResponse.json({ error: 'Email and new password are required' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Email and new password are required' }, { status: 200 });
     }
 
     if (newPassword.length < 6) {
-      return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 });
+      return NextResponse.json({ success: false, error: 'Password must be at least 6 characters' }, { status: 200 });
     }
 
-    // Find user by email
     const { data: profile, error: fetchError } = await supabaseAdmin
       .from('profiles')
       .select('id')
-      .eq('email', email)
+      .eq('email', email.trim())
       .maybeSingle();
 
     if (fetchError || !profile) {
-      return NextResponse.json({ error: 'Account not found' }, { status: 404 });
+      return NextResponse.json({ success: false, error: 'Account not found or link expired.' }, { status: 200 });
     }
 
-    // Hash new password
-    const salt = await bcrypt.genSalt(10);
-    const password_hash = await bcrypt.hash(newPassword, salt);
+    const password_hash = await authHelpers.hashPassword(newPassword);
 
-    // Update password in DB
     const { error: updateError } = await supabaseAdmin
       .from('profiles')
       .update({ password_hash, updated_at: new Date().toISOString() })
       .eq('id', profile.id);
 
     if (updateError) {
-      console.error('[RESET-PASSWORD] Update error:', updateError);
-      return NextResponse.json({ error: 'Failed to update password' }, { status: 500 });
+      console.error('[AUTH RESET] Update error:', updateError);
+      return NextResponse.json({ success: false, error: 'Failed to update password. Please try again.' }, { status: 200 });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true }, { status: 200 });
   } catch (err: any) {
-    console.error('[RESET-PASSWORD] Error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('[AUTH RESET] Error:', err);
+    return NextResponse.json({ success: false, error: 'Internal server error occurred.' }, { status: 200 });
   }
 }
+

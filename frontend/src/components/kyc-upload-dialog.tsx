@@ -70,13 +70,13 @@ export function KycUploadDialog({ isOpen, onClose }: KycUploadDialogProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] bg-[#0a0a0a] border-white/10 text-white rounded-[2rem] overflow-hidden">
+      <DialogContent className="sm:max-w-[500px] bg-background border-border text-foreground rounded-[2rem] overflow-hidden theme-landing">
         <DialogHeader className="p-4 pt-8">
-          <div className="mx-auto w-16 h-16 rounded-3xl bg-lime-400/10 flex items-center justify-center text-lime-400 mb-4">
+          <div className="mx-auto w-16 h-16 rounded-3xl bg-primary/10 flex items-center justify-center text-primary mb-4">
             <ShieldCheck className="w-8 h-8" />
           </div>
-          <DialogTitle className="text-3xl font-black text-center tracking-tighter">Identity <span className="text-lime-400">Verification</span></DialogTitle>
-          <DialogDescription className="text-zinc-500 text-center text-sm font-medium">
+          <DialogTitle className="text-3xl font-black text-center tracking-tighter">Identity <span className="text-primary">Verification</span></DialogTitle>
+          <DialogDescription className="text-muted-foreground text-center text-sm font-medium">
             Verify your account to unlock premium rentals and vendor features.
           </DialogDescription>
         </DialogHeader>
@@ -84,49 +84,49 @@ export function KycUploadDialog({ isOpen, onClose }: KycUploadDialogProps) {
         <div className="p-4 py-6">
           {step === 1 && (
             <div className="space-y-6">
-              <div className="flex items-center gap-3 p-3 bg-white/[0.03] border border-white/5 rounded-2xl">
-                 <div className="p-2 rounded-xl bg-lime-400/10 text-lime-400">
+              <div className="flex items-center gap-3 p-3 bg-surface border border-border rounded-2xl">
+                 <div className="p-2 rounded-xl bg-primary/10 text-primary">
                     <Landmark className="w-4 h-4" />
                  </div>
-                 <span className="text-xs font-black uppercase tracking-widest text-zinc-400">Step 1: Bank Details</span>
+                 <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Step 1: Bank Details</span>
               </div>
               
               <div className="grid gap-4">
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 ml-1">Account Holder Name</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Account Holder Name</Label>
                   <Input 
                     value={bankDetails.accountHolder}
                     onChange={(e) => setBankDetails({...bankDetails, accountHolder: e.target.value})}
                     placeholder="Enter full name"
-                    className="bg-white/[0.03] border-white/10 rounded-xl h-12 focus:ring-lime-400/30"
+                    className="bg-surface border-border rounded-xl h-12 focus:ring-primary/30"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 ml-1">Bank Name</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Bank Name</Label>
                   <Input 
                     value={bankDetails.bankName}
                     onChange={(e) => setBankDetails({...bankDetails, bankName: e.target.value})}
                     placeholder="e.g. HDFC Bank"
-                    className="bg-white/[0.03] border-white/10 rounded-xl h-12 focus:ring-lime-400/30"
+                    className="bg-surface border-border rounded-xl h-12 focus:ring-primary/30"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 ml-1">Account Number</Label>
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Account Number</Label>
                     <Input 
                       value={bankDetails.accountNumber}
                       onChange={(e) => setBankDetails({...bankDetails, accountNumber: e.target.value})}
                       placeholder="XXXX XXXX XXXX"
-                      className="bg-white/[0.03] border-white/10 rounded-xl h-12 focus:ring-lime-400/30"
+                      className="bg-surface border-border rounded-xl h-12 focus:ring-primary/30"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 ml-1">IFSC Code</Label>
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">IFSC Code</Label>
                     <Input 
                       value={bankDetails.ifscCode}
                       onChange={(e) => setBankDetails({...bankDetails, ifscCode: e.target.value})}
                       placeholder="e.g. HDFC0001234"
-                      className="bg-white/[0.03] border-white/10 rounded-xl h-12 focus:ring-lime-400/30"
+                      className="bg-surface border-border rounded-xl h-12 focus:ring-primary/30"
                     />
                   </div>
                 </div>
@@ -134,7 +134,7 @@ export function KycUploadDialog({ isOpen, onClose }: KycUploadDialogProps) {
               
               <Button 
                 onClick={() => setStep(2)}
-                className="w-full h-14 rounded-2xl bg-lime-400 text-black font-black hover:bg-lime-500 shadow-xl shadow-lime-400/20"
+                className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-black hover:opacity-90 shadow-xl shadow-primary/20"
               >
                 NEXT: DOCUMENT UPLOAD
               </Button>
@@ -143,15 +143,15 @@ export function KycUploadDialog({ isOpen, onClose }: KycUploadDialogProps) {
 
           {step === 2 && (
             <div className="space-y-6">
-              <div className="flex items-center gap-3 p-3 bg-white/[0.03] border border-white/5 rounded-2xl">
-                 <div className="p-2 rounded-xl bg-lime-400/10 text-lime-400">
+              <div className="flex items-center gap-3 p-3 bg-surface border border-border rounded-2xl">
+                 <div className="p-2 rounded-xl bg-primary/10 text-primary">
                     <FileText className="w-4 h-4" />
                  </div>
-                 <span className="text-xs font-black uppercase tracking-widest text-zinc-400">Step 2: ID Card Upload</span>
+                 <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Step 2: ID Card Upload</span>
               </div>
 
               <div 
-                className={`relative border-2 border-dashed rounded-[2.5rem] p-12 transition-all text-center flex flex-col items-center justify-center gap-4 ${idProof ? 'border-lime-400/50 bg-lime-400/5' : 'border-white/10 hover:border-white/20 bg-white/[0.02]'}`}
+                className={`relative border-2 border-dashed rounded-[2.5rem] p-12 transition-all text-center flex flex-col items-center justify-center gap-4 ${idProof ? 'border-primary/50 bg-primary/5' : 'border-border hover:border-primary/20 bg-surface'}`}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
                   e.preventDefault();
@@ -164,12 +164,12 @@ export function KycUploadDialog({ isOpen, onClose }: KycUploadDialogProps) {
                   onChange={(e) => e.target.files?.[0] && setIdProof(e.target.files[0])}
                   accept="image/*"
                 />
-                <div className={`p-6 rounded-3xl ${idProof ? 'bg-lime-400 text-black' : 'bg-white/5 text-zinc-500'}`}>
+                <div className={`p-6 rounded-3xl ${idProof ? 'bg-primary text-primary-foreground' : 'bg-muted/10 text-muted-foreground'}`}>
                   <Upload className="w-8 h-8" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-white mb-1">{idProof ? idProof.name : 'Upload Identity Proof'}</h4>
-                  <p className="text-xs text-zinc-500">Drag & drop or click to browse. (JPG, PNG)</p>
+                  <h4 className="font-bold text-foreground mb-1">{idProof ? idProof.name : 'Upload Identity Proof'}</h4>
+                  <p className="text-xs text-muted-foreground">Drag & drop or click to browse. (JPG, PNG)</p>
                 </div>
               </div>
 
@@ -177,7 +177,7 @@ export function KycUploadDialog({ isOpen, onClose }: KycUploadDialogProps) {
                 <Button 
                   variant="ghost"
                   onClick={() => setStep(1)}
-                  className="h-14 rounded-2xl text-zinc-500 hover:text-white font-black"
+                  className="h-14 rounded-2xl text-muted-foreground hover:text-foreground font-black"
                   disabled={loading}
                 >
                   BACK
@@ -185,7 +185,7 @@ export function KycUploadDialog({ isOpen, onClose }: KycUploadDialogProps) {
                 <Button 
                   onClick={handleKycSubmit}
                   disabled={loading || !idProof}
-                  className="h-14 rounded-2xl bg-lime-400 text-black font-black hover:bg-lime-500 shadow-xl shadow-lime-400/20"
+                  className="h-14 rounded-2xl bg-primary text-primary-foreground font-black hover:opacity-90 shadow-xl shadow-primary/20"
                 >
                   {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'SUBMIT VERIFICATION'}
                 </Button>
@@ -195,16 +195,16 @@ export function KycUploadDialog({ isOpen, onClose }: KycUploadDialogProps) {
 
           {step === 3 && (
             <div className="py-12 text-center space-y-6">
-              <div className="mx-auto w-24 h-24 rounded-[2rem] bg-emerald-500/20 text-emerald-500 flex items-center justify-center animate-bounce">
+              <div className="mx-auto w-24 h-24 rounded-[2rem] bg-secondary/20 text-secondary flex items-center justify-center animate-bounce">
                 <CheckCircle2 className="w-12 h-12" />
               </div>
               <div>
-                <h3 className="text-3xl font-black tracking-tighter mb-2">Documents <span className="text-emerald-500">Received!</span></h3>
-                <p className="text-zinc-500 text-sm max-w-xs mx-auto">Our administrators are reviewing your submission. You'll be notified once verified.</p>
+                <h3 className="text-3xl font-black tracking-tighter mb-2">Documents <span className="text-secondary">Received!</span></h3>
+                <p className="text-muted-foreground text-sm max-w-xs mx-auto">Our administrators are reviewing your submission. You'll be notified once verified.</p>
               </div>
               <Button 
                 onClick={onClose}
-                className="w-full h-14 rounded-2xl bg-white text-black font-black hover:bg-zinc-200"
+                className="w-full h-14 rounded-2xl bg-foreground text-background font-black hover:opacity-90"
               >
                 CLOSE PORTAL
               </Button>

@@ -120,6 +120,7 @@ export default function LaundryDetailPage() {
 
       // 2. Create Razorpay Payment Order
       const paymentData = await createPayment.mutateAsync({
+        userId: user!.id,
         serviceType: 'laundry' as any,
         referenceId: orderId,
         amount: amountToPay,
@@ -176,7 +177,7 @@ export default function LaundryDetailPage() {
     <>
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
 
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <div className="container mx-auto px-4 py-8 max-w-6xl theme-laundry">
         <div className="mb-6">
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">{service.name}</h1>
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">

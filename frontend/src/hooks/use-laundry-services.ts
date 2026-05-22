@@ -78,7 +78,8 @@ export const useVendorLaundryService = () => {
     return useQuery({
         queryKey: ['vendorLaundryService'],
         queryFn: async () => {
-            const { data } = await api.get('/laundry/vendor/my-service');
+            const userId = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('uniexo_user') || '{}')?.id : null;
+            const { data } = await api.get(`/laundry/vendor/my-service?vendorId=${userId}`);
             return data.data as LaundryService | null;
         },
     });
@@ -110,7 +111,8 @@ export const useVendorLaundryOrders = (page = 1, limit = 20, status?: string) =>
     return useQuery({
         queryKey: ['vendorLaundryOrders', page, limit, status],
         queryFn: async () => {
-            const params: any = { page, limit };
+            const userId = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('uniexo_user') || '{}')?.id : null;
+            const params: any = { page, limit, vendorId: userId };
             if (status) params.status = status;
             const { data } = await api.get('/laundry/vendor/orders', { params });
             return data.data;

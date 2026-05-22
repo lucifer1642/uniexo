@@ -114,26 +114,38 @@ function Landing() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen overflow-hidden mesh-gradient relative">
+    <div className="flex flex-col min-h-screen bg-background text-foreground overflow-x-hidden theme-landing">
       {/* Scroll Progress Indicator */}
       <motion.div
         className="fixed top-0 left-0 right-0 h-1 bg-primary z-[60] origin-left"
         style={{ scaleX }}
       />
 
-      {/* 1. Hero Section */}
-      <section className="relative pt-20 pb-12 md:pt-32 md:pb-24 overflow-hidden">
+      {/* 1. Hero Section - Dynamic & High-Conversion */}
+      <section className="relative pt-16 pb-10 md:pt-24 md:pb-16 overflow-hidden">
         {/* Background Decorative Blobs */}
-        <div className="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl -z-10" />
-        <div className="absolute bottom-0 left-0 translate-y-1/4 -translate-x-1/4 w-[500px] h-[500px] bg-accent/5 rounded-full blur-3xl -z-10" />
+        <div className="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl -z-10 animate-drift" />
+        <div className="absolute bottom-0 left-0 translate-y-1/4 -translate-x-1/4 w-[500px] h-[500px] bg-accent/5 rounded-full blur-3xl -z-10 animate-drift stagger-3" />
+        
+        {/* Floating Particles */}
+        <motion.div 
+          animate={{ y: [0, -50, 0], x: [0, 30, 0] }}
+          transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+          className="absolute top-1/4 left-1/4 w-4 h-4 bg-primary/20 rounded-full blur-sm"
+        />
+        <motion.div 
+          animate={{ y: [0, 60, 0], x: [0, -40, 0], rotate: [0, 10, 0] }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          className="absolute bottom-1/3 right-1/3 w-6 h-6 bg-accent/20 rounded-full blur-md"
+        />
+        <div className="absolute top-1/2 left-0 w-full h-px bg-gradient-to-r from-transparent via-accent/20 to-transparent -z-10" />
+        <div className="absolute top-0 left-1/2 w-px h-full bg-gradient-to-b from-transparent via-primary/10 to-transparent -z-10" />
 
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             {/* Left Column (Text & Actions) */}
             <motion.div 
-              initial="hidden" 
-              animate="visible" 
-              variants={staggerContainer}
+              initial="hidden" animate="visible" variants={staggerContainer}
               className="max-w-2xl"
               style={{ y: heroY }}
             >
@@ -142,17 +154,15 @@ function Landing() {
                 <span>INDIA'S LARGEST MULTI-SERVICE HUB</span>
               </motion.div>
 
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight mb-6 leading-[1.1]">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight mb-6 leading-[1.1] text-foreground">
                 {"The easiest way to find your Needs".split(" ").map((word, i) => (
                   <motion.span
                     key={i}
                     custom={i}
-                    variants={wordReveal}
-                    initial="hidden"
-                    animate="visible"
+                    initial="hidden" animate="visible" variants={wordReveal}
                     className="inline-block mr-[0.2em]"
                   >
-                    {word === "Needs" ? <span className="text-accent underline decoration-accent/30 underline-offset-8">Needs</span> : word}
+                    {word === "Needs" ? <span className="text-primary underline decoration-primary/30 underline-offset-8 italic">Needs</span> : word}
                   </motion.span>
                 ))}
               </h1>
@@ -187,11 +197,12 @@ function Landing() {
                   <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                   <Input
                     placeholder="Enter location or query"
-                    className="h-12 pl-12 text-base rounded-2xl border-2 focus-visible:ring-primary/20 bg-white/50 backdrop-blur-sm"
+                    className="h-12 pl-12 text-base rounded-2xl border-2 focus-visible:ring-primary/20 bg-surface/50 backdrop-blur-sm placeholder:text-muted-foreground"
                   />
                 </div>
-                <Button size="lg" className="h-12 px-8 bg-primary hover:bg-primary/90 text-white font-bold rounded-2xl shadow-xl shadow-primary/20 transition-all hover:-translate-y-1">
-                  Explore Now
+                <Button size="lg" className="h-12 px-8 bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-2xl shadow-xl shadow-primary/20 transition-all hover:-translate-y-1 relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite] skew-x-[-20deg]" />
+                  <span className="relative z-10">Explore Now</span>
                 </Button>
               </motion.div>
             </motion.div>
@@ -205,7 +216,7 @@ function Landing() {
             >
               <motion.div 
                 style={{ y: heroY }}
-                className="relative z-20"
+                className="relative z-20 animate-float-slow"
               >
                 <div className="relative group perspective-[1000px]">
                   <img
@@ -258,61 +269,107 @@ function Landing() {
         </div>
       </section>
 
+      {/* Infinite Scroll Carousel (Partners) with Floaters */}
+      <section className="py-12 overflow-hidden bg-surface/30 border-y border-border/50 relative">
+        {/* Floaters in Logo Section */}
+        <motion.div 
+          animate={{ y: [-10, 10, -10], opacity: [0.3, 0.6, 0.3] }}
+          transition={{ duration: 4, repeat: Infinity }}
+          className="absolute top-4 left-[10%] glass-xs px-3 py-1 rounded-full text-[10px] font-bold text-primary/50"
+        >
+          #1 University Partner
+        </motion.div>
+        <motion.div 
+          animate={{ y: [10, -10, 10], opacity: [0.2, 0.5, 0.2] }}
+          transition={{ duration: 5, repeat: Infinity }}
+          className="absolute bottom-4 right-[15%] glass-xs px-3 py-1 rounded-full text-[10px] font-bold text-accent/50"
+        >
+          Verified Campus Service
+        </motion.div>
+        <motion.div 
+          animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.3, 0.1] }}
+          transition={{ duration: 6, repeat: Infinity }}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[100px] -z-10"
+        />
+
+        <motion.div 
+          className="flex gap-24 whitespace-nowrap"
+          animate={{ x: [0, -1500] }}
+          transition={{ repeat: Infinity, ease: "linear", duration: 40 }}
+        >
+          {[
+            { name: 'Lovely Professional University', logo: '/lpu_logo.png' },
+            { name: 'UniExo Campus Hub', logo: '/lpu_logo.png' },
+            { name: 'Lovely Professional University', logo: '/lpu_logo.png' },
+            { name: 'LPU Verified Vendor', logo: '/lpu_logo.png' },
+            { name: 'Lovely Professional University', logo: '/lpu_logo.png' },
+            { name: 'UniExo Elite', logo: '/lpu_logo.png' },
+          ].map((p, i) => (
+            <div key={i} className="flex items-center gap-6 group">
+              <div className="relative p-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 group-hover:bg-white/20 transition-all">
+                <img src={p.logo} alt={p.name} className="h-14 md:h-18 w-auto object-contain transition-transform group-hover:scale-110" />
+                <div className="absolute -inset-2 bg-primary/10 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+              <span className="font-black text-3xl md:text-4xl tracking-tighter text-primary/30 group-hover:text-primary transition-colors uppercase italic">{p.name}</span>
+            </div>
+          ))}
+        </motion.div>
+        
+        {/* Floating Accent Blobs for Carousel */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-accent/10 rounded-full blur-2xl -z-10 animate-float" />
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-primary/10 rounded-full blur-2xl -z-10 animate-float-slow" />
+      </section>
+
       {/* Stats Strip */}
       <section className="relative">
         <motion.div 
-          initial="hidden" 
-          whileInView="visible" 
-          viewport={{ once: true, margin: "-100px" }}
-          variants={staggerContainer}
-          className="container mx-auto px-4 md:px-8 mt-16 lg:mt-24 relative z-20"
+          initial="hidden" animate="visible" variants={staggerContainer}
+          className="container mx-auto px-4 md:px-8 mt-12 lg:mt-16 relative z-20"
         >
-          <div className="glass rounded-[3rem] p-8 md:p-12 grid grid-cols-2 md:grid-cols-4 gap-12 border-white/40 shadow-2xl">
+          <div className="glass rounded-[3rem] p-8 md:p-12 grid grid-cols-2 md:grid-cols-4 gap-12 border-border shadow-2xl bg-surface/50">
             <motion.div variants={fadeUp} className="flex flex-col items-center justify-center text-center">
-              <div className="w-16 h-16 rounded-3xl bg-blue-50 flex items-center justify-center mb-6 shadow-inner group-hover:rotate-12 transition-transform">
+              <div className="w-16 h-16 rounded-3xl bg-primary/10 flex items-center justify-center mb-6 shadow-inner group-hover:rotate-12 transition-transform">
                 <HomeIcon className="w-8 h-8 text-primary" />
               </div>
               <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-2">Properties</p>
-              <h3 className="text-3xl md:text-4xl font-black text-slate-900"><Counter value={15000} />+</h3>
+              <h3 className="text-3xl md:text-4xl font-black text-foreground"><Counter value={15000} />+</h3>
             </motion.div>
             
             <motion.div variants={fadeUp} className="flex flex-col items-center justify-center text-center">
-              <div className="w-16 h-16 rounded-3xl bg-emerald-50 flex items-center justify-center mb-6 shadow-inner">
-                <Car className="w-8 h-8 text-accent" />
+              <div className="w-16 h-16 rounded-3xl bg-secondary/10 flex items-center justify-center mb-6 shadow-inner">
+                <Car className="w-8 h-8 text-secondary" />
               </div>
               <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-2">Vehicles</p>
-              <h3 className="text-3xl md:text-4xl font-black text-slate-900"><Counter value={300} />K+</h3>
+              <h3 className="text-3xl md:text-4xl font-black text-foreground"><Counter value={300} />K+</h3>
             </motion.div>
 
-            <motion.div variants={fadeUp} className="flex flex-col items-center justify-center text-center">
-              <div className="w-16 h-16 rounded-3xl bg-orange-50 flex items-center justify-center mb-6 shadow-inner">
-                <Star className="w-8 h-8 text-orange-500" />
+            <motion.div variants={fadeUp} className="flex flex-col items-center justify-center text-center group">
+              <div className="w-16 h-16 rounded-3xl bg-accent/10 flex items-center justify-center mb-6 shadow-inner group-hover:scale-110 group-hover:rotate-6 transition-all">
+                <Star className="w-8 h-8 text-accent" />
               </div>
               <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-2">Reviews</p>
-              <h3 className="text-3xl md:text-4xl font-black text-slate-900"><Counter value={45} />K+</h3>
+              <h3 className="text-3xl md:text-4xl font-black text-foreground"><Counter value={45} />K+</h3>
             </motion.div>
 
-            <motion.div variants={fadeUp} className="flex flex-col items-center justify-center text-center">
-              <div className="w-16 h-16 rounded-3xl bg-purple-50 flex items-center justify-center mb-6 shadow-inner">
-                <Zap className="w-8 h-8 text-purple-600" />
+            <motion.div variants={fadeUp} className="flex flex-col items-center justify-center text-center group">
+              <div className="w-16 h-16 rounded-3xl bg-primary/10 flex items-center justify-center mb-6 shadow-inner group-hover:scale-110 group-hover:-rotate-6 transition-all">
+                <Zap className="w-8 h-8 text-primary" />
               </div>
               <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest mb-2">Active Users</p>
-              <h3 className="text-3xl md:text-4xl font-black text-slate-900"><Counter value={250} />K+</h3>
+              <h3 className="text-3xl md:text-4xl font-black text-foreground"><Counter value={250} />K+</h3>
             </motion.div>
           </div>
         </motion.div>
       </section>
 
-      {/* 2. Lead Conversion */}
-      <section className="py-24 relative">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-        
+      {/* 2. Lead Conversion / Feature Grid */}
+      <section className="py-16 md:py-20 relative">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
           <motion.div 
-            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
-            className="text-center mb-16"
+             whileInView="visible" viewport={{ once: true }} variants={fadeUp}
+            className="text-center mb-12"
           >
-            <h2 className="text-3xl md:text-5xl font-black mb-6 tracking-tight">
+            <h2 className="text-3xl md:text-5xl font-black mb-6 tracking-tight text-foreground">
               Find your perfect match. <br />
               <span className="text-primary italic">10X Faster than before.</span>
             </h2>
@@ -325,7 +382,7 @@ function Landing() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 md:gap-16 items-center">
             {/* Features List */}
             <motion.div 
-              initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerContainer}
+               whileInView="visible" viewport={{ once: true }} initial="hidden" animate="visible" variants={staggerContainer}
               className="space-y-6"
             >
               {[
@@ -338,14 +395,14 @@ function Landing() {
                   key={i} 
                   variants={fadeUp} 
                   whileHover={{ x: 10 }}
-                  className="group p-6 rounded-3xl border border-white/40 glass hover:bg-white/60 transition-all duration-300"
+                  className="group p-6 rounded-3xl border border-border glass hover:bg-surface/60 transition-all duration-300"
                 >
                   <div className="flex items-start gap-5">
-                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-bold text-xl group-hover:bg-primary group-hover:text-white transition-colors">
+                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-bold text-xl group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                       {i + 1}
                     </div>
                     <div>
-                      <h4 className="text-xl font-bold mb-1 text-slate-900">{feat.title}</h4>
+                      <h4 className="text-xl font-bold mb-1 text-foreground">{feat.title}</h4>
                       <p className="text-muted-foreground">{feat.desc}</p>
                     </div>
                   </div>
@@ -369,11 +426,9 @@ function Landing() {
             >
               <div className="absolute inset-0 bg-primary/10 rounded-[4rem] blur-3xl -z-10 translate-x-10 translate-y-10" />
               <div className="border-[12px] border-slate-900 rounded-[3.5rem] bg-white shadow-[0_50px_100px_-20px_rgba(0,0,0,0.4)] overflow-hidden aspect-[9/19] flex flex-col items-center relative">
-                {/* Mock Phone Header */}
                 <div className="w-full h-14 bg-slate-50 border-b flex items-center justify-center font-semibold text-primary">
                   Book Item
                 </div>
-                {/* Mock Content */}
                 <div className="p-6 w-full space-y-6 flex-1 mt-4">
                   <div className="h-12 bg-slate-100 rounded-2xl border px-4 flex items-center text-sm font-medium text-slate-700">John Doe</div>
                   <div className="h-12 bg-slate-100 rounded-2xl border px-4 flex items-center text-sm font-medium text-slate-700">+91 9876543210</div>
@@ -393,7 +448,6 @@ function Landing() {
                 </div>
               </div>
 
-              {/* Floating Parallax Element */}
               <motion.div 
                 animate={{ y: [0, -20, 0] }}
                 transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
@@ -412,19 +466,19 @@ function Landing() {
       </section>
 
       {/* 3. Automatic Operations */}
-      <section className="py-24 relative bg-slate-900 overflow-hidden">
+      <section className="py-16 md:py-20 relative bg-surface overflow-hidden">
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/10 rounded-full blur-[120px] -z-10 translate-x-1/3 -translate-y-1/3" />
         
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
           <motion.div 
-            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
-            className="text-center mb-16"
+             whileInView="visible" viewport={{ once: true }} variants={fadeUp}
+            className="text-center mb-12"
           >
-            <h2 className="text-3xl md:text-5xl font-black mb-6 text-white tracking-tight">
+            <h2 className="text-3xl md:text-5xl font-black mb-6 text-foreground tracking-tight">
               100% Secure. <br />
-              <span className="text-accent italic">Zero friction operations.</span>
+              <span className="text-primary italic">Zero friction operations.</span>
             </h2>
-            <p className="text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
               Automate the boring stuff. From receipts to reminders, 
               Uniexo handles everything so you don't have to.
             </p>
@@ -433,7 +487,7 @@ function Landing() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 md:gap-16 items-center">
             {/* Features List */}
             <motion.div 
-              initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerContainer}
+               whileInView="visible" viewport={{ once: true }} initial="hidden" animate="visible" variants={staggerContainer}
               className="space-y-6 order-last lg:order-first"
             >
               {[
@@ -445,24 +499,25 @@ function Landing() {
                 <motion.div 
                   key={i} 
                   variants={fadeUp} 
-                  whileHover={{ x: -10 }}
-                  className="group p-6 rounded-3xl border border-white/5 glass-dark hover:bg-white/10 transition-all duration-300"
+                  whileHover={{ x: -10, scale: 1.02 }}
+                  className="group p-6 rounded-3xl border border-border glass hover:bg-surface/80 transition-all duration-300 shadow-xl shadow-primary/5"
                 >
                   <div className="flex items-start gap-5">
-                    <div className="w-12 h-12 rounded-2xl bg-accent/20 flex items-center justify-center text-accent font-bold text-xl group-hover:bg-accent group-hover:text-white transition-colors">
+                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-bold text-xl group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                       <ShieldCheck className="w-6 h-6" />
                     </div>
                     <div>
-                      <h4 className="text-xl font-bold mb-1 text-white">{feat.title}</h4>
-                      <p className="text-slate-400">{feat.desc}</p>
+                      <h4 className="text-xl font-bold mb-1 text-foreground">{feat.title}</h4>
+                      <p className="text-muted-foreground">{feat.desc}</p>
                     </div>
                   </div>
                 </motion.div>
               ))}
 
               <motion.div variants={fadeUp} className="pt-6 text-center lg:text-left">
-                <Button className="bg-primary hover:bg-primary/90 text-white h-12 px-8 text-base rounded-2xl font-bold shadow-lg shadow-primary/20">
-                  Join as Vendor <ArrowRight className="ml-2 w-5 h-5" />
+                <Button className="bg-primary hover:bg-primary/90 text-primary-foreground h-12 px-8 text-base rounded-2xl font-bold shadow-lg shadow-primary/20 relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite] skew-x-[-20deg]" />
+                  <span className="relative z-10 flex items-center">Join as Vendor <ArrowRight className="ml-2 w-5 h-5" /></span>
                 </Button>
               </motion.div>
             </motion.div>
@@ -534,13 +589,13 @@ function Landing() {
       </section>
 
       {/* 4. Dynamic Storefront Section */}
-      <section className="py-24 bg-white relative">
+      <section className="py-16 md:py-20 bg-background relative">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
           <motion.div 
-            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp}
-            className="text-center mb-16"
+             whileInView="visible" viewport={{ once: true }} variants={fadeUp}
+            className="text-center mb-12"
           >
-            <h2 className="text-3xl md:text-5xl font-black mb-6 tracking-tight">
+            <h2 className="text-3xl md:text-5xl font-black mb-6 tracking-tight text-foreground">
               Your Digital Storefront. <br />
               <span className="text-primary italic">Live in seconds.</span>
             </h2>
@@ -550,7 +605,7 @@ function Landing() {
             </p>
 
             {/* Premium Tabs */}
-            <div className="flex justify-center gap-3 flex-wrap p-2 glass max-w-fit mx-auto rounded-[2rem] border-slate-200 shadow-xl">
+            <div className="flex justify-center gap-3 flex-wrap p-2 glass max-w-fit mx-auto rounded-[2rem] border-border shadow-xl bg-surface/30">
               {[
                 { id: 'house', label: 'Houses', icon: HomeIcon },
                 { id: 'vehicle', label: 'Vehicles', icon: Car },
@@ -562,11 +617,11 @@ function Landing() {
                   onClick={() => setActiveTab(tab.id as any)}
                   className={`flex items-center gap-3 px-8 py-3.5 rounded-[1.5rem] text-sm font-bold transition-all duration-300 ${
                     activeTab === tab.id 
-                      ? 'bg-primary text-white shadow-xl shadow-primary/30' 
-                      : 'text-slate-500 hover:bg-slate-50'
+                      ? 'bg-primary text-primary-foreground shadow-xl shadow-primary/30' 
+                      : 'text-muted-foreground hover:bg-surface'
                   }`}
                 >
-                  <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? 'text-white' : 'text-primary'}`} /> 
+                  <tab.icon className={`w-5 h-5 ${activeTab === tab.id ? 'text-primary-foreground' : 'text-primary'}`} /> 
                   {tab.label}
                 </button>
               ))}
@@ -812,46 +867,76 @@ function Landing() {
         </div>
       </section>
 
-      {/* 5. Trusted Partners / Testimonial */}
-      <section className="py-32 relative bg-slate-50/50">
+      {/* 5. Trusted Partners / Testimonial - SYNC_VERIFIED_V2 */}
+      <section className="py-20 relative bg-surface/50">
         <div className="container mx-auto px-4 max-w-7xl">
-          <motion.div 
-            initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ duration: 1 }}
-            className="flex flex-wrap items-center justify-center gap-12 md:gap-24 opacity-30 grayscale hover:grayscale-0 transition-all duration-700 mb-32"
-          >
-            {['LOGO 1', 'LOGO 2', 'LOGO 3', 'LOGO 4', 'LOGO 5'].map(l => (
-              <span key={l} className="font-black text-2xl tracking-tighter text-slate-400">{l}</span>
-            ))}
-          </motion.div>
+          {/* Infinite Scrolling Logos */}
+          <div className="relative overflow-hidden mb-24 py-8">
+            <motion.div 
+              animate={{ x: [0, -1000] }}
+              transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+              className="flex items-center gap-24 whitespace-nowrap"
+            >
+              {[
+                { name: 'Lovely Professional University', logo: '/lpu_logo_placeholder_1778483626415.png' },
+                { name: 'Lovely Professional University', logo: '/lpu_logo_placeholder_1778483626415.png' },
+                { name: 'Lovely Professional University', logo: '/lpu_logo_placeholder_1778483626415.png' },
+                { name: 'Lovely Professional University', logo: '/lpu_logo_placeholder_1778483626415.png' },
+                { name: 'Lovely Professional University', logo: '/lpu_logo_placeholder_1778483626415.png' },
+              ].map((p, i) => (
+                <div key={i} className="flex items-center gap-6 opacity-40 hover:opacity-100 transition-opacity grayscale hover:grayscale-0">
+                  <img src={p.logo} alt={p.name} className="h-10 md:h-14 w-auto object-contain" />
+                  <span className="font-black text-2xl md:text-4xl tracking-tighter text-muted-foreground uppercase">{p.name}</span>
+                </div>
+              ))}
+            </motion.div>
+            
+            {/* Gradient Fades for Carousel */}
+            <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-background/50 to-transparent z-10" />
+            <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-background/50 to-transparent z-10" />
+          </div>
 
           <div className="grid lg:grid-cols-2 gap-20 items-center">
             <motion.div 
               initial={{ opacity: 0, x: -50 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
-              className="relative"
+              className="relative max-w-md mx-auto group perspective-[1000px] w-full"
             >
-              <div className="aspect-square rounded-[4rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.2)]">
-                <img src="https://images.unsplash.com/photo-1542314831-c5a4d408ebf3?auto=format&fit=crop&q=80" className="w-full h-full object-cover" alt="Success Story" />
+              <motion.div 
+                whileHover={{ rotateY: 5, rotateX: -5, scale: 1.02 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className="aspect-[4/5] rounded-[3rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.4)] relative border border-white/10"
+              >
+                <video 
+                  src="https://cdn.pixabay.com/video/2021/08/04/83896-584719460_large.mp4" 
+                  autoPlay loop muted playsInline 
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                />
                 <div className="absolute inset-0 bg-primary/20 mix-blend-overlay" />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                 
-                <div className="absolute bottom-10 left-10 right-10 flex items-center gap-4">
-                  <Avatar className="w-16 h-16 border-4 border-white shadow-xl">
+                <motion.div 
+                  initial={{ y: 20, opacity: 0 }}
+                  whileInView={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.3 }}
+                  className="absolute bottom-6 left-6 right-6 p-4 rounded-3xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center gap-4 transition-transform duration-500 group-hover:-translate-y-2 shadow-xl"
+                >
+                  <Avatar className="w-14 h-14 border-2 border-white shadow-xl">
                     <AvatarImage src="https://i.pravatar.cc/150?u=9" />
                   </Avatar>
                   <div>
-                    <p className="text-white font-black text-xl">Rahul Sharma</p>
-                    <p className="text-white/70 text-sm font-bold uppercase tracking-widest">Premium Vendor Partner</p>
+                    <p className="text-white font-black text-lg shadow-sm">Rahul Sharma</p>
+                    <p className="text-white/80 text-[10px] font-bold uppercase tracking-widest">Premium Vendor Partner</p>
                   </div>
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
 
               {/* Decorative Play Button */}
               <motion.button 
-                whileHover={{ scale: 1.1 }}
+                whileHover={{ scale: 1.1, rotate: 90 }}
                 whileTap={{ scale: 0.9 }}
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-2xl text-primary z-10"
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 bg-white/20 backdrop-blur-md border border-white/30 rounded-full flex items-center justify-center shadow-2xl text-white z-10 transition-all duration-500 hover:bg-white hover:text-primary group-hover:scale-110"
               >
-                <Play className="w-10 h-10 fill-current ml-2" />
+                <Play className="w-8 h-8 fill-current ml-1" />
               </motion.button>
             </motion.div>
 
@@ -866,29 +951,29 @@ function Landing() {
 
               <motion.h2 
                 initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-                className="text-4xl md:text-6xl font-black text-slate-900 leading-[1.1] tracking-tight"
+                className="text-4xl md:text-6xl font-black text-foreground leading-[1.1] tracking-tight"
               >
                 Uniexo is the helper <br />
                 <span className="text-primary">everyone trusts.</span>
               </motion.h2>
 
               <motion.div 
-                initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerContainer}
+                 whileInView="visible" viewport={{ once: true }} initial="hidden" animate="visible" variants={staggerContainer}
                 className="space-y-8"
               >
-                <motion.p variants={fadeUp} className="text-2xl text-slate-600 font-medium leading-relaxed italic">
+                <p className="text-2xl text-foreground font-medium leading-relaxed italic opacity-80">
                   "Uniexo completely transformed how I list my properties. 
                   The automatic reminders and secure payments removed 90% of my daily stress."
-                </motion.p>
+                </p>
 
                 <motion.div variants={fadeUp} className="flex gap-4">
                   <div className="flex flex-col">
-                    <span className="text-slate-900 font-black text-lg">25+ Months</span>
+                    <span className="text-foreground font-black text-lg">25+ Months</span>
                     <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Active Partner</span>
                   </div>
-                  <div className="w-px h-10 bg-slate-200" />
+                  <div className="w-px h-10 bg-border" />
                   <div className="flex flex-col">
-                    <span className="text-slate-900 font-black text-lg">500+ Deals</span>
+                    <span className="text-foreground font-black text-lg">500+ Deals</span>
                     <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Completed</span>
                   </div>
                 </motion.div>
@@ -899,56 +984,133 @@ function Landing() {
       </section>
 
       {/* Final CTA Section */}
-      <section className="py-32 bg-primary relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10" />
-        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary via-primary to-blue-900 -z-10" />
-        
+      <section className="py-24 md:py-32 relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0D1B2A 0%, #1B2A4A 50%, #0D1B2A 100%)' }}>
+        {/* Dot grid */}
+        <div className="absolute inset-0 pointer-events-none opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle, #C9A84C 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+
+        {/* Animated gold orbs */}
+        <motion.div animate={{ scale: [1, 1.3, 1], opacity: [0.15, 0.3, 0.15] }} transition={{ duration: 6, repeat: Infinity }}
+          className="absolute -top-32 -left-32 w-[500px] h-[500px] bg-accent/20 rounded-full blur-[120px] pointer-events-none" />
+        <motion.div animate={{ scale: [1.2, 1, 1.2], opacity: [0.1, 0.25, 0.1] }} transition={{ duration: 8, repeat: Infinity }}
+          className="absolute -bottom-32 -right-32 w-[400px] h-[400px] bg-accent/15 rounded-full blur-[100px] pointer-events-none" />
+        <motion.div animate={{ x: [-20, 20, -20], y: [0, -20, 0] }} transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[300px] bg-secondary/30 rounded-full blur-[140px] pointer-events-none" />
+
+        {/* Gold shimmer top border */}
+        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-accent/70 to-transparent" />
+
         <div className="container mx-auto px-4 text-center relative z-10">
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            className="max-w-4xl mx-auto space-y-12"
+          <motion.div
+            initial={{ opacity: 0, y: 40 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            transition={{ duration: 0.7, ease: 'easeOut' }}
+            className="max-w-5xl mx-auto"
           >
-            <h2 className="text-5xl md:text-8xl font-black text-white tracking-tighter leading-none">
-              READY TO <br />
-              <span className="text-accent underline decoration-white/20 underline-offset-[20px]">GET STARTED?</span>
+            {/* Eyebrow label */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-accent/30 bg-accent/10 mb-8"
+            >
+              <span className="w-2 h-2 rounded-full bg-accent animate-pulse shadow-[0_0_8px_rgba(201,168,76,0.6)]" />
+              <span className="text-accent text-xs font-black uppercase tracking-[0.2em]">Join 250,000+ Users</span>
+            </motion.div>
+
+            {/* Headline — refined typography */}
+            <h2 className="mb-6 leading-[0.95] tracking-tight">
+              <span className="block text-5xl md:text-7xl lg:text-8xl font-black text-white/90 uppercase">
+                Ready to
+              </span>
+              <span className="block text-6xl md:text-8xl lg:text-9xl font-black uppercase" style={{ WebkitTextStroke: '2px #C9A84C', color: 'transparent' }}>
+                Get Started?
+              </span>
             </h2>
-            <p className="text-xl md:text-2xl text-white/80 font-medium max-w-2xl mx-auto">
-              Join India's most innovative multi-service hub. 
-              Sign up today and experience the difference.
+
+            {/* Gold shimmer divider */}
+            <div className="w-24 h-1 rounded-full bg-gradient-to-r from-accent/30 via-accent to-accent/30 mx-auto mb-8" />
+
+            <p className="text-lg md:text-xl text-white/60 font-medium max-w-2xl mx-auto leading-relaxed mb-12">
+              Join India's most innovative multi-service hub.{' '}
+              <span className="text-white/90 font-semibold">Sign up today</span> and experience the difference.
             </p>
-            <div className="flex flex-col sm:flex-row gap-6 justify-center pt-8">
-              <Button size="lg" className="h-20 px-16 bg-white text-primary hover:bg-slate-50 text-2xl font-black rounded-[2.5rem] shadow-2xl transition-all hover:-translate-y-2">
-                Join Now — It's Free
-              </Button>
-              <Button size="lg" variant="outline" className="h-20 px-16 bg-transparent border-4 border-white/20 text-white hover:bg-white/10 text-2xl font-black rounded-[2.5rem] transition-all hover:-translate-y-2">
-                Contact Sales
-              </Button>
+
+            <div className="flex flex-col sm:flex-row gap-5 justify-center">
+              <motion.div whileHover={{ scale: 1.04, y: -4 }} whileTap={{ scale: 0.97 }}>
+                <Button size="lg" className="h-16 px-12 bg-accent hover:bg-accent/90 text-primary text-lg font-black rounded-2xl shadow-2xl shadow-accent/30 relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                  <span className="relative z-10">Join Now — It's Free</span>
+                </Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.04, y: -4 }} whileTap={{ scale: 0.97 }}>
+                <Button size="lg" variant="outline" className="h-16 px-12 bg-transparent border-2 border-white/20 hover:border-accent/50 text-white/80 hover:text-white hover:bg-white/5 text-lg font-black rounded-2xl transition-all">
+                  Contact Sales
+                </Button>
+              </motion.div>
+            </div>
+
+            {/* Trust badges */}
+            <div className="mt-12 flex flex-wrap justify-center gap-6 text-white/30 text-xs font-bold uppercase tracking-widest">
+              {['No Credit Card', 'Free Forever Plan', '24/7 Support', 'Instant Setup'].map((badge) => (
+                <div key={badge} className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-accent/60" />
+                  {badge}
+                </div>
+              ))}
             </div>
           </motion.div>
         </div>
+
+        {/* Gold shimmer bottom border */}
+        <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-accent/40 to-transparent" />
       </section>
     </div>
   );
 }
 
 export default function Home() {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, _hasHydrated } = useAuthStore();
   const [isClient, setIsClient] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     setIsClient(true);
-    // Only redirect TO protected areas, NEVER away from them automatically
-    if (isAuthenticated && user?.role === 'admin') {
-      window.location.href = '/admin';
-    } else if (isAuthenticated && user?.role === 'vendor') {
-      window.location.href = '/dashboard';
+  }, []);
+
+  useEffect(() => {
+    if (isClient && _hasHydrated) {
+      // Only redirect TO protected areas, NEVER away from them automatically
+      if (isAuthenticated && user?.role === 'admin') {
+        router.replace('/admin');
+      } else if (isAuthenticated && user?.role === 'vendor') {
+        router.replace('/dashboard');
+      }
     }
-  }, [isAuthenticated, user, router]);
+  }, [isAuthenticated, user, _hasHydrated, isClient, router]);
 
-  if (!isClient) return null;
+  // While waiting for client hydration or store hydration, show a sleek loader
+  if (!isClient || !_hasHydrated) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center bg-background min-h-[60vh] theme-landing">
+        <motion.div
+          animate={{ 
+            scale: [1, 1.2, 1],
+            rotate: [0, 180, 360]
+          }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)]"
+        />
+        <p className="mt-4 text-muted-foreground font-bold tracking-widest text-[10px] animate-pulse uppercase">Synchronizing UniExo</p>
+      </div>
+    );
+  }
 
-  if (isAuthenticated && (user?.role === 'admin' || user?.role === 'vendor')) return null;
+  // If redirecting, show a loader to prevent content flicker
+  if (isAuthenticated && (user?.role === 'admin' || user?.role === 'vendor')) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center bg-background min-h-[60vh] theme-landing">
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)]" />
+        <p className="mt-4 text-muted-foreground font-bold tracking-widest text-[10px] uppercase">Redirecting to Command Center</p>
+      </div>
+    );
+  }
 
   return isAuthenticated ? <Dashboard /> : <Landing />;
 }

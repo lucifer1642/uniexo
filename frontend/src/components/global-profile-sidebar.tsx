@@ -32,6 +32,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { KycUploadDialog } from './kyc-upload-dialog';
+import { UniExoBrand } from './brand';
+import { haptics } from '@/lib/haptics';
 
 const SERVICE_LINKS = [
   { href: '/vehicles', label: 'Vehicles', icon: Car },
@@ -48,22 +50,6 @@ export function GlobalProfileSidebar() {
   const [logoutLoading, setLogoutLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const { theme, setTheme } = useTheme();
-  const [activeColor, setActiveColor] = useState('burgundy');
-
-  useEffect(() => {
-    const savedColor = localStorage.getItem('nexus-color') || 'burgundy';
-    setActiveColor(savedColor);
-    document.documentElement.setAttribute('data-color', savedColor);
-  }, []);
-
-  const handleColorChange = (color: string) => {
-    setActiveColor(color);
-    document.documentElement.setAttribute('data-color', color);
-    localStorage.setItem('nexus-color', color);
-    toast.success(`${color.charAt(0).toUpperCase() + color.slice(1)} theme applied`, {
-      style: { border: '1px solid var(--primary)' }
-    });
-  };
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -89,7 +75,7 @@ export function GlobalProfileSidebar() {
   const handleLogout = async () => {
     try {
       setLogoutLoading(true);
-      // Removed supabase sign out as we only use simple auth now
+      haptics.heavy();
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
@@ -124,7 +110,10 @@ export function GlobalProfileSidebar() {
         )}
 
         <div className="flex items-center justify-between mb-6 md:mb-12">
-          <h2 className="text-lg md:text-2xl font-black tracking-tight text-white italic">Nexus <span className="text-lime-400">Control</span></h2>
+          <div className="flex items-center gap-2">
+            <UniExoBrand size="md" />
+            <span className="text-lg md:text-2xl font-black tracking-tight text-primary italic">Control</span>
+          </div>
           <Button 
             variant="ghost" 
             size="icon" 
@@ -138,10 +127,10 @@ export function GlobalProfileSidebar() {
         {/* User Header */}
         <div className="flex flex-col items-center text-center mb-8 md:mb-12">
           <div className="relative mb-3 md:mb-4 group">
-              <div className={`absolute -inset-1 bg-gradient-to-r ${user.kycStatus === 'approved' ? 'from-emerald-400 to-teal-500' : 'from-lime-400 to-emerald-500'} rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000`} />
-              <Avatar className="h-16 w-16 md:h-24 md:w-24 border-2 border-black relative">
+              <div className={`absolute -inset-1 bg-gradient-to-r ${user.kycStatus === 'approved' ? 'from-secondary to-teal-500' : 'from-primary to-secondary'} rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000`} />
+              <Avatar className="h-16 w-16 md:h-24 md:w-24 border-2 border-background relative">
                 <AvatarImage src={user?.avatar} />
-                <AvatarFallback className="bg-zinc-900 text-xl md:text-2xl font-bold text-white">{user?.name?.charAt(0)}</AvatarFallback>
+                <AvatarFallback className="bg-surface text-xl md:text-2xl font-bold text-foreground">{user?.name?.charAt(0)}</AvatarFallback>
               </Avatar>
               {user.kycStatus === 'approved' && (
                 <div className="absolute bottom-0 right-0 p-0.5 md:p-1 bg-emerald-500 text-black rounded-full border-2 border-black">
@@ -150,21 +139,21 @@ export function GlobalProfileSidebar() {
               )}
           </div>
           <div className="flex items-center gap-2">
-            <h3 className="text-lg md:text-xl font-black text-white">{user?.name}</h3>
-            {user.kycStatus === 'approved' && <CheckCircle className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-400" />}
+            <h3 className="text-lg md:text-xl font-black text-foreground">{user?.name}</h3>
+            {user.kycStatus === 'approved' && <CheckCircle className="w-3.5 h-3.5 md:w-4 md:h-4 text-secondary" />}
           </div>
-          <p className="text-zinc-500 text-xs md:text-sm">{user?.email}</p>
+          <p className="text-muted-foreground text-xs md:text-sm">{user?.email}</p>
           
           {user.kycStatus !== 'approved' ? (
             <button 
               onClick={() => setIsKycDialogOpen(true)}
-              className="mt-3 flex items-center gap-2 px-3 md:px-4 py-1.5 rounded-full border border-amber-400/30 text-amber-400 bg-amber-400/5 uppercase tracking-tighter text-[9px] md:text-[10px] font-bold hover:bg-amber-400/10 transition-colors tap-feedback"
+              className="mt-3 flex items-center gap-2 px-3 md:px-4 py-1.5 rounded-full border border-accent/30 text-accent bg-accent/5 uppercase tracking-tighter text-[9px] md:text-[10px] font-bold hover:bg-accent/10 transition-colors tap-feedback"
             >
                <AlertCircle className="w-3 h-3" />
                Verification Required
             </button>
           ) : (
-            <div className="mt-3 inline-flex items-center px-3 md:px-4 py-1.5 rounded-full border border-emerald-400/30 text-emerald-400 bg-emerald-400/5 uppercase tracking-tighter text-[9px] md:text-[10px] font-bold">
+            <div className="mt-3 inline-flex items-center px-3 md:px-4 py-1.5 rounded-full border border-secondary/30 text-secondary bg-secondary/5 uppercase tracking-tighter text-[9px] md:text-[10px] font-bold">
                <CheckCircle className="w-3 h-3 mr-1.5 md:mr-2" />
                Verified Member
             </div>
@@ -194,10 +183,10 @@ export function GlobalProfileSidebar() {
                   key={service.href} 
                   href={service.href} 
                   onClick={onClose}
-                  className="flex flex-col items-center justify-center p-3 md:p-6 rounded-xl md:rounded-[2rem] bg-white/[0.03] border border-white/5 hover:border-lime-400/30 hover:bg-lime-400/5 transition-all group tap-feedback"
+                  className="flex flex-col items-center justify-center p-3 md:p-6 rounded-xl md:rounded-[2rem] bg-surface/50 border border-border hover:border-primary/30 hover:bg-primary/5 transition-all group tap-feedback"
                 >
-                  <service.icon className="w-5 h-5 md:w-6 md:h-6 mb-1.5 md:mb-3 text-zinc-500 group-hover:text-lime-400 transition-colors" />
-                  <span className="text-[8px] md:text-[10px] font-black uppercase tracking-wider md:tracking-widest text-zinc-400 group-hover:text-white transition-colors">{service.label}</span>
+                  <service.icon className="w-5 h-5 md:w-6 md:h-6 mb-1.5 md:mb-3 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <span className="text-[8px] md:text-[10px] font-black uppercase tracking-wider md:tracking-widest text-muted-foreground group-hover:text-foreground transition-colors">{service.label}</span>
                 </Link>
               ))}
           </div>
@@ -206,42 +195,42 @@ export function GlobalProfileSidebar() {
         {/* Quick Navigation Links */}
         <div className="space-y-1 md:space-y-2 mb-8 md:mb-12">
           {user?.role === 'admin' && (
-            <Link href="/admin" onClick={onClose} className="flex items-center justify-between p-3 md:p-4 rounded-xl md:rounded-2xl bg-lime-400/10 border border-lime-400/20 hover:bg-lime-400/20 transition-colors group tap-feedback">
+            <Link href="/admin" onClick={onClose} className="flex items-center justify-between p-3 md:p-4 rounded-xl md:rounded-2xl bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-colors group tap-feedback">
                 <div className="flex items-center gap-3">
-                  <div className="p-1.5 md:p-2 rounded-lg md:rounded-xl bg-lime-400/20 text-lime-400">
+                  <div className="p-1.5 md:p-2 rounded-lg md:rounded-xl bg-primary/20 text-primary">
                       <LayoutGrid className="w-4 h-4" />
                   </div>
-                  <span className="text-sm font-bold text-lime-400">Admin Panel</span>
+                  <span className="text-sm font-bold text-primary">Admin Panel</span>
                 </div>
-                <ChevronRight className="w-4 h-4 text-lime-400" />
+                <ChevronRight className="w-4 h-4 text-primary" />
             </Link>
           )}
-          <Link href="/dashboard" onClick={onClose} className="flex items-center justify-between p-3 md:p-4 rounded-xl md:rounded-2xl hover:bg-white/[0.05] transition-colors group tap-feedback">
+          <Link href="/dashboard" onClick={onClose} className="flex items-center justify-between p-3 md:p-4 rounded-xl md:rounded-2xl hover:bg-surface/50 transition-colors group tap-feedback">
               <div className="flex items-center gap-3">
-                <div className="p-1.5 md:p-2 rounded-lg md:rounded-xl bg-white/[0.03] text-zinc-400 group-hover:text-lime-400 transition-colors">
+                <div className="p-1.5 md:p-2 rounded-lg md:rounded-xl bg-surface/80 text-muted-foreground group-hover:text-primary transition-colors">
                     <Settings className="w-4 h-4" />
                 </div>
-                <span className="text-sm font-bold text-zinc-300">Dashboard</span>
+                <span className="text-sm font-bold text-foreground">Dashboard</span>
               </div>
-              <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-lime-400 transition-colors" />
+              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
           </Link>
-          <Link href="/orders" onClick={onClose} className="flex items-center justify-between p-3 md:p-4 rounded-xl md:rounded-2xl hover:bg-white/[0.05] transition-colors group tap-feedback">
+          <Link href="/orders" onClick={onClose} className="flex items-center justify-between p-3 md:p-4 rounded-xl md:rounded-2xl hover:bg-surface/50 transition-colors group tap-feedback">
               <div className="flex items-center gap-3">
-                <div className="p-1.5 md:p-2 rounded-lg md:rounded-xl bg-white/[0.03] text-zinc-400 group-hover:text-lime-400 transition-colors">
+                <div className="p-1.5 md:p-2 rounded-lg md:rounded-xl bg-surface/80 text-muted-foreground group-hover:text-primary transition-colors">
                     <ShoppingBasket className="w-4 h-4" />
                 </div>
-                <span className="text-sm font-bold text-zinc-300">Order History</span>
+                <span className="text-sm font-bold text-foreground">Order History</span>
               </div>
-              <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-lime-400 transition-colors" />
+              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
           </Link>
-          <Link href="/profile" onClick={onClose} className="flex items-center justify-between p-3 md:p-4 rounded-xl md:rounded-2xl hover:bg-white/[0.05] transition-colors group tap-feedback">
+          <Link href="/profile" onClick={onClose} className="flex items-center justify-between p-3 md:p-4 rounded-xl md:rounded-2xl hover:bg-surface/50 transition-colors group tap-feedback">
               <div className="flex items-center gap-3">
-                <div className="p-1.5 md:p-2 rounded-lg md:rounded-xl bg-white/[0.03] text-zinc-400 group-hover:text-lime-400 transition-colors">
+                <div className="p-1.5 md:p-2 rounded-lg md:rounded-xl bg-surface/80 text-muted-foreground group-hover:text-primary transition-colors">
                     <User className="w-4 h-4" />
                 </div>
-                <span className="text-sm font-bold text-zinc-300">Profile & KYC</span>
+                <span className="text-sm font-bold text-foreground">Profile & KYC</span>
               </div>
-              <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-lime-400 transition-colors" />
+              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
           </Link>
         </div>
 
@@ -253,89 +242,63 @@ export function GlobalProfileSidebar() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: idx * 0.05 }}
-              className="p-3 md:p-5 rounded-xl md:rounded-3xl bg-white/[0.03] border border-white/5 group hover:border-lime-400/20 transition-colors"
+              className="p-3 md:p-5 rounded-xl md:rounded-3xl bg-surface/50 border border-border group hover:border-primary/20 transition-colors"
             >
-              <div className="flex items-center gap-1.5 md:gap-2 mb-1 md:mb-2 text-zinc-500">
+              <div className="flex items-center gap-1.5 md:gap-2 mb-1 md:mb-2 text-muted-foreground">
                 <stat.icon className="w-3 h-3" />
                 <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-wider md:tracking-widest">{stat.label}</span>
               </div>
-              <div className={`text-base md:text-lg font-black transition-colors ${(stat as any).color || 'text-white group-hover:text-lime-400'}`}>
+              <div className={`text-base md:text-lg font-black transition-colors ${(stat as any).color || 'text-foreground group-hover:text-primary'}`}>
                 {stat.value}
               </div>
             </motion.div>
           ))}
         </div>
 
-        {/* Appearance Customizer */}
+        {/* Appearance Section */}
         <div className="mb-8 md:mb-12">
-          <div className="flex items-center gap-2 mb-4 md:mb-6 text-zinc-400">
+          <div className="flex items-center gap-2 mb-4 md:mb-6 text-muted-foreground">
               <Settings className="w-3.5 h-3.5 md:w-4 md:h-4" />
-              <h4 className="text-[10px] md:text-xs font-black uppercase tracking-widest">Appearance</h4>
+              <h4 className="text-[10px] md:text-xs font-black uppercase tracking-widest">Settings</h4>
           </div>
-          <div className="space-y-6 p-4 rounded-2xl bg-white/[0.02] border border-white/5">
-            {/* Mode Toggle */}
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Display Mode</span>
-              <div className="flex bg-black/40 rounded-lg p-1 border border-white/5">
-                {[
-                  { id: 'light', icon: Sun },
-                  { id: 'dark', icon: Moon },
-                  { id: 'system', icon: Zap }
-                ].map((m) => (
-                  <button
-                    key={m.id}
-                    onClick={() => setTheme(m.id)}
-                    className={`p-1.5 rounded-md transition-all ${theme === m.id ? 'bg-white/10 text-primary' : 'text-zinc-600 hover:text-zinc-400'}`}
-                  >
-                    <m.icon className="w-3.5 h-3.5" />
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Color Palette */}
-            <div className="space-y-3">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Color Palette</span>
-              <div className="grid grid-cols-5 gap-2">
-                {[
-                  { id: 'burgundy', color: 'bg-[#8b004a]' },
-                  { id: 'blue', color: 'bg-[#3b82f6]' },
-                  { id: 'green', color: 'bg-[#10b981]' },
-                  { id: 'gold', color: 'bg-[#f59e0b]' },
-                  { id: 'pink', color: 'bg-[#ec4899]' }
-                ].map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => handleColorChange(c.id)}
-                    className={`h-8 rounded-lg border-2 transition-all ${activeColor === c.id ? 'border-white scale-110 shadow-lg' : 'border-transparent opacity-60 hover:opacity-100'}`}
-                  >
-                    <div className={`w-full h-full rounded-md ${c.color}`} />
-                  </button>
-                ))}
-              </div>
+          <div className="p-4 rounded-2xl bg-surface/50 border border-border flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Dark Mode</span>
+            <div className="flex bg-surface/80 rounded-lg p-1 border border-border">
+              {[
+                { id: 'light', icon: Sun },
+                { id: 'dark', icon: Moon }
+              ].map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => setTheme(m.id)}
+                  className={`p-1.5 rounded-md transition-all ${theme === m.id ? 'bg-primary text-primary-foreground shadow-lg' : 'text-muted-foreground hover:text-foreground'}`}
+                >
+                  <m.icon className="w-3.5 h-3.5" />
+                </button>
+              ))}
             </div>
           </div>
         </div>
 
         {/* Recent Activity */}
         <div className="mb-8 md:mb-12">
-          <div className="flex items-center gap-2 mb-4 md:mb-6 text-zinc-400">
+          <div className="flex items-center gap-2 mb-4 md:mb-6 text-muted-foreground">
               <History className="w-3.5 h-3.5 md:w-4 md:h-4" />
               <h4 className="text-[10px] md:text-xs font-black uppercase tracking-widest">Recent Activity</h4>
           </div>
-          <div className="p-4 rounded-xl md:rounded-2xl bg-white/[0.02] border border-white/5 text-center">
-            <Clock className="w-6 h-6 md:w-8 md:h-8 text-zinc-700 mx-auto mb-2" />
-            <p className="text-xs text-zinc-600">No recent activity.</p>
+          <div className="p-4 rounded-xl md:rounded-2xl bg-surface/50 border border-border text-center">
+            <Clock className="w-6 h-6 md:w-8 md:h-8 text-muted-foreground/30 mx-auto mb-2" />
+            <p className="text-xs text-muted-foreground">No recent activity.</p>
           </div>
         </div>
 
         {/* Become a Vendor CTA */}
         <Link href="/signup?role=vendor" onClick={onClose} className="tap-feedback block">
-          <div className="p-5 md:p-8 rounded-[1.5rem] md:rounded-[2rem] bg-gradient-to-br from-lime-500 to-green-700 text-black relative overflow-hidden group shadow-2xl">
-            <Zap className="absolute -right-6 -bottom-6 w-24 h-24 md:w-32 md:h-32 text-white/20 group-hover:scale-110 transition-transform duration-700" />
+          <div className="p-5 md:p-8 rounded-[1.5rem] md:rounded-[2rem] bg-gradient-to-br from-primary to-secondary text-primary-foreground relative overflow-hidden group shadow-2xl">
+            <Zap className="absolute -right-6 -bottom-6 w-24 h-24 md:w-32 md:h-32 text-primary-foreground/20 group-hover:scale-110 transition-transform duration-700" />
             <h4 className="text-xl md:text-2xl font-black leading-none mb-1.5 md:mb-2">Become a <br />Vendor</h4>
             <p className="text-xs md:text-sm font-medium mb-4 md:mb-6 opacity-80">Start earning by listing your services.</p>
-            <div className="w-full bg-black text-white flex items-center justify-center font-bold rounded-lg md:rounded-xl h-10 md:h-12 shadow-xl text-sm">
+            <div className="w-full bg-primary-foreground text-primary flex items-center justify-center font-bold rounded-lg md:rounded-xl h-10 md:h-12 shadow-xl text-sm">
                 GET STARTED
             </div>
           </div>
@@ -343,12 +306,12 @@ export function GlobalProfileSidebar() {
       </div>
 
       {/* Bottom Actions */}
-      <div className="p-5 md:p-8 border-t border-white/5 bg-black/40 pb-safe">
+      <div className="p-5 md:p-8 border-t border-border bg-surface/80 pb-safe">
         <Button 
           onClick={handleLogout}
           variant="ghost" 
           disabled={logoutLoading}
-          className="w-full text-zinc-500 hover:text-red-400 transition-colors font-black tracking-widest text-[10px] gap-2 tap-feedback"
+          className="w-full text-muted-foreground hover:text-red-400 transition-colors font-black tracking-widest text-[10px] gap-2 tap-feedback"
         >
             <LogOut className="w-3 h-3" />
             {logoutLoading ? 'LOGGING OUT...' : 'LOG OUT FROM SESSION'}
@@ -372,19 +335,20 @@ export function GlobalProfileSidebar() {
             />
             
             {/* Desktop: Slide from right */}
-            <motion.aside
-              initial={isMobile ? { y: '100%' } : { x: '100%' }}
-              animate={isMobile ? { y: 0 } : { x: 0 }}
-              exit={isMobile ? { y: '100%' } : { x: '100%' }}
-              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-              className={`relative ${
-                isMobile 
-                  ? 'absolute bottom-0 left-0 right-0 max-h-[90vh] rounded-t-[2rem]' 
-                  : 'h-full w-[400px]'
-              } bg-[#0a0a0a] border-l border-white/5 shadow-[-20px_0_100px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden`}
-            >
-              {sidebarContent}
-            </motion.aside>
+              <motion.aside
+                initial={isMobile ? { y: '100%' } : { x: '100%' }}
+                animate={isMobile ? { y: 0 } : { x: 0 }}
+                exit={isMobile ? { y: '100%' } : { x: '100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 260 }}
+                onAnimationComplete={() => haptics.light()}
+                className={`relative ${
+                  isMobile 
+                    ? 'absolute bottom-0 left-0 right-0 max-h-[90vh] rounded-t-[2rem]' 
+                    : 'h-full w-[440px]'
+                } bg-background/95 backdrop-blur-2xl shadow-[-20px_0_100px_rgba(0,0,0,0.2)] flex flex-col overflow-hidden theme-landing border-l border-border`}
+              >
+                {sidebarContent}
+              </motion.aside>
           </div>
         )}
       </AnimatePresence>

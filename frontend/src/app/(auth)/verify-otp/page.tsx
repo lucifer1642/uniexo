@@ -5,14 +5,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { api } from '@/lib/api';
-import { useAuthStore } from '@/store/auth.store';
+import { useAuthStore } from '@/modules/auth/auth.store';
 import { toast } from 'sonner';
 
 function VerifyOtpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get('email') || 'your email';
+  const purpose = searchParams.get('purpose') || 'signup';
 
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
@@ -27,11 +27,9 @@ function VerifyOtpForm() {
 
   const handleChange = (index: number, value: string) => {
     if (isNaN(Number(value))) return;
-
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
-
     if (value !== '' && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
@@ -52,23 +50,31 @@ function VerifyOtpForm() {
     setError('');
     
     try {
-      const response = await api.post('/auth/verify-otp', {
-        email,
-        otp: otpValue,
-        purpose: searchParams.get('purpose') || 'email-verify'
+      const res = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp: otpValue, purpose }),
       });
-      
-      if (searchParams.get('purpose') === 'signup' && response.data?.data?.accessToken) {
-        useAuthStore.getState().login(response.data.data.user, response.data.data.accessToken);
-        toast.success('Successfully verified! Logging you in...', { icon: '✅' });
-        router.push('/dashboard');
+
+      const data = await res.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Invalid or expired OTP');
+      }
+
+      // Auto-login after successful verification
+      if (data.token && data.profile) {
+        useAuthStore.getState().login(data.profile, data.token);
+        toast.success('Verified! Logging you in...', { icon: '✅' });
+        
+        const redirectPath = data.profile.role === 'admin' ? '/admin' 
+          : data.profile.role === 'vendor' ? '/dashboard' : '/';
+        router.replace(redirectPath);
       } else {
         toast.success('OTP verified!', { icon: '✅' });
         router.push('/login?verified=true');
       }
     } catch (err: any) {
-      console.error(err);
-      setError(err.response?.data?.message || err.message || 'Invalid or expired OTP');
+      setError(err.message || 'Invalid or expired OTP');
     } finally {
       setLoading(false);
     }
@@ -76,45 +82,33 @@ function VerifyOtpForm() {
 
   const handleResend = async () => {
     try {
-      await api.post('/auth/resend-otp', { 
-        email, 
-        purpose: searchParams.get('purpose') || 'email-verify' 
+      const res = await fetch('/api/auth/resend-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, purpose }),
       });
-      toast.success('OTP sent successfully to your email.', { icon: '📩' });
-    } catch (err: any) {
-      console.error('Failed to resend OTP', err);
-      setError(err.response?.data?.message || 'Failed to resend OTP');
+      const data = await res.json();
+      if (data.success) {
+        toast.success('OTP sent successfully to your email.', { icon: '📩' });
+      } else {
+        setError(data.error || 'Failed to resend OTP');
+      }
+    } catch {
+      setError('Failed to resend OTP');
     }
   };
 
   return (
     <div className="min-h-screen relative flex items-center justify-center overflow-hidden bg-black selection:bg-lime-500/30 selection:text-lime-200">
-      {/* Animated Background Elements */}
       <div className="absolute inset-0 z-0 overflow-hidden">
         <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            x: [100, 0, 100],
-            y: [50, 0, 50],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: "linear"
-          }}
+          animate={{ scale: [1, 1.2, 1], x: [100, 0, 100], y: [50, 0, 50] }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
           className="absolute -top-[10%] -right-[10%] w-[50%] h-[50%] bg-lime-500/15 rounded-full blur-[120px]"
         />
         <motion.div
-          animate={{
-            scale: [1.2, 1, 1.2],
-            x: [-100, 0, -100],
-            y: [-50, 0, -50],
-          }}
-          transition={{
-            duration: 25,
-            repeat: Infinity,
-            ease: "linear"
-          }}
+          animate={{ scale: [1.2, 1, 1.2], x: [-100, 0, -100], y: [-50, 0, -50] }}
+          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
           className="absolute -bottom-[10%] -left-[10%] w-[50%] h-[50%] bg-green-600/15 rounded-full blur-[120px]"
         />
       </div>
@@ -164,14 +158,14 @@ function VerifyOtpForm() {
 
             <Button
               type="submit"
-              className="w-full h-12 text-black bg-lime-400 hover:bg-lime-300 font-bold rounded-xl transition-all shadow-[0_0_20px_-5px_rgba(255,0,127,0.5)] active:scale-[0.98] mb-6"
+              className="w-full h-12 text-black bg-lime-400 hover:bg-lime-300 font-bold rounded-xl transition-all active:scale-[0.98] mb-6"
               disabled={loading || otp.join('').length !== 6}
             >
               {loading ? 'Verifying...' : 'Complete Verification'}
             </Button>
 
             <p className="text-sm text-zinc-500">
-              Didn't receive the code?{' '}
+              Didn&apos;t receive the code?{' '}
               <button
                 type="button"
                 onClick={handleResend}
@@ -194,4 +188,3 @@ export default function VerifyOtpPage() {
     </Suspense>
   );
 }
-

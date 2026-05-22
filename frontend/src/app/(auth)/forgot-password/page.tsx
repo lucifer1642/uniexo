@@ -35,7 +35,7 @@ export default function ForgotPasswordPage() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to send reset link');
+      if (!data.success) throw new Error(data.error || 'Failed to send reset link');
 
       setSent(true);
       toast.success('If that email exists, a reset link has been sent.', { icon: '✉️' });

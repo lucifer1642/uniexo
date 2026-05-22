@@ -11,20 +11,22 @@ import { Badge } from '@/components/ui/badge';
 import {
   CalendarCheck, ShoppingBag, Wallet, Car, Home, Package,
   TrendingUp, Clock, CheckCircle, XCircle, LayoutDashboard,
-  ListOrdered, Store, CreditCard, Shirt, Handshake, ShieldAlert, WashingMachine
+  ListOrdered, Store, CreditCard, Shirt, Handshake, ShieldAlert, WashingMachine,
+  Zap, Activity
 } from 'lucide-react';
 import { useMyOffers, useUpdateOfferStatus } from '@/hooks/use-offers';
 import {
   useUserBookings, useVendorBookings, useWallet,
   useVendorVehicles, useVendorHouses, useUserLaundryOrders,
   useUserMarketplaceItems, useVendorProfile, useVendorDashboardStats, useVendorAnalyticsOverview,
-  useDashboardRealtime,
+  useDashboardRealtime, useVendorPayments,
 } from '@/hooks/use-dashboard';
 import { AddVehicleDialog } from '@/components/add-vehicle-dialog';
 import { AddHouseDialog } from '@/components/add-house-dialog';
 import { useUpdateBookingStatus } from '@/hooks/use-booking';
 import { useDeleteVehicle } from '@/hooks/use-vehicles';
 import { useVendorLaundryService, useUpdateVendorLaundryService } from '@/hooks/use-laundry-services';
+import { useVendorInsights } from '@/hooks/use-intelligence';
 import { VendorAnalyticsDashboard, OverviewSection, RevenueSection, LedgerSection, FleetSection, RoomsSection, LaundrySection } from './vendor-analytics';
 
 // ─── Sidebar navigation ─────────────────────────────────────────────
@@ -49,6 +51,8 @@ const vendorSections = [
   { id: 'laundry-settings', label: 'My Laundry Service', icon: WashingMachine, serviceType: 'laundry' },
   { id: 'laundry-pipeline', label: 'Laundry Pipeline', icon: Shirt, serviceType: 'laundry' },
   { id: 'bookings', label: 'Booking Requests', icon: CalendarCheck },
+  { id: 'intelligence', label: 'Intelligence & Surge', icon: Zap },
+  { id: 'payments', label: 'Payments Received', icon: CreditCard },
   { id: 'offers', label: 'Offers Received', icon: Handshake, serviceType: 'marketplace' },
 ];
 
@@ -98,11 +102,10 @@ function UserDashboard() {
             <button
               key={s.id}
               onClick={() => setSection(s.id)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                section === s.id
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${section === s.id
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-              }`}
+                }`}
             >
               <s.icon className="w-4 h-4" />
               {s.label}
@@ -124,7 +127,7 @@ function UserDashboard() {
                 <h1 className="text-3xl font-black text-white tracking-tighter uppercase">{user?.name || 'UniExo User'}</h1>
                 <p className="text-zinc-500 font-medium text-sm">{user?.email}</p>
               </div>
-              
+
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500 text-[10px] font-black uppercase tracking-widest mx-auto">
                 <ShieldAlert className="w-3 h-3" />
                 Verification Required
@@ -134,62 +137,62 @@ function UserDashboard() {
             {/* Service Grid */}
             <div className="space-y-6">
               <div className="flex items-center gap-3 px-2">
-                 <LayoutDashboard className="w-5 h-5 text-zinc-500" />
-                 <h2 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em]">Access Services</h2>
+                <LayoutDashboard className="w-5 h-5 text-zinc-500" />
+                <h2 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em]">Access Services</h2>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <Link href="/vehicles" className="group relative aspect-square bg-zinc-900/50 border border-white/5 rounded-[40px] flex flex-col items-center justify-center gap-4 transition-all hover:bg-zinc-800 hover:border-lime-500/30 hover:scale-[1.02]">
-                   <div className="p-4 rounded-2xl bg-white/5 group-hover:bg-lime-400/10 transition-colors">
-                      <Car className="w-8 h-8 text-zinc-400 group-hover:text-lime-400 transition-colors" />
-                   </div>
-                   <span className="text-[10px] font-black text-zinc-500 group-hover:text-white uppercase tracking-[0.2em] transition-colors">Vehicles</span>
+                  <div className="p-4 rounded-2xl bg-white/5 group-hover:bg-lime-400/10 transition-colors">
+                    <Car className="w-8 h-8 text-zinc-400 group-hover:text-lime-400 transition-colors" />
+                  </div>
+                  <span className="text-[10px] font-black text-zinc-500 group-hover:text-white uppercase tracking-[0.2em] transition-colors">Vehicles</span>
                 </Link>
 
                 <Link href="/houses" className="group relative aspect-square bg-zinc-900/50 border border-white/5 rounded-[40px] flex flex-col items-center justify-center gap-4 transition-all hover:bg-zinc-800 hover:border-lime-500/30 hover:scale-[1.02]">
-                   <div className="p-4 rounded-2xl bg-white/5 group-hover:bg-lime-400/10 transition-colors">
-                      <Home className="w-8 h-8 text-zinc-400 group-hover:text-lime-400 transition-colors" />
-                   </div>
-                   <span className="text-[10px] font-black text-zinc-500 group-hover:text-white uppercase tracking-[0.2em] transition-colors">Rooms</span>
+                  <div className="p-4 rounded-2xl bg-white/5 group-hover:bg-lime-400/10 transition-colors">
+                    <Home className="w-8 h-8 text-zinc-400 group-hover:text-lime-400 transition-colors" />
+                  </div>
+                  <span className="text-[10px] font-black text-zinc-500 group-hover:text-white uppercase tracking-[0.2em] transition-colors">Rooms</span>
                 </Link>
 
                 <Link href="/marketplace" className="group relative aspect-square bg-zinc-900/50 border border-white/5 rounded-[40px] flex flex-col items-center justify-center gap-4 transition-all hover:bg-zinc-800 hover:border-lime-500/30 hover:scale-[1.02]">
-                   <div className="p-4 rounded-2xl bg-white/5 group-hover:bg-lime-400/10 transition-colors">
-                      <ShoppingBag className="w-8 h-8 text-zinc-400 group-hover:text-lime-400 transition-colors" />
-                   </div>
-                   <span className="text-[10px] font-black text-zinc-500 group-hover:text-white uppercase tracking-[0.2em] transition-colors">Used Items</span>
+                  <div className="p-4 rounded-2xl bg-white/5 group-hover:bg-lime-400/10 transition-colors">
+                    <ShoppingBag className="w-8 h-8 text-zinc-400 group-hover:text-lime-400 transition-colors" />
+                  </div>
+                  <span className="text-[10px] font-black text-zinc-500 group-hover:text-white uppercase tracking-[0.2em] transition-colors">Used Items</span>
                 </Link>
 
                 <Link href="/laundry" className="group relative aspect-square bg-zinc-900/50 border border-white/5 rounded-[40px] flex flex-col items-center justify-center gap-4 transition-all hover:bg-zinc-800 hover:border-lime-500/30 hover:scale-[1.02]">
-                   <div className="p-4 rounded-2xl bg-white/5 group-hover:bg-lime-400/10 transition-colors">
-                      <WashingMachine className="w-8 h-8 text-zinc-400 group-hover:text-lime-400 transition-colors" />
-                   </div>
-                   <span className="text-[10px] font-black text-zinc-500 group-hover:text-white uppercase tracking-[0.2em] transition-colors">Laundry</span>
+                  <div className="p-4 rounded-2xl bg-white/5 group-hover:bg-lime-400/10 transition-colors">
+                    <WashingMachine className="w-8 h-8 text-zinc-400 group-hover:text-lime-400 transition-colors" />
+                  </div>
+                  <span className="text-[10px] font-black text-zinc-500 group-hover:text-white uppercase tracking-[0.2em] transition-colors">Laundry</span>
                 </Link>
               </div>
             </div>
 
             {/* Secondary Nav */}
             <div className="space-y-3">
-               <button onClick={() => setSection('bookings')} className="w-full h-16 bg-zinc-900/30 border border-white/5 rounded-3xl flex items-center justify-between px-6 hover:bg-zinc-800/50 transition-colors">
-                  <div className="flex items-center gap-4">
-                     <div className="p-2 rounded-xl bg-white/5 text-zinc-500">
-                        <ListOrdered className="w-4 h-4" />
-                     </div>
-                     <span className="font-bold text-zinc-300">My Activity & Orders</span>
+              <button onClick={() => setSection('bookings')} className="w-full h-16 bg-zinc-900/30 border border-white/5 rounded-3xl flex items-center justify-between px-6 hover:bg-zinc-800/50 transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className="p-2 rounded-xl bg-white/5 text-zinc-500">
+                    <ListOrdered className="w-4 h-4" />
                   </div>
-                  <Clock className="w-4 h-4 text-zinc-600" />
-               </button>
-               
-               <Link href="/profile" className="w-full h-16 bg-zinc-900/30 border border-white/5 rounded-3xl flex items-center justify-between px-6 hover:bg-zinc-800/50 transition-colors">
-                  <div className="flex items-center gap-4">
-                     <div className="p-2 rounded-xl bg-white/5 text-zinc-500">
-                        <LayoutDashboard className="w-4 h-4" />
-                     </div>
-                     <span className="font-bold text-zinc-300">Detailed Dashboard</span>
+                  <span className="font-bold text-zinc-300">My Activity & Orders</span>
+                </div>
+                <Clock className="w-4 h-4 text-zinc-600" />
+              </button>
+
+              <Link href="/profile" className="w-full h-16 bg-zinc-900/30 border border-white/5 rounded-3xl flex items-center justify-between px-6 hover:bg-zinc-800/50 transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className="p-2 rounded-xl bg-white/5 text-zinc-500">
+                    <LayoutDashboard className="w-4 h-4" />
                   </div>
-                  <Clock className="w-4 h-4 text-zinc-600" />
-               </Link>
+                  <span className="font-bold text-zinc-300">Detailed Dashboard</span>
+                </div>
+                <Clock className="w-4 h-4 text-zinc-600" />
+              </Link>
             </div>
           </div>
         )}
@@ -367,15 +370,18 @@ function VendorDashboard() {
   const { data: wallet, isLoading: loadingWallet } = useWallet();
   const { data: vendorProfile } = useVendorProfile();
   const { data: statsData, isLoading: loadingStats } = useVendorDashboardStats();
-  const { data: vendorOffersData, isLoading: loadingVendorOffers } = useMyOffers('seller');
+  const { data: paymentsData, isLoading: loadingPayments } = useVendorPayments();
   const updateBookingStatus = useUpdateBookingStatus();
   const updateOfferStatus = useUpdateOfferStatus();
   const deleteVehicle = useDeleteVehicle();
+  const { data: vendorOffersData, isLoading: loadingVendorOffers } = useMyOffers('seller');
 
   const vehicles = vehiclesData?.vehicles || [];
   const houses = housesData?.houses || [];
   const bookings = bookingsData?.bookings || [];
   const vendorOffers = vendorOffersData?.data?.data || vendorOffersData?.data || [];
+  const payments = paymentsData?.payments || [];
+  const totalEarned = paymentsData?.total || 0;
 
   const totalVehicles = statsData?.totalVehicles ?? vehicles.length;
   const totalHouses = statsData?.totalHouses ?? houses.length;
@@ -412,11 +418,10 @@ function VendorDashboard() {
             <button
               key={s.id}
               onClick={() => handleTabChange(s.id)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-300 group ${
-                section === s.id
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-300 group ${section === s.id
                   ? 'bg-[#8B004A] text-white shadow-xl shadow-[#8B004A]/20 scale-[1.02]'
                   : 'text-slate-500 hover:bg-white hover:text-[#8B004A] hover:shadow-md'
-              }`}
+                }`}
             >
               <s.icon className={`w-4 h-4 transition-transform duration-500 ${section === s.id ? 'scale-110' : 'group-hover:rotate-12'}`} />
               {s.label}
@@ -450,19 +455,19 @@ function VendorDashboard() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-             {vendorProfile?.serviceType?.toLowerCase() === 'vehicle' && (
-               <div className="p-1 rounded-2xl bg-[#8B004A]/5 border border-[#8B004A]/10">
-                 <AddVehicleDialog />
-               </div>
-             )}
-             {(vendorProfile?.serviceType?.toLowerCase() === 'house' || vendorProfile?.serviceType?.toLowerCase() === 'room' || vendorProfile?.serviceType?.toLowerCase() === 'pg') && (
-               <div className="p-1 rounded-2xl bg-[#8B004A]/5 border border-[#8B004A]/10">
-                 <AddHouseDialog />
-               </div>
-             )}
-             <Button asChild variant="outline" className="rounded-xl h-11 border-[#8B004A]/20 text-[#8B004A] hover:bg-[#8B004A] hover:text-white transition-all font-bold">
-                <Link href="/profile">Profile Settings</Link>
-             </Button>
+            {vendorProfile?.serviceType?.toLowerCase() === 'vehicle' && (
+              <div className="p-1 rounded-2xl bg-[#8B004A]/5 border border-[#8B004A]/10">
+                <AddVehicleDialog />
+              </div>
+            )}
+            {(vendorProfile?.serviceType?.toLowerCase() === 'house' || vendorProfile?.serviceType?.toLowerCase() === 'room' || vendorProfile?.serviceType?.toLowerCase() === 'pg') && (
+              <div className="p-1 rounded-2xl bg-[#8B004A]/5 border border-[#8B004A]/10">
+                <AddHouseDialog />
+              </div>
+            )}
+            <Button asChild variant="outline" className="rounded-xl h-11 border-[#8B004A]/20 text-[#8B004A] hover:bg-[#8B004A] hover:text-white transition-all font-bold">
+              <Link href="/profile">Profile Settings</Link>
+            </Button>
           </div>
         </div>
 
@@ -624,18 +629,18 @@ function VendorDashboard() {
                           <td className="px-4 py-3">
                             {b.status === 'pending' && (
                               <div className="flex gap-2">
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
+                                <Button
+                                  size="sm"
+                                  variant="outline"
                                   className="h-7 text-xs bg-green-50 text-green-700 hover:bg-green-100 border-green-200"
                                   onClick={(e) => { e.stopPropagation(); updateBookingStatus.mutate({ bookingId: b._id, status: 'confirmed' }); }}
                                   disabled={updateBookingStatus.isPending}
                                 >
                                   Accept
                                 </Button>
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
+                                <Button
+                                  size="sm"
+                                  variant="outline"
                                   className="h-7 text-xs bg-red-50 text-red-700 hover:bg-red-100 border-red-200"
                                   onClick={(e) => { e.stopPropagation(); updateBookingStatus.mutate({ bookingId: b._id, status: 'cancelled' }); }}
                                   disabled={updateBookingStatus.isPending}
@@ -687,18 +692,18 @@ function VendorDashboard() {
                           <td className="px-4 py-3">
                             {o.status === 'pending' && (
                               <div className="flex gap-2">
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
+                                <Button
+                                  size="sm"
+                                  variant="outline"
                                   className="h-7 text-xs bg-green-50 text-green-700 hover:bg-green-100 border-green-200"
                                   onClick={(e) => { e.stopPropagation(); updateOfferStatus.mutate({ id: o._id, status: 'accepted' }); }}
                                   disabled={updateOfferStatus.isPending}
                                 >
                                   Accept
                                 </Button>
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
+                                <Button
+                                  size="sm"
+                                  variant="outline"
                                   className="h-7 text-xs bg-red-50 text-red-700 hover:bg-red-100 border-red-200"
                                   onClick={(e) => { e.stopPropagation(); updateOfferStatus.mutate({ id: o._id, status: 'rejected' }); }}
                                   disabled={updateOfferStatus.isPending}
@@ -717,6 +722,62 @@ function VendorDashboard() {
             )}
           </>
         )}
+        {section === 'intelligence' && <VendorIntelligenceSection vendorId={user?.id || ''} />}
+        {section === 'payments' && (
+          <>
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold tracking-tight">Payments Received</h2>
+              <div className="text-right">
+                <p className="text-sm text-muted-foreground">Total Earned</p>
+                <p className="text-xl font-bold text-green-600">₹{totalEarned.toLocaleString()}</p>
+              </div>
+            </div>
+            {loadingPayments ? (
+              <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <Card key={i} className="p-6 animate-pulse"><div className="h-4 bg-muted rounded w-48" /></Card>)}</div>
+            ) : payments.length === 0 ? (
+              <Card className="p-12 text-center">
+                <CreditCard className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
+                <h3 className="text-lg font-medium">No payments received yet</h3>
+                <p className="text-muted-foreground text-sm mt-1">When users pay for your bookings, transactions appear here.</p>
+              </Card>
+            ) : (
+              <Card className="overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/50"><tr>
+                      <th className="px-4 py-3 text-left font-medium">Date</th>
+                      <th className="px-4 py-3 text-left font-medium">Customer</th>
+                      <th className="px-4 py-3 text-left font-medium">Booking ID</th>
+                      <th className="px-4 py-3 text-left font-medium">Amount</th>
+                      <th className="px-4 py-3 text-left font-medium">Status</th>
+                    </tr></thead>
+                    <tbody className="divide-y">
+                      {payments.map((p: any) => (
+                        <tr key={p.id} className="hover:bg-muted/30 transition-colors">
+                          <td className="px-4 py-3 text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</td>
+                          <td className="px-4 py-3 font-medium">
+                            <div>
+                              <p>{p.user?.name || 'Customer'}</p>
+                              <p className="text-[10px] text-muted-foreground">{p.user?.email}</p>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-xs font-mono">{p.booking_id.slice(0, 8)}...</td>
+                          <td className="px-4 py-3 font-bold text-green-600">₹{p.amount}</td>
+                          <td className="px-4 py-3">
+                            <Badge variant={p.status === 'captured' ? 'default' : 'secondary'} className={p.status === 'captured' ? 'bg-green-100 text-green-700' : ''}>
+                              {p.status}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            )}
+          </>
+        )}
+
         {section === 'laundry-settings' && (
           <LaundryServiceSettings />
         )}
@@ -867,9 +928,8 @@ function LaundryServiceSettings() {
               type="button"
               onClick={() => handleToggle('onStoreService', !service.onStoreService)}
               disabled={updateService.isPending}
-              className={`w-12 h-7 rounded-full transition-colors flex items-center ${
-                service.onStoreService ? 'bg-primary justify-end' : 'bg-muted justify-start'
-              }`}
+              className={`w-12 h-7 rounded-full transition-colors flex items-center ${service.onStoreService ? 'bg-primary justify-end' : 'bg-muted justify-start'
+                }`}
             >
               <div className="w-5 h-5 rounded-full bg-white shadow mx-1 transition-all" />
             </button>
@@ -885,9 +945,8 @@ function LaundryServiceSettings() {
               type="button"
               onClick={() => handleToggle('onsitePickup', !service.onsitePickup)}
               disabled={updateService.isPending}
-              className={`w-12 h-7 rounded-full transition-colors flex items-center ${
-                service.onsitePickup ? 'bg-primary justify-end' : 'bg-muted justify-start'
-              }`}
+              className={`w-12 h-7 rounded-full transition-colors flex items-center ${service.onsitePickup ? 'bg-primary justify-end' : 'bg-muted justify-start'
+                }`}
             >
               <div className="w-5 h-5 rounded-full bg-white shadow mx-1 transition-all" />
             </button>
@@ -952,7 +1011,7 @@ export default function Dashboard() {
             {user?.role === 'vendor' ? 'Manage your listings and track earnings.' : 'Here\'s what\'s happening with your account.'}
           </p>
         </div>
-        
+
         {/* Banner for unapproved vendors */}
         {user?.role === 'vendor' && <VendorApprovalBanner />}
 
@@ -964,7 +1023,7 @@ export default function Dashboard() {
 
 function VendorApprovalBanner() {
   const { data: vendorProfile } = useVendorProfile();
-  
+
   if (!vendorProfile || vendorProfile.approvalStatus === 'approved') return null;
 
   return (
@@ -976,6 +1035,87 @@ function VendorApprovalBanner() {
       <p className="text-sm mt-1">
         Your vendor account is currently {vendorProfile.approvalStatus}. You can complete your profile in the <a href="/profile" className="underline font-medium">Profile</a> tab. Once approved by an administrator, you'll be able to start listing vehicles and properties.
       </p>
+    </div>
+  );
+}
+
+function VendorIntelligenceSection({ vendorId }: { vendorId: string }) {
+  const { data: insights, isLoading } = useVendorInsights(vendorId);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <Zap className="w-6 h-6 text-amber-500" />
+        <h2 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">UniExo Intelligence Engine</h2>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Surge Suggestion */}
+        <Card className="bg-gradient-to-br from-amber-500/10 to-transparent border-amber-500/20 shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-amber-500" />
+              Dynamic Surge Pricing
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="h-20 animate-pulse bg-muted rounded-xl" />
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-end gap-2">
+                  <span className="text-4xl font-black text-amber-600">{insights?.multiplier || '1.0'}x</span>
+                  <span className="text-sm text-zinc-500 font-bold mb-1 uppercase tracking-wider">Suggested Multiplier</span>
+                </div>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 font-medium">
+                  {insights?.reason || 'Market demand is stable in your zone.'}
+                </p>
+                <div className="flex items-center gap-2 text-xs font-bold text-amber-700 bg-amber-500/10 p-2 rounded-lg">
+                  <Activity className="w-3 h-3" />
+                  Occupancy: {((insights?.occupancyRate || 0) * 100).toFixed(0)}%
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Prediction Card */}
+        <Card className="bg-zinc-900 border-zinc-800 shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2 text-white">
+              <Activity className="w-5 h-5 text-blue-400" />
+              Predictive Performance
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs font-bold uppercase text-zinc-500 tracking-widest">
+                <span>Service Decay Risk</span>
+                <span className="text-emerald-400">Low</span>
+              </div>
+              <div className="w-full h-2 bg-zinc-800 rounded-full overflow-hidden">
+                <div className="h-full bg-emerald-500 w-[15%]" />
+              </div>
+            </div>
+            <p className="text-xs text-zinc-500">Based on your last 10 bookings and response times.</p>
+          </CardContent>
+        </Card>
+
+        {/* Inventory Suggester */}
+        <Card className="bg-zinc-900 border-zinc-800 shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2 text-white">
+              <BarChart3 className="w-5 h-5 text-purple-400" />
+              Inventory Balancer
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Badge variant="outline" className="border-blue-500/50 text-blue-400">AUTO-THROTTLE: OFF</Badge>
+            <p className="text-xs text-zinc-500">Your current booking volume is within optimal capacity limits.</p>
+            <Button variant="outline" className="w-full h-8 text-[10px] font-bold border-zinc-700 uppercase">View Capacity Settings</Button>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

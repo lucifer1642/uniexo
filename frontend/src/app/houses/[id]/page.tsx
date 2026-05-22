@@ -13,7 +13,7 @@ import {
   Heart, Share2, Video, Home, Phone, ChevronDown, Headset, Info, Droplet, Car, Flame, Monitor, Zap, Upload
 } from 'lucide-react';
 import { api } from '@/lib/api';
-import { useAuthStore } from '@/store/auth.store';
+import { useAuthStore } from '@/modules/auth/auth.store';
 import { useHouse } from '@/hooks/use-houses';
 import { useCreateBooking } from '@/hooks/use-booking';
 import { useCreatePaymentOrder, useVerifyPayment } from '@/hooks/use-payment';
@@ -131,120 +131,8 @@ export default function HouseDetailPage() {
 
   const [idCardFile, setIdCardFile] = useState<File | null>(null);
 
-  const handleBookAndPay = async () => {
-    if (!isAuthenticated) {
-      router.push(`/login?redirect=/houses/${id}`);
-      return;
-    }
-
-    if (!startDate || !endDate) {
-      toast.error('Please select both start and end dates.');
-      return;
-    }
-
-    if (new Date(startDate) >= new Date(endDate)) {
-      toast.error('End date must be after start date.');
-      return;
-    }
-
-    if (!idCardFile) {
-      toast.error('Please upload your ID Card for verification.');
-      return;
-    }
-
-    if (user?.id === house.vendorId?.toString()) {
-      toast.error('You cannot book your own property.');
-      return;
-    }
-
-    setIsProcessing(true);
-
-    try {
-      // 1. Upload ID Card
-      const formData = new FormData();
-      formData.append('idCard', idCardFile);
-      const uploadRes = await api.post('/users/id-card', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      const idCardUrl = uploadRes.data.data.url;
-
-      // 2. Create Booking
-      const startD = new Date(startDate);
-      const endD = new Date(endDate);
-      startD.setHours(12, 0, 0, 0);
-      endD.setHours(12, 0, 0, 0);
-
-      const bookingData = await createBooking.mutateAsync({
-        serviceType: 'house' as any,
-        serviceId: id,
-        startDate: startD.toISOString(),
-        endDate: endD.toISOString(),
-        paymentMethod,
-        idCardUrl,
-        securityDeposit: securityDep,
-        monthlyRent: rentPerMonth,
-        totalMonths: totalMonths,
-        totalAmount: upfrontTotal, // Pay only 1st month + deposit upfront
-      } as any);
-
-      const bookingId = bookingData.data._id;
-      const amountToPay = bookingData.data.totalAmount;
-
-      // 3. Create Razorpay Order
-      const orderData = await createOrder.mutateAsync({
-        serviceType: 'house' as any,
-        referenceId: bookingId,
-        amount: amountToPay, 
-      });
-
-      // 4. Open Razorpay Modal
-      const options = {
-        key: orderData.data.key,
-        amount: orderData.data.amount,
-        currency: orderData.data.currency,
-        name: 'Marketplace Platform',
-        description: `Upfront Payment for ${house.title}`,
-        order_id: orderData.data.razorpayOrderId,
-        handler: async function (response: any) {
-          try {
-            await verifyPayment.mutateAsync({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-            });
-            
-            toast.success('Your booking is confirmed! Upfront amount paid.');
-            setIsProcessing(false);
-            setIsBookingModalOpen(false);
-            router.push('/dashboard');
-            
-          } catch (verificationError) {
-            toast.error('Payment Verification Failed. Please contact support.');
-            setIsProcessing(false);
-          }
-        },
-        prefill: {
-          name: user?.name,
-          email: user?.email,
-        },
-        theme: {
-          color: '#2563eb',
-        },
-        modal: {
-          ondismiss: function () {
-            setIsProcessing(false);
-            toast.error('Payment process cancelled.');
-          }
-        }
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-      
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Something went wrong.');
-      setIsProcessing(false);
-    }
+  const handleReserveNow = () => {
+    router.push(`/checkout?type=house&id=${id}&name=${encodeURIComponent(house.title)}`);
   };
 
   const navLinks = ['About', 'Renting Terms', 'Amenities', 'Property Rules', 'Location'];
@@ -278,7 +166,7 @@ export default function HouseDetailPage() {
     <>
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
 
-      <div className="bg-slate-50 min-h-screen pb-24 md:pb-8">
+      <div className="bg-slate-50 min-h-screen pb-24 md:pb-8 theme-house">
         <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
           
           {/* Header Section */}
@@ -595,7 +483,7 @@ export default function HouseDetailPage() {
                       <Button 
                         variant="outline" 
                         className="flex-1 border-blue-600 text-blue-600 hover:bg-blue-50 bg-white rounded-full h-11 font-semibold" 
-                        onClick={() => setIsBookingModalOpen(true)}
+                        onClick={handleReserveNow}
                         disabled={house.isAvailable === false}
                       >
                         {house.isAvailable === false ? 'Unavailable' : 'Reserve Bed'}

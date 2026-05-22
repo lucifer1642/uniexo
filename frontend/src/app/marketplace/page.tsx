@@ -11,12 +11,13 @@ import { useMarketplaceItems } from '@/hooks/use-marketplace-items';
 import { useAuthStore } from '@/store/auth.store';
 import Link from 'next/link';
 import { ShoppingBag, Tag, User } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { AddMarketplaceItemDialog } from '@/components/add-marketplace-item-dialog';
 
-function VendorGroup({ vendorName, location, items }: { vendorName: string, location: string, items: any[] }) {
+function VendorGroup({ vendorName, items }: { vendorName: string, items: any[] }) {
   const renderCard = (item: any) => (
-    <Link key={item.id} href={item.href} className="group flex flex-col gap-3 cursor-pointer">
-      <div className="relative aspect-[16/9] overflow-hidden rounded-xl bg-muted flex items-center justify-center">
+    <Link key={item.id} href={item.href} className="group flex flex-col gap-3 cursor-pointer tap-feedback">
+      <div className="relative aspect-[16/9] overflow-hidden rounded-2xl bg-surface border border-border shadow-sm flex items-center justify-center">
         {item.image ? (
           <img 
             src={item.image} 
@@ -28,30 +29,43 @@ function VendorGroup({ vendorName, location, items }: { vendorName: string, loca
             <ShoppingBag className="w-12 h-12 opacity-20 mb-2" />
           </div>
         )}
-      </div>
-      <div className="flex flex-col">
-        <div className="flex justify-between items-start">
-          <h3 className="font-semibold text-base line-clamp-1">{item.vendorName}</h3>
-          <div className="flex items-center gap-1 text-sm">
-            <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-xs font-medium">{item.category}</span>
-          </div>
+        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+           <div className="p-2 rounded-full bg-surface shadow-lg text-primary">
+              <Tag className="w-4 h-4" />
+           </div>
         </div>
-        <div className="text-muted-foreground text-sm line-clamp-1 capitalize">{item.title}</div>
-        <div className="mt-1 flex items-center gap-1.5 text-sm">
-          <span className="font-semibold text-base text-foreground">₹{item.price}</span>
+      </div>
+      <div className="flex flex-col px-1">
+        <div className="flex justify-between items-start mb-1">
+          <h3 className="font-bold text-sm text-foreground line-clamp-1">{item.vendorName}</h3>
+          <span className="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-[10px] font-bold uppercase tracking-wider">{item.category}</span>
+        </div>
+        <div className="text-muted-foreground text-sm line-clamp-1 capitalize mb-2">{item.title}</div>
+        <div className="flex items-center justify-between">
+           <span className="font-black text-lg text-foreground">₹{item.price}</span>
+           <div className="text-[10px] font-bold text-primary group-hover:translate-x-1 transition-transform flex items-center gap-1">
+              VIEW ITEM <ShoppingBag className="w-3 h-3" />
+           </div>
         </div>
       </div>
     </Link>
   );
 
   return (
-    <div className="space-y-4 mb-10 w-full pt-4 border-t">
-      <h2 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-        <User className="w-5 h-5 text-muted-foreground" />
-        Shared by {vendorName}
-      </h2>
+    <div className="space-y-6 mb-16 w-full pt-8 border-t border-border">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-black tracking-tight flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+            <User className="w-5 h-5" />
+          </div>
+          Shared by {vendorName}
+        </h2>
+        <div className="text-xs font-bold text-muted-foreground bg-surface border border-border px-3 py-1 rounded-full uppercase tracking-widest">
+           {items.length} ITEMS
+        </div>
+      </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 gap-y-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
         {items.map(renderCard)}
       </div>
     </div>
@@ -87,81 +101,100 @@ export default function MarketplacePage() {
   const categories = ['Electronics', 'Furniture', 'Clothing', 'Books'];
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-end mb-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight mb-2">Used Items Marketplace</h1>
-          <p className="text-muted-foreground">Discover second-hand treasures at great prices.</p>
+    <div className="min-h-screen bg-background text-foreground selection:bg-primary/30 pb-20 theme-marketplace">
+      <div className="relative pt-20 pb-16 overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="flex flex-col md:flex-row justify-between items-end gap-8">
+            <div className="max-w-2xl">
+              <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+              >
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black tracking-[0.2em] mb-4 uppercase">
+                  <ShoppingBag className="w-3 h-3" />
+                  Campus Marketplace
+                </div>
+                <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-[0.9] mb-6">
+                  Second-hand <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-secondary to-primary font-black">Treasures.</span>
+                </h1>
+                <p className="text-muted-foreground text-lg font-medium">Buy and sell pre-loved items within the campus community. Sustainable and affordable.</p>
+              </motion.div>
+            </div>
+            {canSell && <AddMarketplaceItemDialog />}
+          </div>
         </div>
-        {canSell && <AddMarketplaceItemDialog />}
       </div>
 
-      <div className="flex justify-between items-center mb-8 border-b pb-4">
-        <div className="text-sm font-medium text-muted-foreground">
-          Showing {filteredItems.length} items
-        </div>
-        
-        <div className="flex gap-2 flex-wrap justify-end">
-          <Button 
-            size="sm"
-            variant={categoryFilter === 'all' ? 'default' : 'outline'} 
-            className={categoryFilter === 'all' ? 'bg-primary text-primary-foreground' : ''}
-            onClick={() => setCategoryFilter('all')}
-          >
-            All
-          </Button>
-          {categories.map(cat => (
-            <Button 
-              key={cat}
-              size="sm"
-              variant={categoryFilter === cat.toLowerCase() ? 'default' : 'outline'} 
-              className={categoryFilter === cat.toLowerCase() ? 'bg-primary text-primary-foreground' : ''}
-              onClick={() => setCategoryFilter(categoryFilter === cat.toLowerCase() ? 'all' : cat.toLowerCase())}
+      <div className="container mx-auto px-6">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-16 p-2 bg-surface/40 border border-border rounded-3xl backdrop-blur-3xl">
+          <div className="flex gap-2 flex-wrap">
+            <button 
+              onClick={() => setCategoryFilter('all')}
+              className={`px-8 py-3 rounded-2xl text-xs font-black tracking-widest transition-all ${categoryFilter === 'all' ? 'bg-primary text-primary-foreground shadow-xl shadow-primary/20' : 'text-muted-foreground hover:text-foreground'}`}
             >
-              {cat}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      {isLoading ? (
-        <div className="flex justify-center items-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
-      ) : (
-        <>
-          <div className="space-y-12">
-            {Object.entries(
-              filteredItems.reduce((acc, item) => {
-                const vendorName = item.vendorName || 'Independent Seller';
-                if (!acc[vendorName]) {
-                  acc[vendorName] = {
-                    location: 'Multiple Locations',
-                    items: []
-                  };
-                }
-                acc[vendorName].items.push(item);
-                return acc;
-              }, {} as Record<string, { location: string, items: typeof filteredItems }>)
-            )
-            .sort((a, b) => a[0].localeCompare(b[0]))
-            .map(([vendorName, data]) => (
-              <VendorGroup 
-                key={vendorName} 
-                vendorName={vendorName} 
-                location={data.location} 
-                items={data.items} 
-              />
+              ALL ITEMS
+            </button>
+            {categories.map(cat => (
+              <button 
+                key={cat}
+                onClick={() => setCategoryFilter(categoryFilter === cat.toLowerCase() ? 'all' : cat.toLowerCase())}
+                className={`px-8 py-3 rounded-2xl text-xs font-black tracking-widest transition-all ${categoryFilter === cat.toLowerCase() ? 'bg-primary text-primary-foreground shadow-xl shadow-primary/20' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                {cat.toUpperCase()}
+              </button>
             ))}
           </div>
+          
+          <div className="hidden lg:flex items-center gap-3 px-4 text-xs font-bold text-muted-foreground uppercase tracking-widest">
+            {filteredItems.length} Available Listings
+          </div>
+        </div>
 
-          {filteredItems.length === 0 && (
-            <div className="text-center py-20 text-muted-foreground">
-              No items found. Try adjusting your filters.
-            </div>
-          )}
-        </>
-      )}
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 py-20">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="aspect-square rounded-[2rem] bg-surface border border-border animate-pulse" />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredItems.length > 0 ? (
+              Object.entries(
+                filteredItems.reduce((acc, item) => {
+                  const vendorName = item.vendorName || 'Independent Seller';
+                  if (!acc[vendorName]) {
+                    acc[vendorName] = { items: [] };
+                  }
+                  acc[vendorName].items.push(item);
+                  return acc;
+                }, {} as Record<string, { items: typeof filteredItems }>)
+              )
+              .sort((a, b) => a[0].localeCompare(b[0]))
+              .map(([vendorName, data]) => (
+                <VendorGroup 
+                  key={vendorName} 
+                  vendorName={vendorName} 
+                  items={data.items} 
+                />
+              ))
+            ) : (
+              <div className="text-center py-40 border border-dashed border-border rounded-[3rem]">
+                <Tag className="w-16 h-16 text-muted-foreground/20 mx-auto mb-6" />
+                <h3 className="text-2xl font-black mb-2">No items found</h3>
+                <p className="text-muted-foreground">Try adjusting your filters to find what you're looking for.</p>
+                <Button 
+                  onClick={() => setCategoryFilter('all')}
+                  variant="outline" 
+                  className="mt-8 border-primary/30 text-primary hover:bg-primary/5 rounded-2xl px-10 h-14 font-black"
+                >
+                  CLEAR FILTERS
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

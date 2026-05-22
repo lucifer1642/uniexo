@@ -23,6 +23,7 @@ import { useNotifications, Notification } from '@/hooks/use-notifications';
 import { formatDistanceToNow } from 'date-fns';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { motion, AnimatePresence } from 'framer-motion';
+import { haptics } from '@/lib/haptics';
 
 export function NotificationCenter() {
   const [open, setOpen] = useState(false);
@@ -78,15 +79,15 @@ export function NotificationCenter() {
   };
 
   const NotificationList = ({ onClose }: { onClose: () => void }) => (
-    <>
-      <div className="p-5 md:p-6 border-b border-white/5 flex items-center justify-between bg-white/[0.01]">
+    <div className="theme-landing">
+      <div className="p-5 md:p-6 border-b border-border flex items-center justify-between bg-surface/50">
         <div className="flex items-center gap-3">
-           <div className="p-2 rounded-xl bg-lime-400/10 text-lime-400">
+           <div className="p-2 rounded-xl bg-primary/10 text-primary">
               <Bell className="w-4 h-4" />
            </div>
            <div>
-              <h4 className="text-sm font-black text-white uppercase tracking-widest">Alerts</h4>
-              <p className="text-[10px] text-zinc-500 font-bold">{unreadCount} UNREAD</p>
+              <h4 className="text-sm font-black text-foreground uppercase tracking-widest">Alerts</h4>
+              <p className="text-[10px] text-muted-foreground font-bold">{unreadCount} UNREAD</p>
            </div>
         </div>
         <div className="flex items-center gap-2">
@@ -95,7 +96,7 @@ export function NotificationCenter() {
               variant="ghost" 
               size="sm" 
               onClick={() => markAllAsRead.mutate()}
-              className="text-[10px] font-black text-lime-400 hover:text-lime-300 uppercase tracking-tighter"
+              className="text-[10px] font-black text-primary hover:text-primary/80 uppercase tracking-tighter"
             >
               READ ALL
             </Button>
@@ -104,7 +105,7 @@ export function NotificationCenter() {
             variant="ghost" 
             size="icon"
             onClick={onClose}
-            className="md:hidden h-8 w-8 rounded-full text-zinc-400"
+            className="md:hidden h-8 w-8 rounded-full text-muted-foreground"
           >
             <X className="w-4 h-4" />
           </Button>
@@ -114,11 +115,11 @@ export function NotificationCenter() {
       <ScrollArea className="h-[60vh] md:h-[400px]">
         {notifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center px-8">
-            <div className="w-16 h-16 rounded-3xl bg-white/[0.02] border border-white/5 flex items-center justify-center text-zinc-700 mb-4">
+            <div className="w-16 h-16 rounded-3xl bg-surface border border-border flex items-center justify-center text-muted-foreground mb-4">
               <Bell className="w-8 h-8" />
             </div>
-            <h5 className="text-sm font-black text-zinc-400 uppercase tracking-widest">No Alerts</h5>
-            <p className="text-xs text-zinc-600 mt-1 font-medium">No notifications at this time.</p>
+            <h5 className="text-sm font-black text-muted-foreground uppercase tracking-widest">No Alerts</h5>
+            <p className="text-xs text-muted-foreground/60 mt-1 font-medium">No notifications at this time.</p>
           </div>
         ) : (
           <div className="p-2">
@@ -129,7 +130,7 @@ export function NotificationCenter() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.05 }}
                 onClick={() => !notification.isRead && markAsRead.mutate(notification._id)}
-                className={`group relative p-4 rounded-2xl transition-all cursor-pointer mb-1 min-h-[72px] ${notification.isRead ? 'opacity-60' : 'bg-white/[0.03] border border-white/5 hover:border-lime-400/20 hover:bg-white/[0.05]'}`}
+                className={`group relative p-4 rounded-2xl transition-all cursor-pointer mb-1 min-h-[72px] ${notification.isRead ? 'opacity-60' : 'bg-surface border border-border hover:border-primary/20 hover:bg-primary/5'}`}
               >
                 <div className="flex gap-3 md:gap-4">
                   <div className={`mt-0.5 h-8 w-8 rounded-xl flex items-center justify-center shrink-0 border transition-all ${getBg(notification.type)}`}>
@@ -137,17 +138,17 @@ export function NotificationCenter() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 mb-1">
-                      <p className={`text-sm font-black truncate ${notification.isRead ? 'text-zinc-400' : 'text-white'}`}>
+                      <p className={`text-sm font-black truncate ${notification.isRead ? 'text-muted-foreground' : 'text-foreground'}`}>
                         {notification.title}
                       </p>
                       {!notification.isRead && (
-                         <Circle className="w-2 h-2 fill-lime-400 text-lime-400 shrink-0" />
+                         <Circle className="w-2 h-2 fill-primary text-primary shrink-0" />
                       )}
                     </div>
-                    <p className="text-xs text-zinc-500 font-medium leading-relaxed mb-2 line-clamp-2">
+                    <p className="text-xs text-muted-foreground font-medium leading-relaxed mb-2 line-clamp-2">
                       {notification.message}
                     </p>
-                    <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">
+                    <span className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest">
                       {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                     </span>
                   </div>
@@ -158,26 +159,26 @@ export function NotificationCenter() {
         )}
       </ScrollArea>
 
-      <div className="p-4 border-t border-white/5 bg-white/[0.01]">
-         <Button variant="ghost" className="w-full text-[10px] font-black text-zinc-500 uppercase tracking-widest hover:text-white" asChild onClick={onClose}>
+      <div className="p-4 border-t border-border bg-surface/50">
+         <Button variant="ghost" className="w-full text-[10px] font-black text-muted-foreground uppercase tracking-widest hover:text-foreground" asChild onClick={onClose}>
             <Link href="/dashboard">View All Activity</Link>
          </Button>
       </div>
-    </>
+    </div>
   );
 
   const bellButton = (
     <Button 
       variant="ghost" 
       size="icon" 
-      onClick={isMobile ? () => setMobileOpen(true) : undefined}
-      className="relative h-10 w-10 md:h-11 md:w-11 rounded-xl md:rounded-2xl bg-white/[0.03] border border-white/5 hover:border-lime-400/30 transition-all tap-feedback"
+      onClick={isMobile ? () => { setMobileOpen(true); haptics.light(); } : undefined}
+      className="relative h-10 w-10 md:h-11 md:w-11 rounded-xl md:rounded-2xl glass-dark hover:border-primary/30 transition-all tap-feedback theme-landing"
     >
-      <Bell className={`w-4 h-4 md:w-5 md:h-5 ${unreadCount > 0 ? 'text-lime-400' : 'text-zinc-400'}`} />
+      <Bell className={`w-4 h-4 md:w-5 md:h-5 ${unreadCount > 0 ? 'text-primary' : 'text-muted-foreground'}`} />
       {unreadCount > 0 && (
         <span className="absolute top-2 right-2 md:top-2.5 md:right-2.5 flex h-2.5 w-2.5 md:h-3 md:w-3">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-lime-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2.5 w-2.5 md:h-3 md:w-3 bg-lime-500 border-2 border-[#0a0a0a]"></span>
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5 md:h-3 md:w-3 bg-primary"></span>
         </span>
       )}
     </Button>
@@ -191,7 +192,7 @@ export function NotificationCenter() {
           <PopoverTrigger asChild>
             {bellButton}
           </PopoverTrigger>
-          <PopoverContent className="w-96 p-0 bg-[#0a0a0a] border-white/10 rounded-[2rem] shadow-2xl overflow-hidden" align="end">
+          <PopoverContent className="w-[420px] p-0 glass-dark-lg rounded-[2rem] shadow-2xl overflow-hidden" align="end">
             <NotificationList onClose={() => setOpen(false)} />
           </PopoverContent>
         </Popover>
@@ -217,7 +218,7 @@ export function NotificationCenter() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-              className="absolute bottom-0 left-0 right-0 bg-[#0a0a0a] border-t border-white/10 rounded-t-[2rem] max-h-[85vh] overflow-hidden"
+              className="absolute bottom-0 left-0 right-0 glass-dark-lg rounded-t-[2rem] max-h-[85vh] overflow-hidden"
             >
               <div className="pt-3 pb-1">
                 <div className="drag-indicator" />

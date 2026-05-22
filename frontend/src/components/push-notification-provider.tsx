@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, X, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAuthStore } from '@/store/auth.store';
+import { useAuthStore } from '@/modules/auth/auth.store';
 import { useNotifications } from '@/hooks/use-notifications';
 
 const PUSH_PERMISSION_KEY = 'uniexo_push_permission_asked';

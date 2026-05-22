@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { api } from '@/lib/api';
+import { useAuthStore } from '@/modules/auth/auth.store';
 
 export function AddHouseDialog() {
   const [open, setOpen] = useState(false);
@@ -52,12 +53,18 @@ export function AddHouseDialog() {
 
   const [files, setFiles] = useState<FileList | null>(null);
 
+  const { user, token } = useAuthStore();
+
   const mutation = useMutation({
-    mutationFn: async (data: FormData) => {
-      const res = await api.post('/houses', data, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+    mutationFn: async (fd: FormData) => {
+      const res = await fetch('/api/houses', {
+        method: 'POST',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        body: fd,
       });
-      return res.data;
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'Failed to add property');
+      return json;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['houses'] });
@@ -93,6 +100,7 @@ export function AddHouseDialog() {
     }
 
     const fd = new FormData();
+    fd.append('vendorId', user?.id || '');
     Object.entries(formData).forEach(([key, value]) => {
       // conditionally skip irrelevant fields
       if (formData.propertyType === 'room' && ['pricePerMonth', 'singleSharingPrice', 'doubleSharingPrice', 'tripleSharingPrice', 'securityDeposit', 'electricityIncluded', 'electricityCharge'].includes(key)) return;

@@ -57,7 +57,7 @@ function ResetPasswordForm() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to reset password');
+      if (!data.success) throw new Error(data.error || 'Failed to reset password');
 
       toast.success('Password reset successfully! Please login with your new password.');
       router.push('/login');

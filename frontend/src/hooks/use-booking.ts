@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/api';
 
 interface CreateBookingParams {
+    userId: string;
     serviceType: 'vehicle' | 'house';
     serviceId: string;
     startDate: string;
@@ -9,6 +9,9 @@ interface CreateBookingParams {
     notes?: string;
     bookingType?: 'hourly' | 'daily';
     paymentMethod?: 'online';
+    securityDeposit?: number;
+    monthlyRent?: number;
+    totalMonths?: number;
 }
 
 export const useCreateBooking = () => {
@@ -16,11 +19,16 @@ export const useCreateBooking = () => {
 
     return useMutation({
         mutationFn: async (data: CreateBookingParams) => {
-            const res = await api.post('/bookings', data);
-            return res.data;
+            const res = await fetch('/api/bookings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+            const json = await res.json();
+            if (!json.success) throw new Error(json.error || 'Booking failed');
+            return json;
         },
         onSuccess: () => {
-            // Invalidate relevant queries to refresh data
             queryClient.invalidateQueries({ queryKey: ['userBookings'] });
         },
     });
@@ -29,7 +37,8 @@ export const useCreateBooking = () => {
 interface UpdateBookingStatusParams {
     bookingId: string;
     status: 'confirmed' | 'cancelled' | 'completed';
-    cancellationReason?: string;
+    userId?: string;
+    vendorId?: string;
 }
 
 export const useUpdateBookingStatus = () => {
@@ -37,13 +46,18 @@ export const useUpdateBookingStatus = () => {
 
     return useMutation({
         mutationFn: async ({ bookingId, ...data }: UpdateBookingStatusParams) => {
-            const res = await api.patch(`/bookings/${bookingId}/status`, data);
-            return res.data;
+            const res = await fetch(`/api/bookings/${bookingId}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+            const json = await res.json();
+            if (!json.success) throw new Error(json.error || 'Update failed');
+            return json;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['vendorBookings'] });
             queryClient.invalidateQueries({ queryKey: ['userBookings'] });
-            queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
         },
     });
 };

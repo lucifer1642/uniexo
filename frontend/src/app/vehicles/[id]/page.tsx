@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Car, Check, MapPin, Shield, Star, User, LocateFixed, Loader2 } from 'lucide-react';
-import { useAuthStore } from '@/store/auth.store';
+import { useAuthStore } from '@/modules/auth/auth.store';
 import { useVehicle } from '@/hooks/use-vehicle';
 import { useCreateBooking } from '@/hooks/use-booking';
 import { useCreatePaymentOrder, useVerifyPayment } from '@/hooks/use-payment';
@@ -148,116 +148,8 @@ export default function VehicleDetailPage() {
     );
   };
 
-  const handleBookAndPay = async () => {
-    if (!isAuthenticated) {
-      router.push(`/login?redirect=/vehicles/${id}`);
-      return;
-    }
-
-    if (!startDate || !endDate) {
-      toast.error('Please select both start and end dates.');
-      return;
-    }
-
-    const startD = new Date(startDate);
-    const endD = new Date(endDate);
-
-    if (bookingType === 'hourly' && startD >= endD) {
-      toast.error('End time must be after start time.');
-      return;
-    }
-
-    if (bookingType === 'daily') {
-      startD.setHours(12, 0, 0, 0);
-      endD.setHours(12, 0, 0, 0);
-      if (startD > endD) {
-        toast.error('End date cannot be before start date.');
-        return;
-      }
-    }
-
-    if (user?.id === vehicle.vendorId?.toString()) {
-      toast.error('You cannot book your own vehicle.');
-      return;
-    }
-
-    setIsProcessing(true);
-
-    try {
-      // 1. Create Booking
-      const bookingData = await createBooking.mutateAsync({
-        serviceType: 'vehicle' as any,
-        serviceId: id,
-        startDate: startD.toISOString(),
-        endDate: endD.toISOString(),
-        notes: bookingLocation ? `Requested Location: ${bookingLocation}` : undefined,
-        bookingType,
-        paymentMethod,
-      } as any);
-
-      const bookingId = bookingData.data._id;
-      const amountToPay = bookingData.data.totalAmount;
-
-
-      // 2. Create Razorpay Order
-      const orderData = await createOrder.mutateAsync({
-        serviceType: 'vehicle' as any,
-        referenceId: bookingId,
-        amount: amountToPay,
-      });
-
-      // 3. Open Razorpay Modal
-      const options = {
-        key: orderData.data.key,
-        amount: orderData.data.amount,
-        currency: orderData.data.currency,
-        name: 'Marketplace Platform',
-        description: `Booking for ${vehicle.name}`,
-        order_id: orderData.data.razorpayOrderId,
-        handler: async function (response: any) {
-          try {
-            // 4. Verify Payment
-            await verifyPayment.mutateAsync({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-            });
-            
-            toast.success('Your payment was successful and the booking is confirmed.');
-            router.replace(`/vehicles/${id}/success`);
-            
-          } catch (verificationError) {
-            toast.error('Payment Verification Failed. Please contact support.');
-          } finally {
-            setIsProcessing(false);
-          }
-        },
-        prefill: {
-          name: user?.name,
-          email: user?.email,
-        },
-        theme: {
-          color: '#0f172a', // primary
-        },
-        modal: {
-          ondismiss: function () {
-            setIsProcessing(false);
-            toast.error('You cancelled the payment process.');
-          }
-        }
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', function () {
-        setIsProcessing(false);
-        toast.error('Payment failed. Please try again.');
-      });
-      rzp.open();
-      
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Something went wrong. The dates might be unavailable.');
-      setIsProcessing(false);
-    }
+  const handleBookNow = () => {
+    router.push(`/checkout?type=vehicle&id=${id}&name=${encodeURIComponent(vehicle.name)}`);
   };
 
   return (
@@ -265,7 +157,7 @@ export default function VehicleDetailPage() {
       {/* Razorpay Checkout Script */}
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
 
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <div className="container mx-auto px-4 py-8 max-w-6xl theme-car">
         {/* Title & Header */}
         <div className="mb-6">
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">{vehicle.name}</h1>
@@ -453,17 +345,13 @@ export default function VehicleDetailPage() {
                 </div>
               </div>
 
-              <Button 
-                size="lg" 
-                className="w-full text-base font-semibold" 
-                onClick={handleBookAndPay}
-                disabled={isProcessing || !vehicle.isAvailable || vehicle.approvalStatus !== 'approved'}
-              >
-                {isProcessing ? 'Processing Payment...' : 
-                 !vehicle.isAvailable ? 'Unavailable for Dates' : 
-                  vehicle.approvalStatus !== 'approved' ? 'Listing Pending Approval' :
-                 'Confirm & Pay Now'}
-              </Button>
+              <Button
+                  className="w-full h-12 text-base font-bold bg-[#8B004A] hover:bg-[#8B004A]/90 transition-all rounded-xl"
+                  onClick={handleBookNow}
+                  disabled={!vehicle.isAvailable || vehicle.approvalStatus !== 'approved'}
+                >
+                  Book Now
+                </Button>
 
               <div className="mt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
                 <Shield className="w-4 h-4" />

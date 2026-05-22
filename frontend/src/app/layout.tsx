@@ -8,9 +8,10 @@ import { Toaster } from "sonner";
 import { GlobalProfileSidebar } from "@/components/global-profile-sidebar";
 import { CacheManager } from "@/components/cache-manager";
 import { PushNotificationProvider } from "@/components/push-notification-provider";
-import { NexusProvider } from "@/components/providers/nexus-provider";
+import { UniExoProvider } from "@/components/providers/uniexo-provider";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import Script from "next/script";
+import { IntelligencePulse } from "@/components/intelligence-pulse";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,8 +24,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Marketplace Platform",
-  description: "Multi-service marketplace for vehicles, houses, and more",
+  title: "UniExo - All-in-One Multi-Service Platform",
+  description: "Experience the premium adaptive UI of UniExo. Vehicles, Houses, Laundry, and Marketplace.",
 };
 
 export default function RootLayout({
@@ -38,30 +39,31 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col`}
       >
         <Providers>
-          <NexusProvider>
+          <UniExoProvider>
             <CacheManager />
+            <IntelligencePulse />
             <Navbar />
             <GlobalProfileSidebar />
             <main className="flex-1 flex flex-col">
               {children}
             </main>
             <Footer />
+            <Toaster 
+              position="bottom-right" 
+              closeButton 
+              toastOptions={{
+                classNames: {
+                  success: 'border-primary bg-black text-primary shadow-[0_0_15px_rgba(139,0,74,0.4)]',
+                  error: 'border-red-500 bg-black text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.4)]',
+                  toast: 'border bg-black/90 backdrop-blur-md rounded-lg font-medium tracking-wide',
+                  closeButton: 'bg-zinc-800 hover:bg-zinc-700 text-white border-none'
+                },
+                duration: 4000,
+              }} 
+            />
             <PushNotificationProvider />
-          </NexusProvider>
+          </UniExoProvider>
         </Providers>
-        <Toaster 
-          position="bottom-right" 
-          closeButton 
-          toastOptions={{
-            classNames: {
-              success: 'border-primary bg-black text-primary shadow-[0_0_15px_rgba(139,0,74,0.4)]',
-              error: 'border-red-500 bg-black text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.4)]',
-              toast: 'border bg-black/90 backdrop-blur-md rounded-lg font-medium tracking-wide',
-              closeButton: 'bg-zinc-800 hover:bg-zinc-700 text-white border-none'
-            },
-            duration: 4000,
-          }} 
-        />
         <SpeedInsights />
         <Script id="clarity-script" strategy="afterInteractive">
           {`

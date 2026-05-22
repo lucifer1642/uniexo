@@ -1,36 +1,52 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/api';
-import { useAuthStore } from '@/store/auth.store';
+import { useAuthStore } from '@/modules/auth/auth.store';
 
 export interface Notification {
-  _id: string;
+  id: string;
   title: string;
   message: string;
-  type: 'info' | 'success' | 'warning' | 'danger' | 'kyc_update' | 'booking_reminder' | 'payment_due';
+  type: 'info' | 'success' | 'warning' | 'danger' | 'kyc_update' | 'booking_reminder' | 'payment_due' | 'booking_confirmed' | 'payment_received' | 'order_update';
+  is_read: boolean;
+  metadata?: any;
+  created_at: string;
+  // Compatibility aliases for existing UI
+  _id: string;
   isRead: boolean;
   createdAt: string;
-  metadata?: any;
+}
+
+function mapNotification(n: any): Notification {
+  return {
+    ...n,
+    _id: n.id,
+    isRead: n.is_read,
+    createdAt: n.created_at,
+  };
 }
 
 export function useNotifications() {
   const queryClient = useQueryClient();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
 
   const { data: notifications = [], isLoading } = useQuery<Notification[]>({
-    queryKey: ['notifications'],
+    queryKey: ['notifications', user?.id],
     queryFn: async () => {
-      const response = await api.get('/users/notifications');
-      return response.data.data;
+      if (!user?.id) return [];
+      try {
+        const res = await fetch(`/api/notifications?userId=${user.id}`);
+        const json = await res.json();
+        return (json.data || []).map(mapNotification);
+      } catch {
+        return [];
+      }
     },
-    refetchInterval: 3000,
-    // CRITICAL: Only fetch when user is logged in — otherwise it fires 401s
-    // which trigger the redirect interceptor → infinite reload loop
-    enabled: isAuthenticated,
+    refetchInterval: 5000,
+    enabled: isAuthenticated && !!user?.id,
   });
 
   const markAsRead = useMutation({
     mutationFn: async (id: string) => {
-      await api.patch(`/users/notifications/${id}/read`);
+      await fetch(`/api/notifications/${id}/read`, { method: 'PATCH' });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -39,7 +55,12 @@ export function useNotifications() {
 
   const markAllAsRead = useMutation({
     mutationFn: async () => {
-      await api.post('/users/notifications/read-all');
+      if (!user?.id) return;
+      await fetch('/api/notifications/read-all', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });

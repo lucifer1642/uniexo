@@ -7,13 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { api } from '@/lib/api';
+import { useAuthStore } from '@/modules/auth/auth.store';
+import { toast } from 'sonner';
 
 export function AddVehicleDialog() {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
   const [error, setError] = useState('');
-
+  const { user, token } = useAuthStore();
 
   const [formData, setFormData] = useState({
     name: '',
@@ -33,17 +34,21 @@ export function AddVehicleDialog() {
   const [files, setFiles] = useState<FileList | null>(null);
 
   const mutation = useMutation({
-    mutationFn: async (data: FormData) => {
-      const res = await api.post('/vehicles', data, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+    mutationFn: async (fd: FormData) => {
+      const res = await fetch('/api/vehicles', {
+        method: 'POST',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+        body: fd,
       });
-      return res.data;
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error || 'Failed to add vehicle');
+      return json;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
       setOpen(false);
+      toast.success('Vehicle added successfully!');
       
-      // Reset form
       setFormData({
         name: '', type: '', brand: '', model: '', year: '',
         registrationNumber: '', fuelType: '', seatingCapacity: '', pricePerHour: '', pricePerDay: '', location: '', description: ''
@@ -52,15 +57,8 @@ export function AddVehicleDialog() {
     },
     onError: (err: any) => {
       console.error('Vehicle upload failure:', err);
-      const msg = err.response?.data?.message || err.message || 'Failed to add vehicle';
-      
-      if (err.response?.status === 401) {
-        setError('Your session has expired. Please log in again.');
-      } else if (err.response?.status === 403) {
-        setError(msg); // Usually "Incomplete profile" or "Approval required"
-      } else {
-        setError(msg);
-      }
+      setError(err.message || 'Failed to add vehicle');
+      toast.error(err.message || 'Failed to add vehicle');
     }
   });
 
@@ -74,6 +72,8 @@ export function AddVehicleDialog() {
     }
 
     const fd = new FormData();
+    // Vendor ID from auth store
+    fd.append('vendorId', user?.id || '');
     Object.entries(formData).forEach(([key, value]) => {
       fd.append(key, value);
     });

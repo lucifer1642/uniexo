@@ -20,7 +20,7 @@ import {
   useVendorBookingTrends,
   useVendorRoomOccupancy 
 } from '@/hooks/use-dashboard';
-import { useVehicleFleet, useReturnVehicle } from '@/hooks/use-fleet';
+import { useVehicleFleet, useReturnVehicle, useToggleMaintenance, useVehicleOperations } from '@/hooks/use-fleet';
 import { useVendorLaundryOrders, useUpdateVendorOrderStatus } from '@/hooks/use-laundry-services';
 import { VehicleDispatchModal } from '@/components/vehicle-dispatch-modal';
 import { toast } from 'sonner';
@@ -480,6 +480,7 @@ export function LedgerSection() {
 export function FleetSection() {
   const { data: fleet } = useVehicleFleet();
   const returnVehicle = useReturnVehicle();
+  const toggleMaintenance = useToggleMaintenance();
 
   return (
     <div className="space-y-6">
@@ -501,6 +502,7 @@ export function FleetSection() {
           <Card key={v._id} className={`overflow-hidden border-l-4 transition-all hover:shadow-lg ${
             v.currentStatus === 'available' ? 'border-l-green-500' : 
             v.currentStatus === 'dispatched' ? (v.isOverdue ? 'border-l-red-600 shadow-red-100' : 'border-l-orange-500') : 
+            v.currentStatus === 'maintenance' ? 'border-l-purple-500 shadow-purple-100' :
             'border-l-gray-500'
           }`}>
             <CardContent className="p-0">
@@ -513,6 +515,7 @@ export function FleetSection() {
                   <Badge variant="outline" className={`
                     ${v.currentStatus === 'available' ? 'bg-green-50 text-green-700 border-green-200' : ''}
                     ${v.currentStatus === 'dispatched' ? 'bg-orange-50 text-orange-700 border-orange-200' : ''}
+                    ${v.currentStatus === 'maintenance' ? 'bg-purple-50 text-purple-700 border-purple-200' : ''}
                   `}>
                     {v.currentStatus.toUpperCase()}
                   </Badge>
@@ -536,6 +539,10 @@ export function FleetSection() {
                       </div>
                     )}
                   </div>
+                ) : v.currentStatus === 'maintenance' ? (
+                  <div className="h-[84px] mb-4 flex items-center justify-center border-2 border-dashed border-purple-200 rounded-lg bg-purple-50/50">
+                    <span className="text-sm text-purple-700 font-medium">Currently in maintenance</span>
+                  </div>
                 ) : (
                   <div className="h-[84px] mb-4 flex items-center justify-center border-2 border-dashed border-slate-200 rounded-lg bg-slate-50/50">
                     <span className="text-sm text-muted-foreground font-medium">Ready for dispatch</span>
@@ -544,7 +551,28 @@ export function FleetSection() {
 
                 <div className="flex gap-2">
                   {v.currentStatus === 'available' ? (
-                    <VehicleDispatchModal vehicle={v} />
+                    <>
+                      <VehicleDispatchModal vehicle={v} />
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="w-full border-purple-200 text-purple-700 hover:bg-purple-50"
+                        onClick={() => toggleMaintenance.mutate({ id: v._id, isEntering: true })}
+                        disabled={toggleMaintenance.isPending}
+                      >
+                        Send to Maintenance
+                      </Button>
+                    </>
+                  ) : v.currentStatus === 'maintenance' ? (
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="w-full border-green-200 text-green-700 hover:bg-green-50"
+                      onClick={() => toggleMaintenance.mutate({ id: v._id, isEntering: false })}
+                      disabled={toggleMaintenance.isPending}
+                    >
+                      Make Available
+                    </Button>
                   ) : (
                     <Button 
                       size="sm" 
@@ -562,6 +590,74 @@ export function FleetSection() {
           </Card>
         ))}
       </div>
+
+      <VehicleOperationsHistory />
+    </div>
+  );
+}
+
+function VehicleOperationsHistory() {
+  const { data: operations, isLoading } = useVehicleOperations();
+
+  if (isLoading) return <div>Loading history...</div>;
+
+  return (
+    <div className="mt-12 space-y-4">
+      <h3 className="text-xl font-bold tracking-tight">Operations Ledger</h3>
+      <Card className="border-0 shadow-lg overflow-hidden bg-white/80 backdrop-blur-xl">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 border-b border-slate-100">
+              <tr>
+                <th className="px-4 py-3 text-left font-medium">Date</th>
+                <th className="px-4 py-3 text-left font-medium">Vehicle</th>
+                <th className="px-4 py-3 text-left font-medium">Operation</th>
+                <th className="px-4 py-3 text-left font-medium">Customer</th>
+                <th className="px-4 py-3 text-left font-medium">Odometer</th>
+                <th className="px-4 py-3 text-left font-medium">Notes</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {operations?.map((op: any) => (
+                <tr key={op.id} className="hover:bg-slate-50 transition-colors">
+                  <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                    {new Date(op.created_at).toLocaleString()}
+                  </td>
+                  <td className="px-4 py-3 font-medium">
+                    {op.vehicle?.name}
+                    <span className="block text-[10px] text-muted-foreground">{op.vehicle?.registration_number}</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge variant="outline" className={`
+                      ${op.operation_type === 'dispatch' ? 'bg-orange-50 text-orange-700 border-orange-200' : ''}
+                      ${op.operation_type === 'return' ? 'bg-green-50 text-green-700 border-green-200' : ''}
+                      ${op.operation_type?.startsWith('maintenance') ? 'bg-purple-50 text-purple-700 border-purple-200' : ''}
+                    `}>
+                      {op.operation_type.replace('_', ' ').toUpperCase()}
+                    </Badge>
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {op.booking?.user?.name || '-'}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground font-mono text-xs">
+                    {op.odometer ? `${op.odometer} km` : '-'}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground text-xs max-w-[200px] truncate">
+                    {op.notes || '-'}
+                  </td>
+                </tr>
+              ))}
+              {(!operations || operations.length === 0) && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                    No operations history found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
     </div>
   );
 }
