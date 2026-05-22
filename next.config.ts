@@ -3,6 +3,9 @@ import type { NextConfig } from "next";
 
 
 const nextConfig: NextConfig = {
+  // Prevent Vercel from bundling these server-side packages
+  serverExternalPackages: ['bcryptjs', 'nodemailer'],
+  
   images: {
     remotePatterns: [
       {

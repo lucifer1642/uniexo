@@ -11,7 +11,7 @@ export function CacheManager() {
     if (storedVersion !== CACHE_VERSION) {
       console.log(`[CacheManager] New version ${CACHE_VERSION}, clearing stale data...`);
       // Only clear our own keys — do NOT wipe auth-storage so logged-in users stay logged in
-      const keysToKeep = ['auth-storage', 'cache_version'];
+      const keysToKeep = ['uniexo-auth-storage', 'cache_version'];
       Object.keys(localStorage).forEach((key) => {
         if (!keysToKeep.includes(key)) {
           localStorage.removeItem(key);

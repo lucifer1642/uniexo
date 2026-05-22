@@ -35,8 +35,16 @@ export const authHelpers = {
 
   async verifyPassword(password: string, hash: string): Promise<boolean> {
     if (!hash) return false;
-    return bcrypt.compare(password, hash);
+    try {
+      console.log('[AUTH HELPERS] Verifying password...');
+      // Sync compare is much more reliable in serverless micro-VMs
+      return bcrypt.compareSync(password, hash);
+    } catch (e: any) {
+      console.error('[AUTH HELPERS] Bcrypt verification failed:', e);
+      return false;
+    }
   },
+
 
   generateToken(user: User): string {
     const now = Math.floor(Date.now() / 1000);
