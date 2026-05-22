@@ -4,7 +4,19 @@ import crypto from 'crypto';
 // ── SELF-CONTAINED LOGIN ROUTE ────────────────────────────────
 // Zero external module imports that could hang during cold-start.
 
-const JWT_SECRET = process.env.JWT_SECRET || process.env.JWT_ACCESS_SECRET || 'fallback_secret_for_dev_only';
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET || process.env.JWT_ACCESS_SECRET;
+  if (!secret) {
+    throw new Error('[LOGIN API] FATAL: JWT_SECRET or JWT_ACCESS_SECRET environment variable is not set.');
+  }
+  return secret;
+}
+
+function maskEmail(email: string): string {
+  const [local, domain] = email.split('@');
+  if (!local || !domain) return '***';
+  return `${local[0]}***@${domain}`;
+}
 
 function sanitizeProfile(dbProfile: any) {
   return {
@@ -34,13 +46,13 @@ function generateToken(user: any): string {
     name: user.name,
     iat: now,
     nbf: now - 300,
-    exp: now + 10 * 365 * 24 * 60 * 60,
+    exp: now + 90 * 24 * 60 * 60, // 90 days
   };
 
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
   const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
   const signature = crypto
-    .createHmac('sha256', JWT_SECRET)
+    .createHmac('sha256', getJwtSecret())
     .update(`${header}.${body}`)
     .digest('base64url');
 
@@ -52,7 +64,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { email, password } = body;
-    console.log('[LOGIN API] Email:', email);
+    console.log('[LOGIN API] Email:', maskEmail(email));
 
     if (!email || !password) {
       return NextResponse.json(

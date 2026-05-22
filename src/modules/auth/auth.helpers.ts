@@ -3,7 +3,13 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { User } from './auth.types';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_for_dev_only';
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET || process.env.JWT_ACCESS_SECRET;
+  if (!secret) {
+    throw new Error('[AUTH] FATAL: JWT_SECRET or JWT_ACCESS_SECRET environment variable is not set.');
+  }
+  return secret;
+}
 
 export const authHelpers = {
   /**
@@ -33,11 +39,14 @@ export const authHelpers = {
     return bcrypt.hash(password, salt);
   },
 
-  async verifyPassword(password: string, hash: string): Promise<boolean> {
+  // Deliberately synchronous: bcrypt.compareSync is used instead of the async
+  // bcrypt.compare because Vercel serverless micro-VMs have strict CPU quotas
+  // that can cause async worker threads to deadlock during cold starts.
+  // hashPassword uses async bcrypt because it only runs during registration
+  // (not on the latency-critical login path) and benefits from non-blocking I/O.
+  verifyPassword(password: string, hash: string): boolean {
     if (!hash) return false;
     try {
-      console.log('[AUTH HELPERS] Verifying password...');
-      // Sync compare is much more reliable in serverless micro-VMs
       return bcrypt.compareSync(password, hash);
     } catch (e: any) {
       console.error('[AUTH HELPERS] Bcrypt verification failed:', e);
@@ -56,14 +65,14 @@ export const authHelpers = {
       name: user.name,
       iat: now,
       nbf: now - 300, // Not Before: 5 minutes leeway for clock skew
-      exp: now + (10 * 365 * 24 * 60 * 60), // 10 years in seconds
+      exp: now + (90 * 24 * 60 * 60), // 90 days
     };
     
     const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
     const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
     
     const signature = crypto
-      .createHmac('sha256', JWT_SECRET)
+      .createHmac('sha256', getJwtSecret())
       .update(`${header}.${body}`)
       .digest('base64url');
     
@@ -76,7 +85,7 @@ export const authHelpers = {
       if (!header || !body || !signature) return null;
       
       const expectedSignature = crypto
-        .createHmac('sha256', JWT_SECRET)
+        .createHmac('sha256', getJwtSecret())
         .update(`${header}.${body}`)
         .digest('base64url');
       
