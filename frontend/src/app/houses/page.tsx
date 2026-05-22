@@ -132,7 +132,7 @@ export default function HousesPage() {
   const { user } = useAuthStore();
   const isVendor = user?.role === 'vendor';
 
-  const mappedRooms = (rooms || []).map(r => ({
+  const mappedRooms = (rooms || []).map((r: any) => ({
     id: r._id,
     title: r.title,
     type: 'house' as const,
@@ -147,7 +147,7 @@ export default function HousesPage() {
     isAvailable: r.isAvailable,
   }));
 
-  const filteredRooms = mappedRooms.filter(v => {
+  const filteredRooms = mappedRooms.filter((v: any) => {
     const type = v.propertyType?.toLowerCase();
     if (typeFilter === 'pg') return type === 'pg';
     if (typeFilter === 'room') return type === 'room';
@@ -232,7 +232,7 @@ export default function HousesPage() {
                  transition={{ duration: 0.3 }}
                >
                 {Object.entries(
-                  filteredRooms.reduce((acc, room) => {
+                  filteredRooms.reduce((acc: any, room: any) => {
                     const vendorName = room.vendorName || 'Independent Hosts';
                     if (!acc[vendorName]) {
                       acc[vendorName] = { rooms: [] };
@@ -242,7 +242,7 @@ export default function HousesPage() {
                   }, {} as Record<string, { rooms: typeof filteredRooms }>)
                 )
                 .sort((a, b) => a[0].localeCompare(b[0]))
-                .map(([vendorName, data]) => (
+                .map(([vendorName, data]: [string, any]) => (
                   <VendorGroup 
                     key={vendorName} 
                     vendorName={vendorName} 

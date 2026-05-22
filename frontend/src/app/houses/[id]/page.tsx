@@ -135,6 +135,14 @@ export default function HouseDetailPage() {
     router.push(`/checkout?type=house&id=${id}&name=${encodeURIComponent(house.title)}`);
   };
 
+  const handleBookAndPay = () => {
+    if (!startDate || !endDate) {
+      toast.error('Please select both Move In and Move Out dates.');
+      return;
+    }
+    router.push(`/checkout?type=house&id=${id}&name=${encodeURIComponent(house.title)}&startDate=${startDate}&endDate=${endDate}&roomTab=${roomTab === 'Double sharing' ? 'double' : 'single'}`);
+  };
+
   const navLinks = ['About', 'Renting Terms', 'Amenities', 'Property Rules', 'Location'];
   
   const faqs = house.faqs && house.faqs.length > 0 ? house.faqs : [];

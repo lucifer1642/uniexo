@@ -31,12 +31,12 @@ function CheckoutContent() {
   const [serviceData, setServiceData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState(searchParams.get('startDate') || '');
+  const [endDate, setEndDate] = useState(searchParams.get('endDate') || '');
   const [bookingType, setBookingType] = useState<'daily' | 'hourly'>('daily');
   const [bookingLocation, setBookingLocation] = useState('');
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
-  const [roomTab, setRoomTab] = useState('single');
+  const [roomTab, setRoomTab] = useState(searchParams.get('roomTab') || 'single');
   const [paymentSuccess, setPaymentSuccess] = useState(false);
 
   // Redirect if not authenticated

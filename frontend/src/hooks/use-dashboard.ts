@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useRealtimeSync } from './use-realtime';
 
-const getAuthHeaders = () => {
+const getAuthHeaders = (): Record<string, string> => {
     if (typeof window === 'undefined') return {};
     try {
         const raw = localStorage.getItem('uniexo-auth-storage');

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { notificationService } from '@/modules/email/notification.service';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { laundryService } from '@/modules/laundry/laundry.service';
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
