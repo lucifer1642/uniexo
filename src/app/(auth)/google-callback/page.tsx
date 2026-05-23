@@ -31,9 +31,13 @@ export default function GoogleCallbackPage() {
         }
 
         console.log('[GOOGLE CALLBACK] Syncing with server...');
-        const res = await fetch('/api/auth/google-sync', {
+        const res = await fetch(`/api/auth/google-sync?_t=${Date.now()}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          },
           body: JSON.stringify({
             access_token: session.access_token
           })

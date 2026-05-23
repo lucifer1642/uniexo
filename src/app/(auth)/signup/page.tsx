@@ -78,9 +78,13 @@ export default function SignupPage() {
 
     try {
       console.log('[SIGNUP] Finalizing registration...');
-      const res = await fetch('/api/auth/register', {
+      const res = await fetch(`/api/auth/register?_t=${Date.now()}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        },
         body: JSON.stringify({
           email: formData.email.trim(),
           password: formData.password,

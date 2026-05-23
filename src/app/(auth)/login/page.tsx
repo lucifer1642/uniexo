@@ -47,9 +47,13 @@ export default function LoginPage() {
 
     try {
       console.log('[LOGIN] Submitting credentials...');
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch(`/api/auth/login?_t=${Date.now()}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        },
         body: JSON.stringify({
           email: formData.email.trim().toLowerCase(),
           password: formData.password
