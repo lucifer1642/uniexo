@@ -66,7 +66,7 @@ export async function POST(req: Request) {
 
     if (error) {
       console.error('[AUTH REGISTER] DB Error:', error);
-      return NextResponse.json({ success: false, error: 'Failed to create account. Please try again.' }, { status: 200 });
+      return NextResponse.json({ success: false, error: 'Failed to create account: ' + (error.message || JSON.stringify(error)) }, { status: 200 });
     }
 
     // Vendor specific records
