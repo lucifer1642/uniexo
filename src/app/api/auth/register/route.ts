@@ -53,7 +53,6 @@ export async function POST(req: Request) {
         service_type: role === 'vendor' ? service_type : null,
         onsite_pickup: (role === 'vendor' && service_type === 'laundry') ? (onsite_pickup ? true : false) : null,
         on_store_service: (role === 'vendor' && service_type === 'laundry') ? (store_delivery ? true : false) : null,
-        store_delivery: (role === 'vendor' && service_type === 'laundry') ? (store_delivery ? true : false) : null,
         kyc_status: 'none',
         email_verified: !OTP_ENABLED,
         updated_at: new Date().toISOString()
