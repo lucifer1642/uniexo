@@ -17,22 +17,16 @@ export const authHelpers = {
    * Atomically generates a UNI-XXXX ID using the counter table
    */
   async generateUniId(): Promise<string> {
-    // Atomic increment + read in a single query
-    const { data, error } = await supabaseAdmin
+    const { data } = await supabaseAdmin
       .from('uni_id_counter')
-      .update({ current_value: undefined as any }) // triggers RPC
-      .eq('id', 1)
       .select('current_value')
+      .eq('id', 1)
       .single();
 
-    let nextValue = 1;
-    if (data) {
-      nextValue = (data.current_value || 0) + 1;
-      await supabaseAdmin.from('uni_id_counter').update({ current_value: nextValue }).eq('id', 1);
-    } else {
-      // Counter row doesn't exist, create it
-      await supabaseAdmin.from('uni_id_counter').upsert({ id: 1, current_value: 1 });
-    }
+    let nextValue = (data?.current_value || 0) + 1;
+    
+    // Save the new value back to the DB
+    await supabaseAdmin.from('uni_id_counter').upsert({ id: 1, current_value: nextValue });
 
     return `UNI-${nextValue.toString().padStart(4, '0')}`;
   },
