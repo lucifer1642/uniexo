@@ -46,6 +46,7 @@ export function AddVehicleDialog() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+      queryClient.invalidateQueries({ queryKey: ['vendorVehicles'] });
       setOpen(false);
       toast.success('Vehicle added successfully!');
       

@@ -5,6 +5,14 @@ import { withAuth } from '@/lib/api-auth';
 
 export const GET = withAuth(async (req: Request, user: any) => {
   try {
+    if (user.role === 'admin') {
+      const url = new URL(req.url);
+      const status = url.searchParams.get('status');
+      let query = require('@/lib/supabase-admin').supabaseAdmin.from('bookings').select('*, user:profiles!user_id(*), vehicle:vehicles!service_id(*)', { count: 'exact' });
+      if (status && status !== 'all') query = query.eq('status', status);
+      const { data } = await query;
+      return NextResponse.json({ success: true, data: { data } }, { status: 200 });
+    }
     const result = await bookingService.getUserBookings(user.userId);
     return NextResponse.json(result, { status: 200 });
   } catch {

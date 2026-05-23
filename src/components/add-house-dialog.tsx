@@ -68,6 +68,7 @@ export function AddHouseDialog() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['houses'] });
+      queryClient.invalidateQueries({ queryKey: ['vendorHouses'] });
       setOpen(false);
       setFormData({
         title: '', description: '', propertyType: '', address: '', city: '', state: '',

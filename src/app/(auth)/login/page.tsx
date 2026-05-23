@@ -10,6 +10,7 @@ import { Eye, EyeOff, ShieldCheck, ArrowRight } from 'lucide-react';
 import { useAuthStore } from '@/modules/auth/auth.store';
 import { toast } from 'sonner';
 import { UniExoBrand } from '@/components/brand';
+import { supabase } from '@/lib/supabase';
 import { motion } from 'framer-motion';
 
 export default function LoginPage() {
@@ -134,9 +135,19 @@ export default function LoginPage() {
             <Button
               type="button"
               onClick={async () => {
-                const res = await fetch('/api/auth/google', { method: 'POST', body: JSON.stringify({}) });
-                const data = await res.json();
-                if (!data.success) toast.error(data.error);
+                setLoading(true);
+                try {
+                  const { error } = await supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: {
+                      redirectTo: `${window.location.origin}/google-callback`
+                    }
+                  });
+                  if (error) throw error;
+                } catch (err: any) {
+                  toast.error(err.message || "Failed to initialize Google Login");
+                  setLoading(false);
+                }
               }}
               className="w-full h-14 bg-white hover:bg-zinc-100 text-zinc-900 border border-zinc-200 font-bold rounded-2xl flex items-center justify-center gap-3 transition-all"
             >
