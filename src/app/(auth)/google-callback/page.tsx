@@ -45,7 +45,7 @@ export default function GoogleCallbackPage() {
         }
 
         // Setup our app state
-        const userState = {
+        const userState: any = {
           id: data.profile.id,
           uniId: data.profile.uniId || '',
           name: data.profile.name,
