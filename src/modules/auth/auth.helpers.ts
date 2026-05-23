@@ -13,22 +13,11 @@ function getJwtSecret(): string {
 }
 
 export const authHelpers = {
-  /**
-   * Atomically generates a UNI-XXXX ID using the counter table
-   */
   async generateUniId(): Promise<string> {
-    const { data } = await supabaseAdmin
-      .from('uni_id_counter')
-      .select('current_value')
-      .eq('id', 1)
-      .single();
-
-    let nextValue = (data?.current_value || 0) + 1;
-    
-    // Save the new value back to the DB
-    await supabaseAdmin.from('uni_id_counter').upsert({ id: 1, current_value: nextValue });
-
-    return `UNI-${nextValue.toString().padStart(4, '0')}`;
+    // Generates a robust, random 6-character hex string (e.g., UNI-A1B2C3) 
+    // to completely eliminate race conditions and duplicate key errors.
+    const randomHex = crypto.randomBytes(3).toString('hex').toUpperCase();
+    return `UNI-${randomHex}`;
   },
 
   async hashPassword(password: string): Promise<string> {
