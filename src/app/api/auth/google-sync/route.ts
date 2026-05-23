@@ -22,6 +22,9 @@ export async function POST(req: Request) {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
+    // We must load authHelpers securely inside the route to generate uni_id
+    const { authHelpers } = await import('@/modules/auth/auth.helpers');
+
     // Securely verify the token
     const { data: { user }, error: verifyError } = await supabase.auth.getUser(access_token);
     
@@ -49,8 +52,12 @@ export async function POST(req: Request) {
     // Create profile if doesn't exist
     if (!profile) {
       console.log('[GOOGLE SYNC] Creating new profile for:', email);
+      
+      const newUniId = await authHelpers.generateUniId();
+      
       const newProfile = {
         id: user.id, // match the auth.users UUID
+        uni_id: newUniId,
         email: email,
         name: name,
         role: 'user', // default role
