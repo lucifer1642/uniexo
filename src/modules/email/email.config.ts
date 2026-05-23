@@ -4,7 +4,7 @@
  * If OTP_ENABLED is 'false', OTP step is skipped even if email works.
  */
 export const EMAIL_MODULE_ENABLED = !!process.env.SMTP_HOST;
-export const OTP_ENABLED = false; // Disabled to allow instant signup & login
+export const OTP_ENABLED = EMAIL_MODULE_ENABLED && process.env.OTP_ENABLED !== 'false';
 
 export const SMTP_CONFIG = {
   host: process.env.SMTP_HOST || '',
