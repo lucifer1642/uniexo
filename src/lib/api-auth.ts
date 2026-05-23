@@ -7,10 +7,10 @@ import { authHelpers } from '@/modules/auth/auth.helpers';
  * @param handler The actual API route handler.
  */
 export function withAuth(
-  handler: (req: Request, user: any) => Promise<NextResponse>,
+  handler: (req: Request, user: any, context?: any) => Promise<NextResponse>,
   requiredRole?: 'user' | 'vendor' | 'admin'
 ) {
-  return async (req: Request) => {
+  return async (req: Request, context?: any) => {
     try {
       const authHeader = req.headers.get('authorization');
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -28,8 +28,8 @@ export function withAuth(
         return NextResponse.json({ success: false, error: 'Forbidden: Insufficient permissions' }, { status: 403 });
       }
 
-      // Proceed with the request, passing the decoded user
-      return await handler(req, decodedUser);
+      // Proceed with the request, passing the decoded user and context
+      return await handler(req, decodedUser, context);
     } catch (err: any) {
       console.error('[API AUTH ERROR]', err);
       return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
