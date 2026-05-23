@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     const { data: existingUser } = await supabaseAdmin
       .from('profiles')
       .select('id, auth_provider')
-      .eq('email', email.trim())
+      .eq('email', email.trim().toLowerCase())
       .maybeSingle();
 
     if (existingUser) {
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     const profileData: any = {
         id,
         uni_id,
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
         password_hash,
         auth_provider: 'email',
         role: role || 'user',

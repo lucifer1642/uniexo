@@ -20,6 +20,7 @@ const ADMIN_NAV = [
   { href: '/admin/transactions', label: 'Transactions', icon: ArrowLeftRight },
   { href: '/admin/reports', label: 'Reports', icon: Flag },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
+  { href: '/admin/kyc', label: 'KYC & Verification', icon: ShieldCheck },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

@@ -22,8 +22,12 @@ export const useAuthStore = create<AuthState>()(
       logout: () => {
         set({ user: null, token: null, isAuthenticated: false });
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('uniexo-auth-storage');
-          sessionStorage.clear();
+          try {
+            localStorage.removeItem('uniexo-auth-storage');
+            sessionStorage.clear();
+          } catch (e) {
+            // Ignore storage errors
+          }
         }
       },
       
@@ -34,15 +38,22 @@ export const useAuthStore = create<AuthState>()(
       name: 'uniexo-auth-storage',
       onRehydrateStorage: () => (state, error) => {
         if (error) {
-          console.error("Hydration error:", error);
+          console.error("[AUTH STORE] Hydration error:", error);
+          // On error, force hydrated so the app doesn't hang
+          if (state) state.setHasHydrated(true);
           return;
         }
         
         if (state) {
-          // Check for token expiration
-          if (state.token && authClient.isTokenExpired(state.token)) {
-            console.warn("[AUTH STORE] Token expired, logging out...");
-            state.logout();
+          try {
+            // Check for token expiration
+            if (state.token && authClient.isTokenExpired(state.token)) {
+              console.warn("[AUTH STORE] Token expired, logging out...");
+              state.logout();
+            }
+          } catch (e) {
+            console.error("[AUTH STORE] Token check error, keeping session:", e);
+            // Don't logout on error — let the user stay logged in
           }
           state.setHasHydrated(true);
         }

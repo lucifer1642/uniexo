@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { marketplaceService } from '@/modules/marketplace/marketplace.service';
 
-export async function GET(req: Request, { params }: { params: Promise<{ type: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { type } = await params;
+    const { id: type } = await params;
     const url = new URL(req.url);
     const userId = url.searchParams.get('userId');
 

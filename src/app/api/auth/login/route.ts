@@ -1,70 +1,13 @@
 import { NextResponse } from 'next/server';
-import crypto from 'crypto';
 
 // ── SELF-CONTAINED LOGIN ROUTE ────────────────────────────────
-// Zero external module imports that could hang during cold-start.
-
-function getJwtSecret(): string {
-  const secret = process.env.JWT_SECRET || process.env.JWT_ACCESS_SECRET;
-  if (!secret) {
-    throw new Error('[LOGIN API] FATAL: JWT_SECRET or JWT_ACCESS_SECRET environment variable is not set.');
-  }
-  return secret;
-}
-
-function maskEmail(email: string): string {
-  const [local, domain] = email.split('@');
-  if (!local || !domain) return '***';
-  return `${local[0]}***@${domain}`;
-}
-
-function sanitizeProfile(dbProfile: any) {
-  return {
-    id: dbProfile.id,
-    uniId: dbProfile.uni_id || '',
-    name: dbProfile.name,
-    email: dbProfile.email,
-    phone: dbProfile.phone,
-    role: dbProfile.role,
-    authProvider: dbProfile.auth_provider || 'email',
-    avatar: dbProfile.avatar_url,
-    universityId: dbProfile.university_id,
-    location: dbProfile.location,
-    kycStatus: dbProfile.kyc_status,
-    businessName: dbProfile.business_name,
-    serviceType: dbProfile.service_type,
-  };
-}
-
-function generateToken(user: any): string {
-  const now = Math.floor(Date.now() / 1000);
-  const payload = {
-    userId: user.id,
-    uniId: user.uniId,
-    role: user.role,
-    email: user.email,
-    name: user.name,
-    iat: now,
-    nbf: now - 300,
-    exp: now + 90 * 24 * 60 * 60, // 90 days
-  };
-
-  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
-  const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
-  const signature = crypto
-    .createHmac('sha256', getJwtSecret())
-    .update(`${header}.${body}`)
-    .digest('base64url');
-
-  return `${header}.${body}.${signature}`;
-}
+// Minimal external imports to avoid cold-start issues on Vercel.
 
 export async function POST(req: Request) {
   console.log('[LOGIN API] Received POST request');
   try {
     const body = await req.json();
     const { email, password } = body;
-    console.log('[LOGIN API] Email:', maskEmail(email));
 
     if (!email || !password) {
       return NextResponse.json(
@@ -73,17 +16,18 @@ export async function POST(req: Request) {
       );
     }
 
-    // ── Query Supabase (lazy import to avoid cold-start hangs) ──
-    console.log('[LOGIN API] Lazy-loading Supabase...');
+    console.log('[LOGIN API] Email:', email.replace(/(?<=.).(?=.*@)/g, '*'));
+
+    // ── Lazy-load Supabase ──
     const { createClient } = await import('@supabase/supabase-js');
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
       console.error('[LOGIN API] Missing Supabase env vars!');
       return NextResponse.json(
-        { success: false, error: 'Server configuration error. Contact admin.' },
+        { success: false, error: 'Server configuration error.' },
         { status: 200 }
       );
     }
@@ -92,11 +36,12 @@ export async function POST(req: Request) {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    console.log('[LOGIN API] Querying profiles table...');
+    // ── Query DB ──
+    console.log('[LOGIN API] Querying profiles...');
     const { data: profile, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('email', email.trim())
+      .eq('email', email.trim().toLowerCase())
       .maybeSingle();
 
     if (error) {
@@ -107,6 +52,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Invalid email or password' }, { status: 200 });
     }
 
+    // ── Check password ──
     if (!profile.password_hash) {
       if (profile.auth_provider === 'google') {
         return NextResponse.json({ success: false, error: 'Please sign in with Google.' }, { status: 200 });
@@ -116,13 +62,20 @@ export async function POST(req: Request) {
 
     console.log('[LOGIN API] Verifying password...');
     const bcrypt = await import('bcryptjs');
-    const isMatch = bcrypt.compareSync(password, profile.password_hash);
+    let isMatch = false;
+    try {
+      isMatch = bcrypt.compareSync(password, profile.password_hash);
+    } catch (bcryptErr) {
+      console.error('[LOGIN API] Bcrypt compare error:', bcryptErr);
+      return NextResponse.json({ success: false, error: 'Password verification failed.' }, { status: 200 });
+    }
     console.log('[LOGIN API] Password match:', isMatch);
 
     if (!isMatch) {
       return NextResponse.json({ success: false, error: 'Invalid email or password' }, { status: 200 });
     }
 
+    // ── Account status checks ──
     if (profile.is_deleted) {
       return NextResponse.json({ success: false, error: 'Account deleted.' }, { status: 200 });
     }
@@ -130,12 +83,61 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: 'Account suspended.' }, { status: 200 });
     }
 
-    console.log('[LOGIN API] Generating token...');
-    const safeProfile = sanitizeProfile(profile);
-    const token = generateToken(safeProfile);
+    // ── Build response profile ──
+    const safeProfile = {
+      id: profile.id,
+      uniId: profile.uni_id || '',
+      name: profile.name || '',
+      email: profile.email,
+      phone: profile.phone || '',
+      role: profile.role || 'user',
+      authProvider: profile.auth_provider || 'email',
+      avatar: profile.avatar_url || '',
+      universityId: profile.university_id || '',
+      location: profile.location || '',
+      kycStatus: profile.kyc_status || 'none',
+      businessName: profile.business_name || '',
+      serviceType: profile.service_type || '',
+    };
 
-    console.log('[LOGIN API] Returning success');
-    return NextResponse.json({ success: true, token, profile: safeProfile }, { status: 200 });
+    // ── Generate JWT ──
+    console.log('[LOGIN API] Generating token...');
+    const crypto = await import('crypto');
+    const jwtSecret = process.env.JWT_SECRET || process.env.JWT_ACCESS_SECRET || 'uniexo-default-dev-secret';
+
+    const now = Math.floor(Date.now() / 1000);
+    const payload = {
+      userId: safeProfile.id,
+      uniId: safeProfile.uniId,
+      role: safeProfile.role,
+      email: safeProfile.email,
+      name: safeProfile.name,
+      iat: now,
+      exp: now + 90 * 24 * 60 * 60, // 90 days
+    };
+
+    const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+    const payloadB64 = Buffer.from(JSON.stringify(payload)).toString('base64url');
+    const signature = crypto
+      .createHmac('sha256', jwtSecret)
+      .update(`${header}.${payloadB64}`)
+      .digest('base64url');
+    const token = `${header}.${payloadB64}.${signature}`;
+
+    console.log('[LOGIN API] Login successful for:', safeProfile.email);
+    const response = NextResponse.json({ success: true, token, profile: safeProfile }, { status: 200 });
+    
+    // Set cookie for middleware/server-components
+    response.cookies.set({
+      name: 'uniexo_token',
+      value: token,
+      httpOnly: false, // allow client-side to read if necessary
+      path: '/',
+      maxAge: 90 * 24 * 60 * 60, // 90 days
+      sameSite: 'lax',
+    });
+
+    return response;
   } catch (err: any) {
     console.error('[LOGIN API] Uncaught Error:', err);
     return NextResponse.json({ success: false, error: 'Internal server error.' }, { status: 200 });

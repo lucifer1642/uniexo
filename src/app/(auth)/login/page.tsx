@@ -28,7 +28,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (_hasHydrated && isAuthenticated && user) {
       const path = user.role === 'admin' ? '/admin' : user.role === 'vendor' ? '/dashboard' : '/';
-      router.replace(path);
+      window.location.href = path;
     }
   }, [isAuthenticated, user, _hasHydrated, router]);
 
@@ -50,7 +50,7 @@ export default function LoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: formData.email.trim(),
+          email: formData.email.trim().toLowerCase(),
           password: formData.password
         })
       });
@@ -88,7 +88,7 @@ export default function LoginPage() {
       }
 
       console.log('[LOGIN] Redirecting to:', redirectPath);
-      router.replace(redirectPath);
+      window.location.href = redirectPath;
     } catch (err: any) {
       console.error('Login error:', err);
       setError(err.message || "Invalid credentials");
