@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 
 export default function NotificationsPage() {
   const router = useRouter();
-  const { notifications, isLoading, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, isLoading, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
   const [filter, setFilter] = useState<'all' | 'unread' | 'bookings' | 'payments' | 'kyc'>('all');
 
   const getNotificationIcon = (type: Notification['type']) => {
@@ -50,6 +50,14 @@ export default function NotificationsPage() {
     });
   };
 
+  const handleClearAll = () => {
+    if (window.confirm('Are you sure you want to permanently clear your notifications history?')) {
+      clearAll.mutate(undefined, {
+        onSuccess: () => toast.success('Notifications history cleared')
+      });
+    }
+  };
+
   const handleMarkSingleRead = (id: string) => {
     markAsRead.mutate(id);
   };
@@ -59,7 +67,7 @@ export default function NotificationsPage() {
       <div className="max-w-[768px] mx-auto px-4 py-6 md:py-10">
         
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => router.back()}
@@ -75,17 +83,30 @@ export default function NotificationsPage() {
             </div>
           </div>
           
-          {unreadCount > 0 && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={handleMarkAllRead}
-              className="text-xs font-bold border-slate-200 hover:bg-white rounded-full px-4 h-9 shadow-sm"
-            >
-              <Check className="w-3.5 h-3.5 mr-1.5" />
-              Mark all read
-            </Button>
-          )}
+          <div className="flex items-center gap-2">
+            {unreadCount > 0 && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleMarkAllRead}
+                className="text-xs font-bold border-slate-200 hover:bg-white rounded-full px-4 h-9 shadow-sm"
+              >
+                <Check className="w-3.5 h-3.5 mr-1.5" />
+                Mark all read
+              </Button>
+            )}
+            {notifications.length > 0 && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleClearAll}
+                className="text-xs font-bold border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-full px-4 h-9 shadow-sm"
+              >
+                <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                Clear Inbox
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Filter Bar */}

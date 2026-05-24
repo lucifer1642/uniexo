@@ -37,17 +37,15 @@ export const notificationService = {
       console.error('[NOTIFY] DB insert failed:', e.message);
     }
 
-    // 2. Send email (if email provided and html provided)
+    // 2. Send email in background (if email provided and html provided)
     if (params.email && params.emailHtml) {
-      try {
-        await sendEmail({
-          to: params.email,
-          subject: params.emailSubject || params.title,
-          html: params.emailHtml,
-        });
-      } catch (e: any) {
-        console.error('[NOTIFY] Email send failed:', e.message);
-      }
+      sendEmail({
+        to: params.email,
+        subject: params.emailSubject || params.title,
+        html: params.emailHtml,
+      }).catch((e: any) => {
+        console.error('[NOTIFY] Email send failed in background:', e.message);
+      });
     }
   },
 

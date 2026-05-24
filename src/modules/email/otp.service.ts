@@ -36,11 +36,13 @@ export const otpService = {
         expires_at: expiresAt,
       });
 
-      // Send email with OTP
-      await sendEmail({
+      // Send email with OTP in background to prevent slow SMTP blocking API
+      sendEmail({
         to: email.trim(),
         subject: `Your UniExo Verification Code: ${code}`,
         html: otpEmailTemplate(code),
+      }).catch((err: any) => {
+        console.error('[OTP SERVICE] Background sendEmail error:', err.message);
       });
 
       return { success: true };

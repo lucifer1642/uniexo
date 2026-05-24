@@ -9,6 +9,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/modules/auth/auth.store';
+import { Zap } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 
 export function AddHouseDialog() {
   const [open, setOpen] = useState(false);
@@ -152,6 +155,163 @@ export function AddHouseDialog() {
         <form onSubmit={handleSubmit} className="space-y-6 mt-4 pb-4">
           <div className="space-y-6">
             
+            {/* SaaS Preset Booster: Click & Go */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-100 space-y-3">
+              <div className="flex justify-between items-center">
+                <h4 className="text-xs font-black uppercase text-blue-800 tracking-wider flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5 text-amber-500 animate-pulse fill-amber-500" />
+                  SaaS Preset Booster: Click & Go!
+                </h4>
+                <Badge variant="outline" className="text-[9px] bg-blue-100/50 text-blue-800 border-blue-200 font-bold">Pre-filled Data</Badge>
+              </div>
+              <p className="text-[11px] text-slate-600 font-medium">Select a stay template to instantly fill all details. Click, upload images, and go!</p>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="bg-white border-blue-200 hover:bg-blue-100/30 text-xs font-bold text-slate-800 justify-start h-10 px-3 rounded-lg"
+                  onClick={() => {
+                    setFormData({
+                      title: "Sunrise Elite Boys/Girls PG",
+                      description: "Luxurious student accommodation near campus featuring three hearty meals daily, premium single/double AC rooms, high-speed Wi-Fi, laundry facilities, study lounges, and 24/7 CCTV surveillance.",
+                      propertyType: "pg",
+                      address: "Building 4B, Sector 62, Near Campus Gate 2",
+                      city: "Noida",
+                      state: "Uttar Pradesh",
+                      pincode: "201301",
+                      bedrooms: "1",
+                      bathrooms: "1",
+                      area: "150",
+                      roomSize: "medium",
+                      bedType: "single",
+                      pricePerMonth: "8500",
+                      pricePerDay: "",
+                      singleSharingPrice: "12000",
+                      doubleSharingPrice: "8500",
+                      tripleSharingPrice: "6500",
+                      securityDeposit: "8000",
+                      lockinPeriod: "3 months",
+                      noticePeriod: "30 days",
+                      electricityIncluded: "true",
+                      electricityCharge: "",
+                      locationUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3503.565611132204!2d77.35967067634626!3d28.61280827567406!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390ce566270e53a7%3A0xe541c49b6b801a61!2sSector+62%2C+Noida%2C+Uttar+Pradesh!5e0!3m2!1sen!2sin!4v1716500000000!5m2!1sen!2sin",
+                      tenantsStaying: "12",
+                    });
+                    setAmenities({
+                      commonAmenities: "Lounge Area, Dining Hall, RO Water Filter, Gym",
+                      roomAmenities: "Air Conditioner, Study Table, Wardrobe, Attached Bath",
+                      servicesAmenities: "Daily Housekeeping, High-speed Wi-Fi, 24/7 Security",
+                      foodAmenities: "Breakfast, Lunch, Evening Snacks, Dinner"
+                    });
+                    setFaqs([
+                      { question: "Is food included in the rent?", answer: "Yes, 4-time healthy meals are fully included in the standard monthly PG charges." },
+                      { question: "What is the security deposit?", answer: "The security deposit is equivalent to one month's rent, which is fully refundable upon move-out." }
+                    ]);
+                    toast.success("Elite PG Template loaded!");
+                  }}
+                >
+                  🏫 Standard PG Preset
+                </Button>
+                
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="bg-white border-blue-200 hover:bg-blue-100/30 text-xs font-bold text-slate-800 justify-start h-10 px-3 rounded-lg"
+                  onClick={() => {
+                    setFormData({
+                      title: "Luxury Single Private Room",
+                      description: "Elegant, premium private room for rent designed specifically for university students or working professionals. Quiet study environment, newly painted interior, modern wooden flooring.",
+                      propertyType: "room",
+                      address: "Flat 202, Green Park Extension, Block B",
+                      city: "New Delhi",
+                      state: "Delhi",
+                      pincode: "110016",
+                      bedrooms: "1",
+                      bathrooms: "1",
+                      area: "120",
+                      roomSize: "medium",
+                      bedType: "double",
+                      pricePerMonth: "",
+                      pricePerDay: "950",
+                      singleSharingPrice: "",
+                      doubleSharingPrice: "",
+                      tripleSharingPrice: "",
+                      securityDeposit: "",
+                      lockinPeriod: "0 months",
+                      noticePeriod: "15 days",
+                      electricityIncluded: "true",
+                      electricityCharge: "",
+                      locationUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3505.5168051787266!2d77.20235337634399!3d28.554244275705307!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390d1df6e100f91d%3A0x7d6a59b207567cb6!2sGreen+Park%2C+New+Delhi%2C+Delhi!5e0!3m2!1sen!2sin!4v1716500000000!5m2!1sen!2sin",
+                      tenantsStaying: "1",
+                    });
+                    setAmenities({
+                      commonAmenities: "Elevator, Shared Kitchen, Terraced Garden",
+                      roomAmenities: "Double Bed, Wooden Desk, Reading Lamp, Wardrobe",
+                      servicesAmenities: "Wi-Fi 200Mbps, Weekly Deep Cleaning, Waste Disposal",
+                      foodAmenities: "Self-cooking permitted, Coffee Machine"
+                    });
+                    setFaqs([
+                      { question: "Are utility bills included?", answer: "Yes, electricity and water charges are fully included in the daily room rent." },
+                      { question: "Is there a kitchen to cook?", answer: "Yes, a shared fully equipped kitchen is available for light cooking." }
+                    ]);
+                    toast.success("Single Private Room Template loaded!");
+                  }}
+                >
+                  🏡 Private Room Preset
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="bg-white border-blue-200 hover:bg-blue-100/30 text-xs font-bold text-slate-800 justify-start h-10 px-3 rounded-lg"
+                  onClick={() => {
+                    setFormData({
+                      title: "Sunrise Deluxe Double Sharing Room",
+                      description: "Luxurious double-sharing room listing equipped with premium separate wooden beds, study desks, AC, high-speed Wi-Fi, attached balcony overlooking the campus skyline.",
+                      propertyType: "pg",
+                      address: "House 18, Block A, Rajouri Garden",
+                      city: "New Delhi",
+                      state: "Delhi",
+                      pincode: "110027",
+                      bedrooms: "1",
+                      bathrooms: "1",
+                      area: "180",
+                      roomSize: "large",
+                      bedType: "double",
+                      pricePerMonth: "7000",
+                      pricePerDay: "",
+                      singleSharingPrice: "10000",
+                      doubleSharingPrice: "7000",
+                      tripleSharingPrice: "5000",
+                      securityDeposit: "6000",
+                      lockinPeriod: "6 months",
+                      noticePeriod: "30 days",
+                      electricityIncluded: "false",
+                      electricityCharge: "800",
+                      locationUrl: "",
+                      tenantsStaying: "8",
+                    });
+                    setAmenities({
+                      commonAmenities: "Water Dispenser, Common Refrigerator, Parking Stall",
+                      roomAmenities: "Balcony Access, Two Study Desks, AC, Cushioned Chairs",
+                      servicesAmenities: "Daily Maid Service, 100Mbps Wi-Fi, Geyser System",
+                      foodAmenities: "Breakfast and Dinner included"
+                    });
+                    setFaqs([
+                      { question: "Are meals optional?", answer: "Meals are standard but you can opt-out to receive a discount on rent." }
+                    ]);
+                    toast.success("Deluxe Sharing PG Template loaded!");
+                  }}
+                >
+                  🌟 Deluxe Sharing Preset
+                </Button>
+              </div>
+            </div>
+
             <div className="bg-slate-50 p-4 rounded-lg border space-y-4">
               <h3 className="font-semibold text-sm text-slate-800">Basic Details</h3>
               <div className="grid grid-cols-2 gap-4">

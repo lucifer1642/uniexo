@@ -4,6 +4,8 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth.store';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { ProtectedRoute } from '@/components/protected-route';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -418,6 +420,31 @@ function VendorDashboard() {
   const deleteVehicle = useDeleteVehicle();
   const { data: vendorOffersData, isLoading: loadingVendorOffers } = useMyOffers('seller');
 
+  const queryClient = useQueryClient();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    toast.promise(
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['vendorVehicles'] }),
+        queryClient.invalidateQueries({ queryKey: ['vendorHouses'] }),
+        queryClient.invalidateQueries({ queryKey: ['vendorBookings'] }),
+        queryClient.invalidateQueries({ queryKey: ['wallet'] }),
+        queryClient.invalidateQueries({ queryKey: ['vendorProfile'] }),
+        queryClient.invalidateQueries({ queryKey: ['vendorDashboardStats'] }),
+        queryClient.invalidateQueries({ queryKey: ['vendorPayments'] }),
+        queryClient.invalidateQueries({ queryKey: ['vendorAnalyticsOverview'] }),
+      ]),
+      {
+        loading: 'Syncing realtime database...',
+        success: 'Dashboard synchronized successfully!',
+        error: 'Sync failed, please try again.',
+      }
+    );
+    setTimeout(() => setIsRefreshing(false), 800);
+  };
+
   const vehicles = vehiclesData?.vehicles || [];
   const houses = housesData?.houses || [];
   const bookings = bookingsData?.bookings || [];
@@ -514,7 +541,20 @@ function VendorDashboard() {
               Command center online.
             </p>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleManualRefresh}
+              disabled={isRefreshing}
+              className={`rounded-xl h-9 sm:h-11 text-xs sm:text-sm border-blue-200 dark:border-zinc-800 text-slate-700 bg-white dark:bg-zinc-900 shadow-md font-bold flex items-center gap-2 hover:bg-slate-50 transition-all ${
+                isRefreshing ? 'animate-pulse' : ''
+              }`}
+            >
+              <Activity className={`w-4 h-4 text-[#8B004A] ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Syncing...' : 'Sync DB'}
+            </Button>
+
             {vendorProfile?.serviceType?.toLowerCase() === 'vehicle' && (
               <div className="p-1 rounded-2xl bg-[#8B004A]/5 border border-[#8B004A]/10">
                 <AddVehicleDialog />

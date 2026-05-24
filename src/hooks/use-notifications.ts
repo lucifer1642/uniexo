@@ -67,6 +67,18 @@ export function useNotifications() {
     },
   });
 
+  const clearAll = useMutation({
+    mutationFn: async () => {
+      if (!user?.id) return;
+      await fetch(`/api/notifications?userId=${user.id}`, {
+        method: 'DELETE',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return {
@@ -75,5 +87,6 @@ export function useNotifications() {
     unreadCount,
     markAsRead,
     markAllAsRead,
+    clearAll,
   };
 }

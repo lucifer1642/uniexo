@@ -9,6 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useAuthStore } from '@/modules/auth/auth.store';
 import { toast } from 'sonner';
+import { Zap } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 export function AddVehicleDialog() {
   const [open, setOpen] = useState(false);
@@ -102,6 +104,99 @@ export function AddVehicleDialog() {
         
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-4">
+            
+            {/* SaaS Preset Booster: Click & Go */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-100 space-y-3">
+              <div className="flex justify-between items-center">
+                <h4 className="text-xs font-black uppercase text-blue-800 tracking-wider flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5 text-amber-500 animate-pulse fill-amber-500" />
+                  SaaS Preset Booster: Click & Go!
+                </h4>
+                <Badge variant="outline" className="text-[9px] bg-blue-100/50 text-blue-800 border-blue-200 font-bold">Pre-filled Data</Badge>
+              </div>
+              <p className="text-[11px] text-slate-600 font-medium">Select a template to instantly fill all details. Click, upload images, and go!</p>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="bg-white border-blue-200 hover:bg-blue-100/30 text-xs font-bold text-slate-800 justify-start h-10 px-3 rounded-lg"
+                  onClick={() => {
+                    setFormData({
+                      name: "Honda Activa 6G 2024",
+                      type: "bike",
+                      brand: "Honda",
+                      model: "Activa 6G",
+                      year: "2024",
+                      registrationNumber: "DL3SBX9901",
+                      fuelType: "Petrol",
+                      seatingCapacity: "2",
+                      pricePerHour: "40",
+                      pricePerDay: "450",
+                      location: "New Delhi",
+                      description: "Premium well-maintained Honda Activa scooter with pristine fuel economy, dual helmet locks, front storage, mobile holder, and USB charging built-in. Perfect for campus commuting.",
+                    });
+                    toast.success("Honda Activa Template loaded!");
+                  }}
+                >
+                  🛵 Scooter Preset
+                </Button>
+                
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="bg-white border-blue-200 hover:bg-blue-100/30 text-xs font-bold text-slate-800 justify-start h-10 px-3 rounded-lg"
+                  onClick={() => {
+                    setFormData({
+                      name: "Royal Enfield Classic 350",
+                      type: "bike",
+                      brand: "Royal Enfield",
+                      model: "Classic 350",
+                      year: "2023",
+                      registrationNumber: "UP32MN8890",
+                      fuelType: "Petrol",
+                      seatingCapacity: "2",
+                      pricePerHour: "90",
+                      pricePerDay: "950",
+                      location: "Noida",
+                      description: "High-performance Royal Enfield Classic cruiser bike in signature Gunmetal Grey. Custom seats for touring, crash guards installed, pristine chrome engine, smooth performance.",
+                    });
+                    toast.success("Classic 350 Template loaded!");
+                  }}
+                >
+                  🏍️ Cruiser Bike Preset
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="bg-white border-blue-200 hover:bg-blue-100/30 text-xs font-bold text-slate-800 justify-start h-10 px-3 rounded-lg"
+                  onClick={() => {
+                    setFormData({
+                      name: "Maruti Swift VXI 2024",
+                      type: "car",
+                      brand: "Maruti Suzuki",
+                      model: "Swift VXI",
+                      year: "2024",
+                      registrationNumber: "HR26BC4412",
+                      fuelType: "Petrol",
+                      seatingCapacity: "5",
+                      pricePerHour: "150",
+                      pricePerDay: "1800",
+                      location: "Gurugram",
+                      description: "Compact, high-efficiency Maruti Swift car with excellent fuel performance, cooling AC, touch entertainment system with Bluetooth, reverse cameras, dual airbags. Best for city trips.",
+                    });
+                    toast.success("Maruti Swift Template loaded!");
+                  }}
+                >
+                  🚘 Compact Car Preset
+                </Button>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="type">Type</Label>
               <select id="type" name="type" required value={formData.type} onChange={handleChange} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
