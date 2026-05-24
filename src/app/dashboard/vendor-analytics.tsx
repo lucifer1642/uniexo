@@ -257,7 +257,7 @@ export function OverviewSection({ overview }: { overview: any }) {
           </CardHeader>
           <CardContent className="pt-6">
             <div className="space-y-6">
-              {ledger?.entries?.slice(0, 5).map((entry: any, i: number) => (
+              {(Array.isArray(ledger?.entries) ? ledger.entries : []).slice(0, 5).map((entry: any, i: number) => (
                 <div key={entry.id} className="flex items-start gap-4 animate-in slide-in-from-right duration-500" style={{ animationDelay: `${i * 100}ms` }}>
                   <div className={`p-2 rounded-xl shrink-0 ${
                     entry.paymentStatus === 'completed' ? 'bg-green-100 text-green-600' : 
@@ -275,7 +275,7 @@ export function OverviewSection({ overview }: { overview: any }) {
                   </div>
                 </div>
               ))}
-              {(!ledger?.entries || ledger.entries.length === 0) && (
+              {(!Array.isArray(ledger?.entries) || ledger.entries.length === 0) && (
                 <div className="text-center py-12 text-slate-400 font-medium">
                   No recent activity found.
                 </div>
@@ -438,7 +438,7 @@ export function LedgerSection() {
 
       {/* Mobile View: Card List */}
       <div className="space-y-4 md:hidden">
-        {ledger?.entries?.map((row: any) => {
+        {(Array.isArray(ledger?.entries) ? ledger.entries : []).map((row: any) => {
           const rowDate = new Date(row.bookingDate);
           const formattedDate = `${rowDate.toLocaleDateString()} ${rowDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
           return (
@@ -498,7 +498,7 @@ export function LedgerSection() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 bg-white">
-              {ledger?.entries?.map((row: any) => {
+              {(Array.isArray(ledger?.entries) ? ledger.entries : []).map((row: any) => {
                 const rowDate = new Date(row.bookingDate);
                 const formattedDate = `${rowDate.toLocaleDateString()} ${rowDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
                 return (
