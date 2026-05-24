@@ -72,18 +72,37 @@ export function VendorAnalyticsDashboard() {
 
       {/* Sidebar */}
       <aside className="lg:w-64 shrink-0">
-        <nav className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0">
+        {/* Mobile: Grid of pills */}
+        <nav className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 lg:hidden p-1.5 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm rounded-2xl border border-white/50 dark:border-white/10 mb-4">
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => handleTabChange(item.id)}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${
+              className={`flex flex-col items-center justify-center gap-1 p-2 rounded-xl text-[11px] font-bold transition-all duration-300 ${
                 section === item.id
-                  ? 'bg-[#8B004A] text-zinc-100 shadow-lg shadow-[#8B004A]/30 scale-105'
-                  : 'text-slate-600 hover:bg-[#8B004A]/10 hover:text-[#8B004A]'
+                  ? 'bg-[#8B004A] text-white shadow-lg shadow-[#8B004A]/20 scale-[1.02]'
+                  : 'text-slate-500 dark:text-zinc-400 hover:bg-white/60 dark:hover:bg-zinc-800 hover:text-[#8B004A]'
               }`}
             >
-              <item.icon className="w-5 h-5" />
+              <item.icon className={`w-4 h-4 ${section === item.id ? 'scale-110' : ''}`} />
+              <span className="leading-tight text-center truncate w-full">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        {/* Desktop: Vertical sidebar list */}
+        <nav className="hidden lg:flex flex-col gap-2 p-2 bg-white/40 backdrop-blur-sm rounded-2xl border border-white/50">
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => handleTabChange(item.id)}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold whitespace-nowrap transition-all group ${
+                section === item.id
+                  ? 'bg-[#8B004A] text-zinc-100 shadow-lg shadow-[#8B004A]/30 scale-[1.02]'
+                  : 'text-slate-600 hover:bg-white hover:text-[#8B004A] hover:shadow-md'
+              }`}
+            >
+              <item.icon className={`w-4 h-4 transition-transform duration-500 ${section === item.id ? 'scale-110' : 'group-hover:rotate-12'}`} />
               {item.label}
             </button>
           ))}
@@ -136,7 +155,7 @@ export function OverviewSection({ overview }: { overview: any }) {
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         <KPICard 
           title="Net Earnings" 
           value={`₹${(overview.netEarnings || 0).toLocaleString()}`} 
@@ -337,30 +356,30 @@ function CustomTooltip({ active, payload, label }: any) {
 
 function KPICard({ title, value, icon: Icon, trend, trendLabel, subtitle, description, gradient }: any) {
   return (
-    <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-xl rounded-3xl overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-1 group">
+    <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-xl rounded-2xl sm:rounded-3xl overflow-hidden hover:shadow-2xl transition-all duration-500 hover:-translate-y-1 group">
       <CardContent className="p-0">
         <div className={`h-1.5 w-full bg-gradient-to-r ${gradient}`} />
-        <div className="p-6">
-          <div className="flex justify-between items-start mb-4">
-            <div className={`p-3 rounded-2xl bg-slate-50 group-hover:scale-110 transition-transform duration-500`}>
-              <Icon className="w-6 h-6 text-slate-600" />
+        <div className="p-3 sm:p-6">
+          <div className="flex justify-between items-start mb-2 sm:mb-4">
+            <div className={`p-1.5 sm:p-3 rounded-lg sm:rounded-2xl bg-slate-50 dark:bg-zinc-800/50 group-hover:scale-110 transition-transform duration-500`}>
+              <Icon className="w-4 h-4 sm:w-6 sm:h-6 text-slate-600 dark:text-zinc-300" />
             </div>
             {trend && (
-              <div className="flex items-center gap-1 bg-green-50 text-green-600 px-2.5 py-1 rounded-full text-xs font-black">
-                <TrendingUp className="w-3 h-3" />
+              <div className="flex items-center gap-0.5 sm:gap-1 bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-xs font-black">
+                <TrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                 {trend}
               </div>
             )}
           </div>
-          <div className="space-y-1">
-            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">{title}</p>
-            <p className="text-3xl font-black text-slate-900 tracking-tighter">{value}</p>
+          <div className="space-y-0.5 sm:space-y-1">
+            <p className="text-[9px] sm:text-xs font-black text-slate-400 dark:text-zinc-500 uppercase tracking-widest">{title}</p>
+            <p className="text-lg sm:text-3xl font-black text-slate-900 dark:text-zinc-100 tracking-tighter truncate">{value}</p>
           </div>
           {description && (
-            <p className="text-[10px] text-slate-500 font-bold mt-4 uppercase tracking-tighter">{description}</p>
+            <p className="text-[8px] sm:text-[10px] text-slate-500 dark:text-zinc-400 font-bold mt-2 sm:mt-4 uppercase tracking-tighter">{description}</p>
           )}
           {subtitle && (
-            <p className="text-xs text-slate-400 font-bold mt-2">{subtitle}</p>
+            <p className="text-[10px] sm:text-xs text-slate-400 dark:text-zinc-500 font-bold mt-1 sm:mt-2">{subtitle}</p>
           )}
         </div>
       </CardContent>
@@ -417,7 +436,54 @@ export function LedgerSection() {
         </div>
       </div>
 
-      <Card className="overflow-hidden border-0 shadow-lg">
+      {/* Mobile View: Card List */}
+      <div className="space-y-4 md:hidden">
+        {ledger?.entries?.map((row: any) => {
+          const rowDate = new Date(row.bookingDate);
+          const formattedDate = `${rowDate.toLocaleDateString()} ${rowDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+          return (
+            <Card key={row.id} className={`p-4 border-l-4 transition-all hover:shadow-md ${
+              row.colorCode === 'green' ? 'border-l-emerald-500 bg-emerald-50/10' : 
+              row.colorCode === 'red' ? 'border-l-red-500 bg-red-50/10' : 
+              row.colorCode === 'amber' ? 'border-l-amber-500 bg-amber-50/10' : 'border-l-slate-300'
+            }`}>
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <span className="text-[10px] font-mono text-muted-foreground">{formattedDate}</span>
+                  <h4 className="font-bold text-sm text-foreground mt-0.5">{row.customerName}</h4>
+                  <p className="text-xs text-muted-foreground">{row.serviceName}</p>
+                </div>
+                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+                  row.paymentStatus === 'completed' ? 'bg-green-100 text-green-800' : 
+                  row.paymentStatus === 'pending' ? 'bg-orange-100 text-orange-800' : 
+                  row.paymentStatus === 'cancelled' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'
+                }`}>
+                  {row.paymentStatus}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/40 text-center">
+                <div>
+                  <p className="text-[9px] font-black text-muted-foreground uppercase">Amount</p>
+                  <p className="text-xs font-bold text-foreground">₹{row.totalAmount}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black text-muted-foreground uppercase">Net Earned</p>
+                  <p className="text-xs font-bold text-green-600">₹{row.netEarned}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-black text-muted-foreground uppercase">Due</p>
+                  <p className={`text-xs font-bold ${row.dueAmount > 0 ? 'text-red-600' : 'text-muted-foreground'}`}>
+                    {row.dueAmount > 0 ? `₹${row.dueAmount}` : '-'}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Desktop Table View */}
+      <Card className="overflow-hidden border-0 shadow-lg hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="bg-slate-900 text-white uppercase text-xs">
@@ -604,7 +670,50 @@ function VehicleOperationsHistory() {
   return (
     <div className="mt-12 space-y-4">
       <h3 className="text-xl font-bold tracking-tight">Operations Ledger</h3>
-      <Card className="border-0 shadow-lg overflow-hidden bg-white/80 backdrop-blur-xl">
+      {/* Mobile View: Operations Cards */}
+      <div className="space-y-3 md:hidden">
+        {operations?.map((op: any) => (
+          <Card key={op.id} className="p-4 hover:shadow-md transition-shadow">
+            <div className="flex justify-between items-start mb-2">
+              <div>
+                <span className="text-[10px] text-muted-foreground">{new Date(op.created_at).toLocaleString()}</span>
+                <h4 className="font-bold text-sm text-foreground mt-0.5">{op.vehicle?.name}</h4>
+                <p className="text-[10px] font-mono text-muted-foreground">{op.vehicle?.registration_number}</p>
+              </div>
+              <Badge variant="outline" className={`text-[10px] ${
+                op.operation_type === 'dispatch' ? 'bg-orange-50 text-orange-700 border-orange-200' : 
+                op.operation_type === 'return' ? 'bg-green-50 text-green-700 border-green-200' : 
+                'bg-purple-50 text-purple-700 border-purple-200'
+              }`}>
+                {op.operation_type.replace('_', ' ').toUpperCase()}
+              </Badge>
+            </div>
+            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/40 text-xs">
+              <div>
+                <span className="text-muted-foreground">Customer: </span>
+                <span className="font-semibold text-foreground">{op.booking?.user?.name || '-'}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Odometer: </span>
+                <span className="font-semibold text-foreground font-mono">{op.odometer ? `${op.odometer} km` : '-'}</span>
+              </div>
+            </div>
+            {op.notes && (
+              <div className="mt-2 p-2 bg-slate-50 dark:bg-zinc-900 rounded text-xs text-muted-foreground italic">
+                {op.notes}
+              </div>
+            )}
+          </Card>
+        ))}
+        {(!operations || operations.length === 0) && (
+          <div className="text-center py-8 text-muted-foreground text-xs">
+            No operations history found.
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Table View */}
+      <Card className="border-0 shadow-lg overflow-hidden bg-white/80 backdrop-blur-xl hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-100">
@@ -714,13 +823,14 @@ export function RoomsSection() {
 export function LaundrySection() {
   const { data: laundry } = useVendorLaundryOrders(1, 100);
   const updateStatus = useUpdateVendorOrderStatus();
+  const [activeStage, setActiveStage] = useState('placed');
 
   const stages = [
-    { id: 'placed', label: 'New Orders', color: 'bg-blue-100 border-blue-200' },
-    { id: 'processing', label: 'Washing', color: 'bg-indigo-100 border-indigo-200' },
-    { id: 'in_progress', label: 'Ironing/Folding', color: 'bg-purple-100 border-purple-200' },
-    { id: 'out_for_delivery', label: 'Out for Delivery', color: 'bg-orange-100 border-orange-200' },
-    { id: 'delivered', label: 'Completed', color: 'bg-green-100 border-green-200' }
+    { id: 'placed', label: 'New', fullLabel: 'New Orders', color: 'bg-blue-100 border-blue-200 text-blue-800' },
+    { id: 'processing', label: 'Washing', fullLabel: 'Washing', color: 'bg-indigo-100 border-indigo-200 text-indigo-800' },
+    { id: 'in_progress', label: 'Ironing', fullLabel: 'Ironing/Folding', color: 'bg-purple-100 border-purple-200 text-purple-800' },
+    { id: 'out_for_delivery', label: 'Delivery', fullLabel: 'Out for Delivery', color: 'bg-orange-100 border-orange-200 text-orange-800' },
+    { id: 'delivered', label: 'Done', fullLabel: 'Completed', color: 'bg-green-100 border-green-200 text-green-800' }
   ];
 
   return (
@@ -734,41 +844,111 @@ export function LaundrySection() {
         )}
       </div>
 
-      <div className="flex gap-4 overflow-x-auto pb-4 snap-x">
+      {/* Mobile Stage Selector Tab Strip */}
+      <div className="flex md:hidden gap-1.5 overflow-x-auto pb-2 scrollbar-hide">
         {stages.map(stage => {
-          const stageOrders = laundry?.orders?.filter((o: any) => o.status === stage.id) || [];
+          const count = laundry?.orders?.filter((o: any) => o.status === stage.id).length || 0;
+          const isActive = activeStage === stage.id;
           return (
-            <div key={stage.id} className="w-[300px] shrink-0 snap-center flex flex-col h-[calc(100vh-200px)]">
-              <div className={`p-3 rounded-t-xl border-t border-l border-r font-bold flex justify-between ${stage.color}`}>
-                <span>{stage.label}</span>
-                <span className="bg-white/50 px-2 rounded-full text-xs flex items-center">{stageOrders.length}</span>
-              </div>
-              <div className="bg-slate-50 border p-3 flex-1 overflow-y-auto rounded-b-xl space-y-3">
-                {stageOrders.map((order: any) => (
-                  <Card key={order._id} className="shadow-sm cursor-grab hover:border-blue-300 transition-colors">
-                    <CardContent className="p-3">
-                      <div className="font-semibold text-sm mb-1">{order.userId?.name}</div>
-                      <div className="text-xs text-muted-foreground mb-3">{order.items.length} items • {order.pickupType}</div>
-                      
-                      {/* Quick Action Buttons to move forward */}
-                      <div className="flex gap-1 mt-2">
-                        {stage.id === 'placed' && <Button size="sm" variant="secondary" className="w-full h-7 text-xs" onClick={() => updateStatus.mutate({ id: order._id, status: 'processing' })}>Start Wash</Button>}
-                        {stage.id === 'processing' && <Button size="sm" variant="secondary" className="w-full h-7 text-xs" onClick={() => updateStatus.mutate({ id: order._id, status: 'in_progress' })}>To Ironing</Button>}
-                        {stage.id === 'in_progress' && <Button size="sm" variant="secondary" className="w-full h-7 text-xs" onClick={() => updateStatus.mutate({ id: order._id, status: 'out_for_delivery' })}>Send Out</Button>}
-                        {stage.id === 'out_for_delivery' && <Button size="sm" className="w-full h-7 text-xs bg-green-600 hover:bg-green-700" onClick={() => updateStatus.mutate({ id: order._id, status: 'delivered' })}>Mark Delivered</Button>}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-                {stageOrders.length === 0 && (
-                  <div className="text-center p-4 text-xs text-muted-foreground font-medium border-2 border-dashed border-slate-200 rounded-lg">
-                    No orders
-                  </div>
-                )}
-              </div>
-            </div>
+            <button
+              key={stage.id}
+              onClick={() => setActiveStage(stage.id)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-black uppercase whitespace-nowrap transition-all ${
+                isActive
+                  ? 'bg-[#8B004A] text-white shadow-md'
+                  : 'bg-white/50 text-slate-500 border border-slate-200 hover:bg-white dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700'
+              }`}
+            >
+              <span>{stage.label}</span>
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+                isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600 dark:bg-zinc-700 dark:text-zinc-300'
+              }`}>{count}</span>
+            </button>
           );
         })}
+      </div>
+
+      {/* Kanban Board Container */}
+      <div>
+        {/* Mobile View: Single Column matching activeStage */}
+        <div className="block md:hidden mt-4">
+          {stages.filter(s => s.id === activeStage).map(stage => {
+            const stageOrders = laundry?.orders?.filter((o: any) => o.status === stage.id) || [];
+            return (
+              <div key={stage.id} className="flex flex-col w-full">
+                <div className={`p-3.5 rounded-t-xl border-t border-l border-r font-bold flex justify-between items-center ${stage.color}`}>
+                  <span className="text-sm uppercase tracking-wider">{stage.fullLabel}</span>
+                  <span className="bg-white/80 dark:bg-zinc-800/80 px-2.5 py-0.5 rounded-full text-xs font-black shadow-sm">{stageOrders.length}</span>
+                </div>
+                <div className="bg-white/30 dark:bg-zinc-900/30 backdrop-blur-sm border p-4 flex-1 rounded-b-xl space-y-3 min-h-[300px]">
+                  {stageOrders.map((order: any) => (
+                    <Card key={order._id} className="shadow-sm border border-slate-100 dark:border-zinc-800/50 hover:border-[#8B004A]/30 transition-all duration-300">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-1.5">
+                          <div className="font-bold text-sm text-foreground">{order.userId?.name}</div>
+                          <div className="text-[10px] font-mono text-muted-foreground">{new Date(order.createdAt).toLocaleDateString()}</div>
+                        </div>
+                        <div className="text-xs text-muted-foreground mb-3 font-semibold">{order.items.length} items • {order.pickupType}</div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-black text-[#8B004A]">₹{order.totalAmount}</span>
+                          {/* Quick Action Button */}
+                          <div className="w-1/2">
+                            {stage.id === 'placed' && <Button size="sm" variant="secondary" className="w-full h-8 text-xs font-bold" onClick={() => updateStatus.mutate({ id: order._id, status: 'processing' })}>Start Wash</Button>}
+                            {stage.id === 'processing' && <Button size="sm" variant="secondary" className="w-full h-8 text-xs font-bold" onClick={() => updateStatus.mutate({ id: order._id, status: 'in_progress' })}>To Ironing</Button>}
+                            {stage.id === 'in_progress' && <Button size="sm" variant="secondary" className="w-full h-8 text-xs font-bold" onClick={() => updateStatus.mutate({ id: order._id, status: 'out_for_delivery' })}>Send Out</Button>}
+                            {stage.id === 'out_for_delivery' && <Button size="sm" className="w-full h-8 text-xs font-bold bg-green-600 hover:bg-green-700 text-white" onClick={() => updateStatus.mutate({ id: order._id, status: 'delivered' })}>Mark Delivered</Button>}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  {stageOrders.length === 0 && (
+                    <div className="text-center py-12 text-xs text-muted-foreground font-semibold border-2 border-dashed border-slate-200 dark:border-zinc-800/80 rounded-xl">
+                      No orders in this stage
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Desktop View: Full 5-column Board */}
+        <div className="hidden md:flex gap-4 overflow-x-auto pb-4 snap-x">
+          {stages.map(stage => {
+            const stageOrders = laundry?.orders?.filter((o: any) => o.status === stage.id) || [];
+            return (
+              <div key={stage.id} className="w-[300px] shrink-0 snap-center flex flex-col h-[calc(100vh-220px)]">
+                <div className={`p-3 rounded-t-xl border-t border-l border-r font-bold flex justify-between ${stage.color}`}>
+                  <span>{stage.fullLabel}</span>
+                  <span className="bg-white/50 px-2 rounded-full text-xs flex items-center">{stageOrders.length}</span>
+                </div>
+                <div className="bg-slate-50 dark:bg-zinc-900 border p-3 flex-1 overflow-y-auto rounded-b-xl space-y-3">
+                  {stageOrders.map((order: any) => (
+                    <Card key={order._id} className="shadow-sm cursor-grab hover:border-[#8B004A]/30 transition-colors">
+                      <CardContent className="p-3">
+                        <div className="font-semibold text-sm mb-1">{order.userId?.name}</div>
+                        <div className="text-xs text-muted-foreground mb-3">{order.items.length} items • {order.pickupType}</div>
+                        
+                        <div className="flex gap-1 mt-2">
+                          {stage.id === 'placed' && <Button size="sm" variant="secondary" className="w-full h-7 text-xs" onClick={() => updateStatus.mutate({ id: order._id, status: 'processing' })}>Start Wash</Button>}
+                          {stage.id === 'processing' && <Button size="sm" variant="secondary" className="w-full h-7 text-xs" onClick={() => updateStatus.mutate({ id: order._id, status: 'in_progress' })}>To Ironing</Button>}
+                          {stage.id === 'in_progress' && <Button size="sm" variant="secondary" className="w-full h-7 text-xs" onClick={() => updateStatus.mutate({ id: order._id, status: 'out_for_delivery' })}>Send Out</Button>}
+                          {stage.id === 'out_for_delivery' && <Button size="sm" className="w-full h-7 text-xs bg-green-600 hover:bg-green-700 text-white" onClick={() => updateStatus.mutate({ id: order._id, status: 'delivered' })}>Mark Delivered</Button>}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  {stageOrders.length === 0 && (
+                    <div className="text-center p-4 text-xs text-muted-foreground font-medium border-2 border-dashed border-slate-200 dark:border-zinc-800/80 rounded-lg">
+                      No orders
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

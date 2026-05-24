@@ -209,8 +209,30 @@ function UserDashboard() {
                 <p className="text-muted-foreground text-sm mt-1">Browse vehicles or rooms to make your first booking.</p>
               </Card>
             ) : (
-              <Card className="overflow-hidden">
-                <div className="overflow-x-auto">
+              <Card className="overflow-hidden bg-transparent border-0 md:border md:bg-card">
+                {/* Mobile View */}
+                <div className="space-y-4 md:hidden">
+                  {bookings.map((b: any) => (
+                    <Card key={b._id} className="p-4 hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h4 className="font-bold text-sm text-foreground">
+                            {b.serviceType === 'vehicle' ? '🚗' : '🏠'} {b.serviceId?.name || b.serviceId?.title || 'N/A'}
+                          </h4>
+                          <span className="text-[10px] text-muted-foreground">{new Date(b.startDate).toLocaleDateString()} – {new Date(b.endDate).toLocaleDateString()}</span>
+                        </div>
+                        <StatusBadge status={b.status} />
+                      </div>
+                      <div className="flex justify-between items-center pt-2 border-t border-border/40 text-xs">
+                        <span className="text-muted-foreground">Amount:</span>
+                        <span className="font-bold text-foreground">₹{b.totalAmount}</span>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Desktop View */}
+                <div className="overflow-x-auto hidden md:block">
                   <table className="w-full text-sm">
                     <thead className="bg-muted/50"><tr>
                       <th className="px-4 py-3 text-left font-medium">Item</th>
@@ -247,8 +269,28 @@ function UserDashboard() {
                 <p className="text-muted-foreground text-sm mt-1">Place an order from the Laundry section.</p>
               </Card>
             ) : (
-              <Card className="overflow-hidden">
-                <div className="overflow-x-auto">
+              <Card className="overflow-hidden bg-transparent border-0 md:border md:bg-card">
+                {/* Mobile View */}
+                <div className="space-y-4 md:hidden">
+                  {laundryOrders.map((o: any) => (
+                    <Card key={o._id} className="p-4 hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h4 className="font-bold text-sm text-foreground">{o.laundryServiceId?.name || 'Service'}</h4>
+                          <span className="text-[10px] text-muted-foreground">{new Date(o.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <StatusBadge status={o.status} />
+                      </div>
+                      <div className="flex justify-between items-center pt-2 border-t border-border/40 text-xs">
+                        <span className="text-muted-foreground">{o.items?.length || 0} items</span>
+                        <span className="font-bold text-foreground">₹{o.totalAmount}</span>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Desktop View */}
+                <div className="overflow-x-auto hidden md:block">
                   <table className="w-full text-sm">
                     <thead className="bg-muted/50"><tr>
                       <th className="px-4 py-3 text-left font-medium">Service</th>
@@ -410,10 +452,28 @@ function VendorDashboard() {
   });
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 bg-slate-50/50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 p-4 rounded-xl min-h-screen">
-      {/* Sidebar */}
+    <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 bg-slate-50/50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 p-2 sm:p-4 rounded-xl min-h-screen">
+      {/* Sidebar — mobile: icon pill grid, desktop: vertical list */}
       <aside className="lg:w-64 shrink-0">
-        <nav className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0 p-2 bg-white/40 backdrop-blur-sm rounded-2xl border border-white/50">
+        {/* Mobile: Compact icon pill grid */}
+        <nav className="grid grid-cols-3 gap-1.5 lg:hidden p-2 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm rounded-2xl border border-white/50 dark:border-white/10">
+          {filteredSections.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => handleTabChange(s.id)}
+              className={`flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl text-[10px] font-bold transition-all duration-300 ${section === s.id
+                  ? 'bg-[#8B004A] text-white shadow-lg shadow-[#8B004A]/20 scale-[1.03]'
+                  : 'text-slate-500 dark:text-zinc-400 hover:bg-white/60 dark:hover:bg-zinc-800 hover:text-[#8B004A]'
+                }`}
+            >
+              <s.icon className={`w-4 h-4 ${section === s.id ? 'scale-110' : ''}`} />
+              <span className="leading-tight text-center truncate w-full">{s.label.replace(' & ', ' ')}</span>
+            </button>
+          ))}
+        </nav>
+
+        {/* Desktop: Vertical sidebar list */}
+        <nav className="hidden lg:flex flex-col gap-2 p-2 bg-white/40 backdrop-blur-sm rounded-2xl border border-white/50">
           {filteredSections.map((s) => (
             <button
               key={s.id}
@@ -429,9 +489,9 @@ function VendorDashboard() {
           ))}
         </nav>
 
-        {/* Vendor Status */}
+        {/* Vendor Status — hidden on mobile to save space */}
         {vendorProfile && (
-          <Card className="mt-4 p-4">
+          <Card className="mt-4 p-4 hidden lg:block">
             <p className="text-xs text-muted-foreground mb-1">Vendor Status</p>
             <StatusBadge status={vendorProfile.approvalStatus || 'pending'} />
             {vendorProfile.businessName && (
@@ -444,17 +504,17 @@ function VendorDashboard() {
       {/* Content */}
       <div className="flex-1 space-y-6">
         {/* Quick Actions Header */}
-        <div className="bg-white/50 backdrop-blur-md p-8 rounded-3xl border border-white/20 shadow-xl flex flex-wrap items-center justify-between gap-6">
+        <div className="bg-white/50 dark:bg-zinc-900/50 backdrop-blur-md p-4 sm:p-6 lg:p-8 rounded-2xl lg:rounded-3xl border border-white/20 dark:border-white/10 shadow-xl flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center justify-between gap-4 lg:gap-6">
           <div className="space-y-1">
-            <h1 className="text-3xl font-black tracking-tighter text-[#8B004A]">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black tracking-tighter text-[#8B004A]">
               Welcome back, {user?.name?.split(' ')[0] || 'Vendor'} 👋
             </h1>
-            <p className="text-sm text-slate-500 font-medium flex items-center gap-2">
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 font-medium flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              Your command center is online and synchronized.
+              Command center online.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
             {vendorProfile?.serviceType?.toLowerCase() === 'vehicle' && (
               <div className="p-1 rounded-2xl bg-[#8B004A]/5 border border-[#8B004A]/10">
                 <AddVehicleDialog />
@@ -465,7 +525,7 @@ function VendorDashboard() {
                 <AddHouseDialog />
               </div>
             )}
-            <Button asChild variant="outline" className="rounded-xl h-11 border-[#8B004A]/20 text-[#8B004A] hover:bg-[#8B004A] hover:text-white transition-all font-bold">
+            <Button asChild variant="outline" className="rounded-xl h-9 sm:h-11 text-xs sm:text-sm border-[#8B004A]/20 text-[#8B004A] hover:bg-[#8B004A] hover:text-white transition-all font-bold">
               <Link href="/profile">Profile Settings</Link>
             </Button>
           </div>
@@ -607,8 +667,57 @@ function VendorDashboard() {
                 <p className="text-muted-foreground text-sm mt-1">Customers will book your listings — requests appear here.</p>
               </Card>
             ) : (
-              <Card className="overflow-hidden">
-                <div className="overflow-x-auto">
+              <Card className="overflow-hidden bg-transparent border-0 md:border md:bg-card">
+                {/* Mobile View */}
+                <div className="space-y-4 md:hidden">
+                  {bookings.map((b: any) => (
+                    <Card key={b._id} className="p-4 hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h4 className="font-bold text-sm text-foreground">{b.userId?.name || 'Customer'}</h4>
+                          <p className="text-xs text-muted-foreground font-semibold mt-0.5">
+                            {b.serviceType === 'vehicle' ? '🚗' : '🏠'} {b.serviceId?.name || b.serviceId?.title || 'N/A'}
+                          </p>
+                        </div>
+                        <StatusBadge status={b.status} />
+                      </div>
+                      <div className="space-y-1.5 pt-2 border-t border-border/40 text-xs text-muted-foreground mb-3">
+                        <div className="flex justify-between">
+                          <span>Dates:</span>
+                          <span className="font-bold text-foreground">{new Date(b.startDate).toLocaleDateString()} – {new Date(b.endDate).toLocaleDateString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Total Amount:</span>
+                          <span className="font-black text-[#8B004A]">₹{b.totalAmount}</span>
+                        </div>
+                      </div>
+                      {b.status === 'pending' && (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            className="flex-1 h-8 text-xs font-bold bg-green-600 hover:bg-green-700 text-white"
+                            onClick={(e) => { e.stopPropagation(); updateBookingStatus.mutate({ bookingId: b._id, status: 'confirmed' }); }}
+                            disabled={updateBookingStatus.isPending}
+                          >
+                            Accept
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 h-8 text-xs font-bold text-red-600 hover:bg-red-50 border-red-200"
+                            onClick={(e) => { e.stopPropagation(); updateBookingStatus.mutate({ bookingId: b._id, status: 'cancelled' }); }}
+                            disabled={updateBookingStatus.isPending}
+                          >
+                            Reject
+                          </Button>
+                        </div>
+                      )}
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Desktop View */}
+                <div className="overflow-x-auto hidden md:block">
                   <table className="w-full text-sm">
                     <thead className="bg-muted/50"><tr>
                       <th className="px-4 py-3 text-left font-medium">Customer</th>
@@ -672,8 +781,49 @@ function VendorDashboard() {
                 <p className="text-muted-foreground text-sm mt-1">Users can make offers on your marketplace items.</p>
               </Card>
             ) : (
-              <Card className="overflow-hidden">
-                <div className="overflow-x-auto">
+              <Card className="overflow-hidden bg-transparent border-0 md:border md:bg-card">
+                {/* Mobile View */}
+                <div className="space-y-4 md:hidden">
+                  {vendorOffers.map((o: any) => (
+                    <Card key={o._id} className="p-4 hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h4 className="font-bold text-sm text-foreground">{o.buyerId?.name || 'Buyer'}</h4>
+                          <p className="text-xs text-muted-foreground font-semibold mt-0.5">🛍️ {o.itemId?.title || 'Unknown Item'}</p>
+                        </div>
+                        <StatusBadge status={o.status} />
+                      </div>
+                      <div className="flex justify-between items-center pt-2 border-t border-border/40 text-xs mb-3">
+                        <span className="text-muted-foreground">Offered Price:</span>
+                        <span className="font-black text-[#8B004A]">₹{o.offeredPrice}</span>
+                      </div>
+                      {o.status === 'pending' && (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            className="flex-1 h-8 text-xs font-bold bg-green-600 hover:bg-green-700 text-white"
+                            onClick={(e) => { e.stopPropagation(); updateOfferStatus.mutate({ id: o._id, status: 'accepted' }); }}
+                            disabled={updateOfferStatus.isPending}
+                          >
+                            Accept
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 h-8 text-xs font-bold text-red-600 hover:bg-red-50 border-red-200"
+                            onClick={(e) => { e.stopPropagation(); updateOfferStatus.mutate({ id: o._id, status: 'rejected' }); }}
+                            disabled={updateOfferStatus.isPending}
+                          >
+                            Reject
+                          </Button>
+                        </div>
+                      )}
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Desktop View */}
+                <div className="overflow-x-auto hidden md:block">
                   <table className="w-full text-sm">
                     <thead className="bg-muted/50"><tr>
                       <th className="px-4 py-3 text-left font-medium">Buyer</th>
@@ -741,8 +891,31 @@ function VendorDashboard() {
                 <p className="text-muted-foreground text-sm mt-1">When users pay for your bookings, transactions appear here.</p>
               </Card>
             ) : (
-              <Card className="overflow-hidden">
-                <div className="overflow-x-auto">
+              <Card className="overflow-hidden bg-transparent border-0 md:border md:bg-card">
+                {/* Mobile View */}
+                <div className="space-y-4 md:hidden">
+                  {payments.map((p: any) => (
+                    <Card key={p.id} className="p-4 hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <span className="text-[10px] text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</span>
+                          <h4 className="font-bold text-sm text-foreground mt-0.5">{p.user?.name || 'Customer'}</h4>
+                          <p className="text-[10px] text-muted-foreground">{p.user?.email}</p>
+                        </div>
+                        <Badge variant={p.status === 'captured' ? 'default' : 'secondary'} className={p.status === 'captured' ? 'bg-green-100 text-green-700' : ''}>
+                          {p.status}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between items-center pt-2 border-t border-border/40 text-xs">
+                        <span className="text-muted-foreground font-mono">Booking: {p.booking_id.slice(0, 8)}...</span>
+                        <span className="font-bold text-green-600">₹{p.amount}</span>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Desktop View */}
+                <div className="overflow-x-auto hidden md:block">
                   <table className="w-full text-sm">
                     <thead className="bg-muted/50"><tr>
                       <th className="px-4 py-3 text-left font-medium">Date</th>
@@ -807,8 +980,30 @@ function UserDashboardOrders() {
           <p className="text-muted-foreground text-sm mt-1">Browse vehicles or rooms to make your first booking.</p>
         </Card>
       ) : (
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
+        <Card className="overflow-hidden bg-transparent border-0 md:border md:bg-card">
+          {/* Mobile View */}
+          <div className="space-y-4 md:hidden">
+            {bookings.map((b: any) => (
+              <Card key={b._id} className="p-4 hover:shadow-md transition-shadow">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <h4 className="font-bold text-sm text-foreground">
+                      {b.serviceType === 'vehicle' ? '🚗' : '🏠'} {b.serviceId?.name || b.serviceId?.title || 'N/A'}
+                    </h4>
+                    <span className="text-[10px] text-muted-foreground">{new Date(b.startDate).toLocaleDateString()} – {new Date(b.endDate).toLocaleDateString()}</span>
+                  </div>
+                  <StatusBadge status={b.status} />
+                </div>
+                <div className="flex justify-between items-center pt-2 border-t border-border/40 text-xs">
+                  <span className="text-muted-foreground">Amount:</span>
+                  <span className="font-bold text-foreground">₹{b.totalAmount}</span>
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Desktop View */}
+          <div className="overflow-x-auto hidden md:block">
             <table className="w-full text-sm">
               <thead className="bg-muted/50"><tr>
                 <th className="px-4 py-3 text-left font-medium">Item</th>

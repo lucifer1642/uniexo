@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 export interface Vehicle {
     id: string;
@@ -52,7 +52,6 @@ function mapVehicle(v: any): Vehicle {
 }
 
 export const useDeleteVehicle = () => {
-    const { useQueryClient, useMutation } = require('@tanstack/react-query');
     const queryClient = useQueryClient();
 
     return useMutation({

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, ShieldCheck, User, ArrowLeft, Zap, Home, Car, Bell, LayoutGrid } from 'lucide-react';
+import { Menu, X, ShieldCheck, User, ArrowLeft, Zap, Home, Car, Bell, LayoutGrid, ShoppingBag, LayoutDashboard, Store } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -16,9 +16,16 @@ import { ThemeToggle } from './theme-toggle';
 import { UniExoBrand } from './brand';
 import { haptics } from '@/lib/haptics';
 
-const BOTTOM_NAV_ITEMS = [
+const USER_NAV_ITEMS = [
   { href: '/', icon: Home, label: 'Home' },
   { href: '/vehicles', icon: Car, label: 'Services' },
+  { href: '/orders', icon: ShoppingBag, label: 'Orders' },
+  { href: '#profile', icon: User, label: 'Profile' },
+];
+
+const VENDOR_NAV_ITEMS = [
+  { href: '/', icon: Home, label: 'Home' },
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '#notifications', icon: Bell, label: 'Alerts' },
   { href: '#profile', icon: User, label: 'Profile' },
 ];
@@ -48,8 +55,19 @@ export function Navbar() {
   const getActiveTab = () => {
     if (pathname === '/') return '/';
     if (['/vehicles', '/houses', '/marketplace', '/laundry'].some(p => pathname.startsWith(p))) return '/vehicles';
+    if (pathname.startsWith('/orders')) return '/orders';
+    if (pathname.startsWith('/dashboard')) return '/dashboard';
     return pathname;
   };
+
+  const getBottomNavItems = () => {
+    if (!user) return USER_NAV_ITEMS;
+    if (user.role === 'vendor') return VENDOR_NAV_ITEMS;
+    return USER_NAV_ITEMS;
+  };
+
+  const bottomNavItems = getBottomNavItems();
+  const isAdmin = user?.role === 'admin';
 
   const handleBottomNavTap = (href: string) => {
     haptics.selection();
@@ -142,6 +160,12 @@ export function Navbar() {
             <div className="flex md:hidden items-center gap-2">
               {isAuthenticated && user ? (
                 <>
+                  {user.role === 'vendor' && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-[#8B004A]/20 text-[#8B004A] border border-[#8B004A]/30">
+                      <Store className="w-2.5 h-2.5" />
+                      Vendor
+                    </span>
+                  )}
                   <NotificationCenter />
                   <ThemeToggle />
                   <Button
@@ -173,11 +197,11 @@ export function Navbar() {
       </nav>
 
       {/* ── Mobile Bottom Navigation Bar ───────────────────────── */}
-      {isAuthenticated && (
+      {isAuthenticated && !isAdmin && (
         <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden theme-landing">
           <div className="bg-background/80 backdrop-blur-xl border-t border-border px-2 pb-safe">
             <div className="flex items-center justify-around h-[4.25rem]">
-              {BOTTOM_NAV_ITEMS.map((item) => {
+              {bottomNavItems.map((item) => {
                 const isActive = item.href === getActiveTab();
                 const Icon = item.icon;
                 
