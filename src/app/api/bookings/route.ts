@@ -8,14 +8,54 @@ export const GET = withAuth(async (req: Request, user: any) => {
     if (user.role === 'admin') {
       const url = new URL(req.url);
       const status = url.searchParams.get('status');
-      let query = require('@/lib/supabase-admin').supabaseAdmin.from('bookings').select('*, user:profiles!user_id(*), vehicle:vehicles!service_id(*)', { count: 'exact' });
+      let query = require('@/lib/supabase-admin').supabaseAdmin
+        .from('bookings')
+        .select('*, user:profiles!user_id(*)', { count: 'exact' })
+        .order('created_at', { ascending: false });
       if (status && status !== 'all') query = query.eq('status', status);
-      const { data } = await query;
-      return NextResponse.json({ success: true, data: { data } }, { status: 200 });
+      const { data: bookings, error } = await query;
+      
+      if (error || !bookings) {
+        return NextResponse.json({ success: true, data: { data: [] } }, { status: 200 });
+      }
+
+      // Programmatic enrichment
+      const vehicleIds = bookings.filter((b: any) => b.service_type === 'vehicle').map((b: any) => b.service_id);
+      const houseIds = bookings.filter((b: any) => b.service_type === 'house' || b.service_type === 'room' || b.service_type === 'pg').map((b: any) => b.service_id);
+
+      let vehicles: any[] = [];
+      let houses: any[] = [];
+
+      if (vehicleIds.length > 0) {
+        const { data } = await require('@/lib/supabase-admin').supabaseAdmin.from('vehicles').select('*').in('id', vehicleIds);
+        vehicles = data || [];
+      }
+      if (houseIds.length > 0) {
+        const { data } = await require('@/lib/supabase-admin').supabaseAdmin.from('houses').select('*').in('id', houseIds);
+        houses = data || [];
+      }
+
+      const mappedData = bookings.map((b: any) => {
+        let serviceObj = null;
+        if (b.service_type === 'vehicle') {
+          serviceObj = vehicles.find(x => x.id === b.service_id) || null;
+        } else {
+          serviceObj = houses.find(x => x.id === b.service_id) || null;
+        }
+        return {
+          ...b,
+          serviceId: serviceObj,
+          vehicle: b.service_type === 'vehicle' ? serviceObj : null,
+          house: b.service_type !== 'vehicle' ? serviceObj : null
+        };
+      });
+
+      return NextResponse.json({ success: true, data: { data: mappedData } }, { status: 200 });
     }
     const result = await bookingService.getUserBookings(user.userId);
     return NextResponse.json(result, { status: 200 });
-  } catch {
+  } catch (err: any) {
+    console.error('[API BOOKINGS GET] Error:', err);
     return NextResponse.json({ success: true, data: [] }, { status: 200 });
   }
 });

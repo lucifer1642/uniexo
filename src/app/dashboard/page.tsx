@@ -636,12 +636,22 @@ function VendorDashboard() {
                     <CardContent className="pt-4">
                       <div className="flex justify-between items-start">
                         <div>
-                          <h3 className="font-medium">{h.title}</h3>
-                          <p className="text-xs text-muted-foreground">{h.city}, {h.state} · {h.bedrooms}BHK</p>
+                          <div className="flex items-center gap-1.5">
+                            <h3 className="font-semibold text-sm text-foreground">{h.title}</h3>
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 leading-none capitalize">
+                              {h.propertyType || 'PG'}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">{h.city}, {h.state} · {h.bedrooms}BHK</p>
                         </div>
-                        <span className="text-lg font-bold">₹{h.pricePerMonth}<span className="text-xs font-normal text-muted-foreground">/mo</span></span>
+                        <span className="text-sm font-bold text-foreground">
+                          ₹{h.propertyType === 'room' ? (h.pricePerDay || 0) : (h.pricePerMonth || h.singleSharingPrice || 0)}
+                          <span className="text-[10px] font-normal text-muted-foreground">
+                            /{h.propertyType === 'room' ? 'day' : 'mo'}
+                          </span>
+                        </span>
                       </div>
-                      <div className="flex items-center gap-2 mt-2">
+                      <div className="flex items-center gap-2 mt-3">
                         <StatusBadge status={h.approvalStatus} />
                         <Badge variant={h.isAvailable ? 'outline' : 'secondary'} className="text-xs">
                           {h.isAvailable ? 'Available' : 'Unavailable'}

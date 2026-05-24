@@ -117,9 +117,9 @@ export const bookingService = {
 
   async getUserBookings(userId: string): Promise<{ success: boolean; data?: any[]; error?: string }> {
     try {
-      const { data, error } = await supabaseAdmin
+      const { data: bookings, error } = await supabaseAdmin
         .from('bookings')
-        .select('*, vehicle:vehicles!service_id(id, name, type, brand, model, images, location)')
+        .select('*, user:profiles!user_id(id, name, email, phone)')
         .eq('user_id', userId)
         .order('created_at', { ascending: false });
 
@@ -127,17 +127,63 @@ export const bookingService = {
         console.error('[BOOKING SERVICE] getUserBookings error:', error);
         return { success: true, data: [] };
       }
-      return { success: true, data: data || [] };
-    } catch {
+      if (!bookings || bookings.length === 0) {
+        return { success: true, data: [] };
+      }
+
+      // Enriched service details programmatically
+      const vehicleIds = bookings.filter(b => b.service_type === 'vehicle').map(b => b.service_id);
+      const houseIds = bookings.filter(b => b.service_type === 'house' || b.service_type === 'room' || b.service_type === 'pg').map(b => b.service_id);
+
+      let vehicles: any[] = [];
+      let houses: any[] = [];
+
+      if (vehicleIds.length > 0) {
+        const { data } = await supabaseAdmin
+          .from('vehicles')
+          .select('id, name, type, brand, model, images, location')
+          .in('id', vehicleIds);
+        vehicles = data || [];
+      }
+
+      if (houseIds.length > 0) {
+        const { data } = await supabaseAdmin
+          .from('houses')
+          .select('id, title, property_type, address, city, images')
+          .in('id', houseIds);
+        houses = data || [];
+      }
+
+      const mappedData = bookings.map(b => {
+        let serviceObj = null;
+        if (b.service_type === 'vehicle') {
+          const v = vehicles.find(x => x.id === b.service_id);
+          if (v) serviceObj = { id: v.id, name: v.name, type: v.type, brand: v.brand, model: v.model, images: v.images, location: v.location };
+        } else {
+          const h = houses.find(x => x.id === b.service_id);
+          if (h) serviceObj = { id: h.id, name: h.title, title: h.title, propertyType: h.property_type, address: h.address, city: h.city, images: h.images };
+        }
+
+        return {
+          ...b,
+          serviceId: serviceObj,
+          vehicle: b.service_type === 'vehicle' ? serviceObj : null,
+          house: b.service_type !== 'vehicle' ? serviceObj : null
+        };
+      });
+
+      return { success: true, data: mappedData };
+    } catch (err: any) {
+      console.error('[BOOKING SERVICE] getUserBookings error:', err);
       return { success: true, data: [] };
     }
   },
 
   async getVendorBookings(vendorId: string): Promise<{ success: boolean; data?: any[]; error?: string }> {
     try {
-      const { data, error } = await supabaseAdmin
+      const { data: bookings, error } = await supabaseAdmin
         .from('bookings')
-        .select('*, user:profiles!user_id(id, name, email, phone), vehicle:vehicles!service_id(id, name, type, brand, model)')
+        .select('*, user:profiles!user_id(id, name, email, phone)')
         .eq('vendor_id', vendorId)
         .order('created_at', { ascending: false });
 
@@ -145,8 +191,54 @@ export const bookingService = {
         console.error('[BOOKING SERVICE] getVendorBookings error:', error);
         return { success: true, data: [] };
       }
-      return { success: true, data: data || [] };
-    } catch {
+      if (!bookings || bookings.length === 0) {
+        return { success: true, data: [] };
+      }
+
+      // Enriched service details programmatically
+      const vehicleIds = bookings.filter(b => b.service_type === 'vehicle').map(b => b.service_id);
+      const houseIds = bookings.filter(b => b.service_type === 'house' || b.service_type === 'room' || b.service_type === 'pg').map(b => b.service_id);
+
+      let vehicles: any[] = [];
+      let houses: any[] = [];
+
+      if (vehicleIds.length > 0) {
+        const { data } = await supabaseAdmin
+          .from('vehicles')
+          .select('id, name, type, brand, model, images, location')
+          .in('id', vehicleIds);
+        vehicles = data || [];
+      }
+
+      if (houseIds.length > 0) {
+        const { data } = await supabaseAdmin
+          .from('houses')
+          .select('id, title, property_type, address, city, images')
+          .in('id', houseIds);
+        houses = data || [];
+      }
+
+      const mappedData = bookings.map(b => {
+        let serviceObj = null;
+        if (b.service_type === 'vehicle') {
+          const v = vehicles.find(x => x.id === b.service_id);
+          if (v) serviceObj = { id: v.id, name: v.name, type: v.type, brand: v.brand, model: v.model, images: v.images, location: v.location };
+        } else {
+          const h = houses.find(x => x.id === b.service_id);
+          if (h) serviceObj = { id: h.id, name: h.title, title: h.title, propertyType: h.property_type, address: h.address, city: h.city, images: h.images };
+        }
+
+        return {
+          ...b,
+          serviceId: serviceObj,
+          vehicle: b.service_type === 'vehicle' ? serviceObj : null,
+          house: b.service_type !== 'vehicle' ? serviceObj : null
+        };
+      });
+
+      return { success: true, data: mappedData };
+    } catch (err: any) {
+      console.error('[BOOKING SERVICE] getVendorBookings error:', err);
       return { success: true, data: [] };
     }
   },

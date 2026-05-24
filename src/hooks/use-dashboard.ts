@@ -145,6 +145,11 @@ export const useVendorHouses = (page = 1, limit = 10) => {
                 _id: h.id,
                 pricePerMonth: h.price_per_month,
                 pricePerDay: h.price_per_day,
+                propertyType: h.property_type,
+                singleSharingPrice: h.single_sharing_price,
+                doubleSharingPrice: h.double_sharing_price,
+                tripleSharingPrice: h.triple_sharing_price,
+                securityDeposit: h.security_deposit,
                 approvalStatus: h.approval_status,
                 isAvailable: h.is_available,
             }));
