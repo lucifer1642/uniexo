@@ -20,14 +20,14 @@ const USER_NAV_ITEMS = [
   { href: '/', icon: Home, label: 'Home' },
   { href: '/vehicles', icon: Car, label: 'Services' },
   { href: '/orders', icon: ShoppingBag, label: 'Orders' },
-  { href: '#profile', icon: User, label: 'Profile' },
+  { href: '/profile', icon: User, label: 'Profile' },
 ];
 
 const VENDOR_NAV_ITEMS = [
   { href: '/', icon: Home, label: 'Home' },
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { href: '#notifications', icon: Bell, label: 'Alerts' },
-  { href: '#profile', icon: User, label: 'Profile' },
+  { href: '/notifications', icon: Bell, label: 'Alerts' },
+  { href: '/profile', icon: User, label: 'Profile' },
 ];
 
 export function Navbar() {
@@ -57,6 +57,8 @@ export function Navbar() {
     if (['/vehicles', '/houses', '/marketplace', '/laundry'].some(p => pathname.startsWith(p))) return '/vehicles';
     if (pathname.startsWith('/orders')) return '/orders';
     if (pathname.startsWith('/dashboard')) return '/dashboard';
+    if (pathname.startsWith('/profile')) return '/profile';
+    if (pathname.startsWith('/notifications')) return '/notifications';
     return pathname;
   };
 
@@ -71,13 +73,7 @@ export function Navbar() {
 
   const handleBottomNavTap = (href: string) => {
     haptics.selection();
-    if (href === '#profile') {
-      openProfileSidebar();
-    } else if (href === '#notifications') {
-      openProfileSidebar();
-    } else {
-      router.push(href);
-    }
+    router.push(href);
   };
 
   return (

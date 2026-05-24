@@ -7,10 +7,16 @@ type RealtimeTable = 'bookings' | 'vehicles' | 'houses' | 'wallets' | 'laundry_o
 export const useRealtimeSync = (tables: RealtimeTable[], queryKeys: string[][]) => {
   const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (!tables.length) return;
+  const tablesStr = JSON.stringify(tables);
+  const queryKeysStr = JSON.stringify(queryKeys);
 
-    console.log(`[REALTIME] Subscribing to: ${tables.join(', ')}`);
+  useEffect(() => {
+    const activeTables = JSON.parse(tablesStr) as RealtimeTable[];
+    const activeKeys = JSON.parse(queryKeysStr) as string[][];
+
+    if (!activeTables.length) return;
+
+    console.log(`[REALTIME] Subscribing to: ${activeTables.join(', ')}`);
 
     const channel = supabase
       .channel('db-changes')
@@ -19,11 +25,11 @@ export const useRealtimeSync = (tables: RealtimeTable[], queryKeys: string[][]) 
         { event: '*', schema: 'public' },
         (payload) => {
           const table = payload.table as RealtimeTable;
-          if (tables.includes(table)) {
+          if (activeTables.includes(table)) {
             console.log(`[REALTIME] Change detected in ${table}:`, payload.eventType);
             
             // Invalidate the provided query keys
-            queryKeys.forEach(key => {
+            activeKeys.forEach(key => {
               queryClient.invalidateQueries({ queryKey: key });
             });
             
@@ -43,5 +49,5 @@ export const useRealtimeSync = (tables: RealtimeTable[], queryKeys: string[][]) 
       console.log('[REALTIME] Unsubscribing from channel');
       supabase.removeChannel(channel);
     };
-  }, [tables, queryKeys, queryClient]);
+  }, [tablesStr, queryKeysStr, queryClient]);
 };
